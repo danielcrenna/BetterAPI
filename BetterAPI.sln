@@ -1,0 +1,37 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31005.135
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{873709A6-5111-4F0B-BF96-9BC782AF821E}"
+	ProjectSection(SolutionItems) = preProject
+		LICENSE = LICENSE
+		README.md = README.md
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BetterAPI", "src\BetterAPI\BetterAPI\BetterAPI.csproj", "{DD85AF0D-EF9F-4152-ABE4-CAACB91C4447}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BetterAPI.Tests", "tests\BetterAPI.Tests\BetterAPI.Tests.csproj", "{C1282CBE-4041-4F97-816F-B02D7096321E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{DD85AF0D-EF9F-4152-ABE4-CAACB91C4447}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DD85AF0D-EF9F-4152-ABE4-CAACB91C4447}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DD85AF0D-EF9F-4152-ABE4-CAACB91C4447}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DD85AF0D-EF9F-4152-ABE4-CAACB91C4447}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C1282CBE-4041-4F97-816F-B02D7096321E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C1282CBE-4041-4F97-816F-B02D7096321E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C1282CBE-4041-4F97-816F-B02D7096321E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C1282CBE-4041-4F97-816F-B02D7096321E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {44130FF5-3D64-4C21-A1A1-CFDCCB7E9C22}
+	EndGlobalSection
+EndGlobal
