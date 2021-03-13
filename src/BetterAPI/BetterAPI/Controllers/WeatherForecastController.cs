@@ -70,8 +70,7 @@ namespace BetterAPI.Controllers
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(WeatherForecast), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-        public IActionResult Create([FromBody] WeatherForecast model, [FromHeader(Name = Guidelines.Headers.Prefer)]
-            string prefer)
+        public IActionResult Create([FromBody] WeatherForecast model, [FromHeader(Name = Guidelines.Headers.Prefer)] string prefer)
         {
             if (!TryValidateModel(model))
                 return BadRequest(ModelState);
@@ -80,7 +79,7 @@ namespace BetterAPI.Controllers
                 return BadRequestWithDetails("The weather forecast's ID was uninitialized.");
 
             if (Store.ContainsKey(model.Id))
-                return BadRequestWithDetails("This weather forecast already exists. did you mean to update it?");
+                return BadRequestWithDetails("This weather forecast already exists. Did you mean to update it?");
 
             if (!Store.TryAdd(model.Id, model))
             {
