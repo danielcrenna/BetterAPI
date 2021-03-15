@@ -28,9 +28,7 @@ namespace BetterAPI
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddControllers()
-                // See: https://docs.microsoft.com/en-us/aspnet/core/web-api/handle-errors?view=aspnetcore-5.0#use-apibehavioroptionsclienterrormapping
-                .ConfigureApiBehaviorOptions(o => { });
+            services.AddApiGuidelines();
 
             services.AddSwaggerGen(c =>
             {
@@ -42,7 +40,7 @@ namespace BetterAPI
                 var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
                 c.IncludeXmlComments(xmlPath);
 
-                c.OperationFilter<Guidelines.OperationFilter>();
+                c.OperationFilter<ApiGuidelines.ApiGuidelinesOperationFilter>();
             });
         }
 

@@ -61,7 +61,6 @@ namespace BetterAPI.Controllers
 
         /// <summary> Creates a new weather forecast </summary>
         /// <param name="model">A new weather forecast </param>
-        /// <param name="prefer" example="return=minimal">Apply a preference for the response</param>
         /// <response code="201">Returns the newly created forecast, or an empty body if a minimal return is preferred </response>
         /// <response code="400">There was an error with the request, and further problem details are available </response>
         [HttpPost(Name = "CreateWeatherForecast")]
@@ -70,7 +69,7 @@ namespace BetterAPI.Controllers
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(WeatherForecast), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-        public IActionResult Create([FromBody] WeatherForecast model, [FromHeader(Name = Guidelines.Headers.Prefer)] string prefer)
+        public IActionResult Create([FromBody] WeatherForecast model)
         {
             if (!TryValidateModel(model))
                 return BadRequest(ModelState);
@@ -89,36 +88,9 @@ namespace BetterAPI.Controllers
                     "An unexpected error occurred saving this weather forecast. An error was logged. Please try again later.");
             }
 
-            return CreateWithPrefer(model, prefer);
-        }
-
-        private IActionResult CreateWithPrefer(WeatherForecast model, string prefer)
-        {
-            if (string.IsNullOrWhiteSpace(prefer))
-                return Created(Location(), model);
-
-            foreach (var token in prefer.Split(";",
-                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-            {
-                if (token.Equals(Guidelines.Prefer.ReturnRepresentation, StringComparison.OrdinalIgnoreCase))
-                {
-                    Response.Headers.Add(Guidelines.Headers.PreferenceApplied, Guidelines.Prefer.ReturnRepresentation);
-                    return Created(Location(), model);
-                }
-
-                if (token.Equals(Guidelines.Prefer.ReturnMinimal, StringComparison.OrdinalIgnoreCase))
-                {
-                    Response.Headers.Add(Guidelines.Headers.PreferenceApplied, Guidelines.Prefer.ReturnMinimal);
-                    return Created(Location(), default);
-                }
-            }
-
             return Created(Location(), model);
 
-            string Location()
-            {
-                return $"{Request.Path}/{model.Id}";
-            }
+            string Location() => $"{Request.Path}/{model.Id}";
         }
 
         private IActionResult BadRequestWithDetails(string details) => StatusCodeWithDetails(StatusCodes.Status500InternalServerError, "Bad Request", details);
