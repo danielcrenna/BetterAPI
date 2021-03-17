@@ -38,7 +38,7 @@ namespace BetterAPI.Controllers
         }
 
         /// <summary> Returns all saved weather forecasts </summary>
-        [HttpGet(Name = "GetWeatherForecast")]
+        [HttpGet]
         [Produces(MediaTypeNames.Application.Json)]
         [ProducesResponseType(typeof(IEnumerable<WeatherForecast>), StatusCodes.Status200OK)]
         public IEnumerable<WeatherForecast> Get()
@@ -47,7 +47,7 @@ namespace BetterAPI.Controllers
         }
 
         /// <summary> Returns a saved weather forecast by its unique ID </summary>
-        [HttpGet("{id}", Name = "GetWeatherForecastById")]
+        [HttpGet("{id}")]
         [Produces(MediaTypeNames.Application.Json)]
         [ProducesResponseType(typeof(WeatherForecast), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -63,7 +63,7 @@ namespace BetterAPI.Controllers
         /// <param name="model">A new weather forecast </param>
         /// <response code="201">Returns the newly created forecast, or an empty body if a minimal return is preferred </response>
         /// <response code="400">There was an error with the request, and further problem details are available </response>
-        [HttpPost(Name = "CreateWeatherForecast")]
+        [HttpPost]
         [Consumes(MediaTypeNames.Application.Json)]
         [Produces(MediaTypeNames.Application.Json)]
         [ProducesResponseType(StatusCodes.Status201Created)]
@@ -82,10 +82,8 @@ namespace BetterAPI.Controllers
 
             if (!Store.TryAdd(model.Id, model))
             {
-                _logger.LogError(LogEvents.ErrorSavingWeatherForecast,
-                    "Adding weather forecast {Model} failed to save to the underlying data store.", model);
-                return InternalServerErrorWithDetails(
-                    "An unexpected error occurred saving this weather forecast. An error was logged. Please try again later.");
+                _logger.LogError(LogEvents.ErrorSavingWeatherForecast, "Adding weather forecast {Model} failed to save to the underlying data store.", model);
+                return InternalServerErrorWithDetails("An unexpected error occurred saving this weather forecast. An error was logged. Please try again later.");
             }
 
             return Created(Location(), model);
