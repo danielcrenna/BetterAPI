@@ -5,6 +5,7 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 using BetterAPI.Guidelines;
+using Demo.Models;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -26,6 +27,7 @@ namespace Demo
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddApiGuidelines(Configuration.GetSection("BetterAPI"));
+            services.AddSingleton<WeatherForecastService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

@@ -5,7 +5,6 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net.Mime;
 using Demo.Models;
@@ -22,18 +21,12 @@ namespace Demo.Controllers
     [Route("[controller]")]
     public class WeatherForecastController : ControllerBase
     {
-        private static readonly IDictionary<Guid, WeatherForecast> Store =
-            new ConcurrentDictionary<Guid, WeatherForecast>();
-
-        private static readonly string[] Summaries =
-        {
-            "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-        };
-
+        private readonly WeatherForecastService _service;
         private readonly ILogger<WeatherForecastController> _logger;
 
-        public WeatherForecastController(ILogger<WeatherForecastController> logger)
+        public WeatherForecastController(WeatherForecastService service, ILogger<WeatherForecastController> logger)
         {
+            _service = service;
             _logger = logger;
         }
 
@@ -45,7 +38,7 @@ namespace Demo.Controllers
         [ProducesResponseType(StatusCodes.Status304NotModified)]
         public IActionResult Get()
         {
-            return Ok(Store.Values);
+            return Ok(_service.Get());
         }
 
         /// <summary> Returns a saved weather forecast by its unique ID </summary>
@@ -57,7 +50,7 @@ namespace Demo.Controllers
         [ProducesResponseType(StatusCodes.Status304NotModified)]
         public IActionResult GetById(Guid id)
         {
-            if (!Store.TryGetValue(id, out var model))
+            if (!_service.TryGetById(id, out var model))
                 return NotFound();
 
             return Ok(model);
@@ -83,7 +76,7 @@ namespace Demo.Controllers
             if (model.Id.Equals(Guid.Empty))
                 return BadRequestWithDetails("The weather forecast's ID was uninitialized.");
 
-            if (Store.ContainsKey(model.Id))
+            if (_service.TryGetById(model.Id, out _))
                 return BadRequestWithDetails("This weather forecast already exists. Did you mean to update it?");
 
             //
@@ -91,7 +84,7 @@ namespace Demo.Controllers
             //        It is unlikely to occur in real life, but technically we should know what the ETag is before we attempt this,
             //        but the LastModifiedDate would always be 'now' since we're not expecting anything to exist.
             
-            if (!Store.TryAdd(model.Id, model))
+            if (!_service.TryAdd(model))
             {
                 _logger.LogError(LogEvents.ErrorSavingWeatherForecast, "Adding weather forecast {Model} failed to save to the underlying data store.", model);
                 return InternalServerErrorWithDetails("An unexpected error occurred saving this weather forecast. An error was logged. Please try again later.");
