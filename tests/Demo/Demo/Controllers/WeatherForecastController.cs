@@ -41,6 +41,7 @@ namespace Demo.Controllers
         [HttpGet]
         [Produces(MediaTypeNames.Application.Json)]
         [ProducesResponseType(typeof(IEnumerable<WeatherForecast>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status304NotModified)]
         public IEnumerable<WeatherForecast> Get()
         {
             foreach (var forecast in Store.Values) yield return forecast;

@@ -8,6 +8,7 @@ using System;
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using System.Threading.Tasks;
 using BetterApi.Guidelines.Caching;
 using BetterAPI.Guidelines.Internal;
 using Microsoft.AspNetCore.Http;
@@ -18,7 +19,7 @@ using Microsoft.Net.Http.Headers;
 
 namespace BetterAPI.Guidelines.Caching
 {
-    public sealed class HttpCacheFilterAttribute : ActionFilterAttribute
+    public sealed class HttpCacheFilterAttribute : IAsyncActionFilter
     {
         private readonly IHttpCache _cache;
         private readonly JsonSerializerOptions _options;
@@ -29,30 +30,39 @@ namespace BetterAPI.Guidelines.Caching
             _options = options;
         }
 
-        public override void OnActionExecuting(ActionExecutingContext context)
+        public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
         {
             var request = context.HttpContext.Request;
             if (request.Method == HttpMethods.Get)
             {
-                HandleSafeRequests(context, request);
+                TryHandleSafeRequests(context, request);
             }
             else
             {
-                HandleUnsafeRequests(context, request);
+                TryHandleUnsafeRequests(context, request);
             }
-        }
 
-        private void HandleUnsafeRequests(ActionExecutingContext context, HttpRequest request)
-        {
-            var key = request.GetDisplayUrl();
+            if (context.Result is StatusCodeResult)
+                return;
 
-            if (IfMatchFailed(request, key) || UnmodifiedSinceFailed(request, key))
+            var executed = await next.Invoke();
+
+            if (executed.Result is ObjectResult result)
             {
-                context.Result = new StatusCodeResult((int) HttpStatusCode.PreconditionFailed);
+                MaybeAppendCacheValues(context, result.Value);
+
+                if (request.Method == HttpMethods.Get)
+                {
+                    TryHandleSafeRequests(context, request);
+                }
+                else
+                {
+                    TryHandleUnsafeRequests(context, request);
+                }
             }
         }
 
-        private void HandleSafeRequests(ActionExecutingContext context, HttpRequest request)
+        private void TryHandleSafeRequests(ActionExecutingContext context, HttpRequest request)
         {
             var key = request.GetDisplayUrl();
 
@@ -62,24 +72,22 @@ namespace BetterAPI.Guidelines.Caching
             }
         }
 
-        public override void OnActionExecuted(ActionExecutedContext context)
+        private void TryHandleUnsafeRequests(ActionExecutingContext context, HttpRequest request)
         {
-            base.OnActionExecuted(context);
+            var key = request.GetDisplayUrl();
 
-            MaybeCacheObject(context);
+            if (IfMatchFailed(request, key) || UnmodifiedSinceFailed(request, key))
+            {
+                context.Result = new StatusCodeResult((int) HttpStatusCode.PreconditionFailed);
+            }
         }
 
-        private void MaybeCacheObject(ActionExecutedContext context)
+        private void MaybeAppendCacheValues(ActionContext context, object body)
         {
-            if (!(context.Result is ObjectResult result))
-                return;
-
-            var body = result.Value;
-
             var cacheKey = context.HttpContext.Request.GetDisplayUrl();
             var json = JsonSerializer.Serialize(body, _options);
             var etag = ETagGenerator.Generate(Encoding.UTF8.GetBytes(json));
-            context.HttpContext.Response.Headers.Add(HeaderNames.ETag, new[] { etag.Value });
+            context.HttpContext.Response.Headers.Add(HeaderNames.ETag, new[] {etag.Value});
             _cache.Save(cacheKey, etag.Value);
 
             var members = AccessorMembers.Create(body, AccessorMemberTypes.Properties, AccessorMemberScope.Public);
@@ -106,35 +114,23 @@ namespace BetterAPI.Guidelines.Caching
                 }
         }
 
-        #region State Probes
+        private bool NoneMatch(HttpRequest request, string key) =>
+            request.Headers.TryGetValue(HeaderNames.IfNoneMatch, out var ifNoneMatch) &&
+            _cache.TryGetETag(key, out var etag) && ifNoneMatch == etag;
 
-        private bool NoneMatch(HttpRequest request, string key)
-        {
-            return request.Headers.TryGetValue(HeaderNames.IfNoneMatch, out var ifNoneMatch) &&
-                   _cache.TryGetETag(key, out var etag) && ifNoneMatch == etag;
-        }
+        private bool IfMatchFailed(HttpRequest request, string key) =>
+            request.Headers.TryGetValue(HeaderNames.IfMatch, out var ifMatch) &&
+            _cache.TryGetETag(key, out var etag) && ifMatch != etag;
 
-        private bool IfMatchFailed(HttpRequest request, string key)
-        {
-            return request.Headers.TryGetValue(HeaderNames.IfMatch, out var ifMatch) &&
-                   _cache.TryGetETag(key, out var etag) && ifMatch != etag;
-        }
+        private bool UnmodifiedSinceFailed(HttpRequest request, string key) =>
+            request.Headers.TryGetValue(HeaderNames.IfUnmodifiedSince, out var ifUnmodifiedSince) &&
+            DateTimeOffset.TryParse(ifUnmodifiedSince, out var ifUnmodifiedSinceDate) &&
+            _cache.TryGetLastModified(key, out var lastModifiedDate) && lastModifiedDate > ifUnmodifiedSinceDate;
 
-        private bool UnmodifiedSinceFailed(HttpRequest request, string key)
-        {
-            return request.Headers.TryGetValue(HeaderNames.IfUnmodifiedSince, out var ifUnmodifiedSince) &&
-                   DateTimeOffset.TryParse(ifUnmodifiedSince, out var ifUnmodifiedSinceDate) &&
-                   _cache.TryGetLastModified(key, out var lastModifiedDate) && lastModifiedDate > ifUnmodifiedSinceDate;
-        }
-
-        private bool NotModifiedSince(HttpRequest request, string key)
-        {
-            return request.Headers.TryGetValue(HeaderNames.IfModifiedSince, out var ifModifiedSince) &&
-                   DateTimeOffset.TryParse(ifModifiedSince, out var ifModifiedSinceDate)
-                   && _cache.TryGetLastModified(key, out var lastModifiedDate) &&
-                   lastModifiedDate <= ifModifiedSinceDate;
-        }
-
-        #endregion
+        private bool NotModifiedSince(HttpRequest request, string key) =>
+            request.Headers.TryGetValue(HeaderNames.IfModifiedSince, out var ifModifiedSince) &&
+            DateTimeOffset.TryParse(ifModifiedSince, out var ifModifiedSinceDate)
+            && _cache.TryGetLastModified(key, out var lastModifiedDate) &&
+            lastModifiedDate <= ifModifiedSinceDate;
     }
 }

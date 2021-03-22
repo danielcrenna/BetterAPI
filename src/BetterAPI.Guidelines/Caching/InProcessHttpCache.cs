@@ -14,16 +14,12 @@ namespace BetterApi.Guidelines.Caching
 {
     public class InProcessHttpCache : InProcessCacheManager, IHttpCache
     {
-        public InProcessHttpCache(IOptions<ApiOptions> options, Func<DateTimeOffset> timestamps) : base(
-            options, timestamps)
-        {
+        public InProcessHttpCache(IOptions<ApiOptions> options, Func<DateTimeOffset> timestamps) : base(options, timestamps) { }
 
-        }
-
-        public bool TryGetETag(string key, out string etag)
+        public bool TryGetETag(string key, out string? etag)
         {
             var cacheKey = $"{key}_{HeaderNames.ETag}";
-            if (!Cache.TryGetValue<byte[]>(cacheKey, out var buffer))
+            if (Cache.TryGetValue<byte[]>(cacheKey, out var buffer))
             {
                 etag = Encoding.UTF8.GetString(buffer);
                 return true;

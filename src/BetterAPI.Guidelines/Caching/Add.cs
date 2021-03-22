@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Text.Json;
-using BetterApi.Guidelines;
 using BetterApi.Guidelines.Caching;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
@@ -11,8 +10,7 @@ namespace BetterAPI.Guidelines.Caching
 {
     public static class Add
     {
-        public static IServiceCollection AddInProcessCache(this IServiceCollection services,
-            Action<CacheOptions> configureAction = null)
+        public static IServiceCollection AddInProcessCache(this IServiceCollection services, Action<CacheOptions>? configureAction = null)
         {
             services.AddOptions();
 
@@ -26,8 +24,7 @@ namespace BetterAPI.Guidelines.Caching
             return services;
         }
 
-        public static IServiceCollection AddDistributedCache(this IServiceCollection services,
-            Action<CacheOptions> configureAction = null)
+        public static IServiceCollection AddDistributedCache(this IServiceCollection services, Action<CacheOptions>? configureAction = null)
         {
             services.AddOptions();
 
