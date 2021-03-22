@@ -10,15 +10,14 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
 
-namespace BetterApi.Guidelines.Caching
+namespace BetterAPI.Guidelines.Caching
 {
     public class InProcessHttpCache : InProcessCacheManager, IHttpCache
     {
         public InProcessHttpCache(IOptions<ApiOptions> options, Func<DateTimeOffset> timestamps) : base(options, timestamps) { }
 
-        public bool TryGetETag(string key, out string? etag)
+        public bool TryGetETag(string cacheKey, out string? etag)
         {
-            var cacheKey = $"{key}_{HeaderNames.ETag}";
             if (Cache.TryGetValue<byte[]>(cacheKey, out var buffer))
             {
                 etag = Encoding.UTF8.GetString(buffer);
@@ -29,9 +28,9 @@ namespace BetterApi.Guidelines.Caching
             return false;
         }
 
-        public bool TryGetLastModified(string key, out DateTimeOffset lastModified)
+        public bool TryGetLastModified(string cacheKey, out DateTimeOffset lastModified)
         {
-            if (!Cache.TryGetValue($"{key}_{HeaderNames.LastModified}", out lastModified))
+            if (!Cache.TryGetValue(cacheKey, out lastModified))
             {
                 return true;
             }
@@ -40,14 +39,14 @@ namespace BetterApi.Guidelines.Caching
             return false;
         }
 
-        public void Save(string key, string etag)
+        public void Save(string displayUrl, string etag)
         {
-            Cache.Set($"{key}_{HeaderNames.ETag}", Encoding.UTF8.GetBytes(etag));
+            Cache.Set($"{displayUrl}_{HeaderNames.ETag}_{etag}", Encoding.UTF8.GetBytes(etag));
         }
 
-        public void Save(string key, DateTimeOffset lastModified)
+        public void Save(string displayUrl, DateTimeOffset lastModified)
         {
-            Cache.Set($"{key}_{HeaderNames.LastModified}",
+            Cache.Set($"{displayUrl}_{HeaderNames.LastModified}_{lastModified:R}",
                 Encoding.UTF8.GetBytes(lastModified.ToString("d")));
         }
     }

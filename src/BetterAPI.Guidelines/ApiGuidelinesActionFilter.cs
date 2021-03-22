@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Caching.Distributed;
 
-namespace BetterApi.Guidelines
+namespace BetterAPI.Guidelines
 {
     internal sealed class ApiGuidelinesActionFilter : IAsyncActionFilter
     {
@@ -41,6 +41,7 @@ namespace BetterApi.Guidelines
             {
                 if (minimal)
                 {
+                    executed.HttpContext.Items[ApiGuidelines.ObjectResultValue] = result.Value;
                     result.Value = default;
                 }
             }

@@ -8,14 +8,12 @@ using System;
 using System.Collections.Concurrent;
 using System.Reflection;
 using System.Text;
-using BetterAPI.Guidelines.Caching;
-using BetterAPI.Guidelines.Internal;
+using BetterAPI.Guidelines.Reflection;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Internal;
 using Microsoft.Extensions.Options;
 
-namespace BetterApi.Guidelines.Caching
+namespace BetterAPI.Guidelines.Caching
 {
     public class DistributedCache : ICache
     {
@@ -41,7 +39,6 @@ namespace BetterApi.Guidelines.Caching
         public DistributedCache(
             ICacheSerializer serializer,
             ICacheDeserializer deserializer,
-            ISystemClock clock,
             Func<DateTimeOffset> timestamps)
         {
             _serializer = serializer;
@@ -51,7 +48,7 @@ namespace BetterApi.Guidelines.Caching
                 CompactionPercentage = 0.05,
                 ExpirationScanFrequency = TimeSpan.FromMinutes(1.0),
                 SizeLimit = null,
-                Clock = clock ?? new DelegatedSystemClock(timestamps)
+                Clock = new DelegatedSystemClock(timestamps)
             }));
         }
 

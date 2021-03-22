@@ -6,7 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.OpenApi.Models;
 
-namespace BetterApi.Guidelines
+namespace BetterAPI.Guidelines
 {
     public static class ServiceCollectionExtensions
     {
@@ -26,7 +26,7 @@ namespace BetterApi.Guidelines
 
             var mvc = services.AddMvc(o =>
             {
-                o.Filters.AddService<ApiGuidelinesActionFilter>();
+                o.Filters.AddService<ApiGuidelinesActionFilter>(int.MaxValue);
             });
 
             mvc.ConfigureApplicationPartManager(x =>
@@ -44,7 +44,7 @@ namespace BetterApi.Guidelines
 
                 // Set the comments path for the Swagger JSON and UI.
                 // See: https://docs.microsoft.com/en-us/aspnet/core/tutorials/getting-started-with-swashbuckle?view=aspnetcore-5.0&tabs=visual-studio#xml-comments
-                var xmlFile = $"{Assembly.GetEntryAssembly().GetName().Name}.xml";
+                var xmlFile = $"{Assembly.GetEntryAssembly()?.GetName().Name}.xml";
                 var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
                 c.IncludeXmlComments(xmlPath);
 

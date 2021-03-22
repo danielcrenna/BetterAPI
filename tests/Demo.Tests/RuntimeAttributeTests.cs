@@ -5,7 +5,7 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 using System;
-using BetterApi.Guidelines;
+using BetterAPI.Guidelines;
 using Xunit;
 
 namespace Demo.Tests

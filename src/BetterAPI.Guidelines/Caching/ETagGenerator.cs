@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
 
-namespace BetterApi.Guidelines.Caching
+namespace BetterAPI.Guidelines.Caching
 {
     internal static class ETagGenerator
     {

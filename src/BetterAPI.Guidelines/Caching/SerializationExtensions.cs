@@ -7,7 +7,7 @@
 using System;
 using System.IO;
 
-namespace BetterApi.Guidelines.Caching
+namespace BetterAPI.Guidelines.Caching
 {
     public static class SerializationExtensions
     {

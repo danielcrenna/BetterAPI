@@ -1,7 +1,7 @@
 ﻿using System;
 using Microsoft.Extensions.Internal;
 
-namespace BetterApi.Guidelines
+namespace BetterAPI.Guidelines
 {
     internal sealed class DelegatedSystemClock : ISystemClock
     {

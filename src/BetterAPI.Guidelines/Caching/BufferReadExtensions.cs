@@ -8,7 +8,7 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Text;
 
-namespace BetterApi.Guidelines.Caching
+namespace BetterAPI.Guidelines.Caching
 {
     public static class BufferReadExtensions
     {

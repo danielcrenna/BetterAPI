@@ -8,7 +8,7 @@ using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc.ApplicationParts;
 using Microsoft.AspNetCore.Mvc.Controllers;
 
-namespace BetterApi.Guidelines
+namespace BetterAPI.Guidelines
 {
     internal sealed class ApiGuidelinesControllerFeatureProvider : IApplicationFeatureProvider<ControllerFeature>
     {

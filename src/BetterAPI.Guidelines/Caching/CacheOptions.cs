@@ -1,4 +1,4 @@
-﻿namespace BetterApi.Guidelines.Caching
+﻿namespace BetterAPI.Guidelines.Caching
 {
     public class CacheOptions
     {

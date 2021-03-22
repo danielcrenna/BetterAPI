@@ -9,7 +9,7 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 
-namespace BetterApi.Guidelines
+namespace BetterAPI.Guidelines
 {
     public static class RuntimeAttributes
     {

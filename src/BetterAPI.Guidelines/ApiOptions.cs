@@ -4,9 +4,9 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
-using BetterApi.Guidelines.Caching;
+using BetterAPI.Guidelines.Caching;
 
-namespace BetterApi.Guidelines
+namespace BetterAPI.Guidelines
 {
     public sealed class ApiOptions
     {

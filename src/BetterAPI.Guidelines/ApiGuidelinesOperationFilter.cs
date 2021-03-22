@@ -16,7 +16,7 @@ using Microsoft.OpenApi.Expressions;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
-namespace BetterApi.Guidelines
+namespace BetterAPI.Guidelines
 {
     internal sealed class ApiGuidelinesOperationFilter : IOperationFilter
     {
@@ -30,8 +30,28 @@ namespace BetterApi.Guidelines
             {
                 Name = "If-None-Match",
                 In = ParameterLocation.Header,
-                Description = "Only supply a result if it does not match the specified entity resource identifier (ETag)",
-                Example = new OpenApiString("W/\"D751713988987E9331980363E24189CE\"")
+                Description = "Only supply a result or perform an action if it does not match the specified entity resource identifier (ETag)"
+            });
+
+            operation.Parameters.Add(new OpenApiParameter
+            {
+                Name = "If-Match",
+                In = ParameterLocation.Header,
+                Description = "Only supply a result or perform an action if it matches the specified entity resource identifier (ETag)"
+            });
+
+            operation.Parameters.Add(new OpenApiParameter
+            {
+                Name = "If-Modified-Since",
+                In = ParameterLocation.Header,
+                Description = "Only supply a result or perform an action if the resource's logical timestamp has been modified since the given date"
+            });
+
+            operation.Parameters.Add(new OpenApiParameter
+            {
+                Name = "If-Unmodified-Since",
+                In = ParameterLocation.Header,
+                Description = "Only supply a result or perform an action if the resource's logical timestamp has not been modified since the given date"
             });
 
             if (IsMutation(operation))

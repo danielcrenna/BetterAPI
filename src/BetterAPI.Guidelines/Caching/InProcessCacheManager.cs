@@ -3,7 +3,7 @@ using System.Reflection;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 
-namespace BetterApi.Guidelines.Caching
+namespace BetterAPI.Guidelines.Caching
 {
     public abstract class InProcessCacheManager : ICacheManager
     {
@@ -33,8 +33,7 @@ namespace BetterApi.Guidelines.Caching
             {
                 if (!(Cache is MemoryCache memory))
                     return 0;
-                var getCount = typeof(MemoryCache).GetProperty(nameof(MemoryCache.Count),
-                    BindingFlags.Instance | BindingFlags.Public);
+                var getCount = typeof(MemoryCache).GetProperty(nameof(MemoryCache.Count), BindingFlags.Instance | BindingFlags.Public);
                 return (int) (getCount?.GetValue(memory) ?? 0);
             }
         }

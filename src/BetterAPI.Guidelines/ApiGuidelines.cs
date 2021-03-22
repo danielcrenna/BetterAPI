@@ -8,11 +8,13 @@ using System;
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Http;
 
-namespace BetterApi.Guidelines
+namespace BetterAPI.Guidelines
 {
     public static class ApiGuidelines
     {
         internal static readonly string CreatedStatus = StatusCodes.Status201Created.ToString();
+
+        public const string ObjectResultValue = nameof(ObjectResultValue);
 
         public static class Prefer
         {
@@ -55,9 +57,5 @@ namespace BetterApi.Guidelines
             plural = false;
             return type;
         }
-
-       
-
-       
     }
 }

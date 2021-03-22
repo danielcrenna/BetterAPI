@@ -1,9 +1,8 @@
 ﻿using System;
-using BetterAPI.Guidelines.Caching;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 
-namespace BetterApi.Guidelines.Caching
+namespace BetterAPI.Guidelines.Caching
 {
     public class InProcessCache : InProcessCacheManager, ICache
     {

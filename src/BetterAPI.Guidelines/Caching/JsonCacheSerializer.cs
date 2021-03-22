@@ -9,7 +9,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Primitives;
 
-namespace BetterApi.Guidelines.Caching
+namespace BetterAPI.Guidelines.Caching
 {
     public sealed class JsonCacheSerializer : ICacheSerializer, ICacheDeserializer
     {

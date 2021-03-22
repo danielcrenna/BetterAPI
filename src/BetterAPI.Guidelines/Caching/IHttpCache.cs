@@ -1,12 +1,12 @@
 ﻿using System;
 
-namespace BetterApi.Guidelines.Caching
+namespace BetterAPI.Guidelines.Caching
 {
     public interface IHttpCache
     {
-        bool TryGetETag(string key, out string? etag);
-        bool TryGetLastModified(string key, out DateTimeOffset lastModified);
-        void Save(string key, string etag);
-        void Save(string key, DateTimeOffset lastModified);
+        bool TryGetETag(string cacheKey, out string? etag);
+        bool TryGetLastModified(string cacheKey, out DateTimeOffset lastModified);
+        void Save(string displayUrl, string etag);
+        void Save(string displayUrl, DateTimeOffset lastModified);
     }
 }

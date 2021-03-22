@@ -6,6 +6,7 @@
 
 using System;
 using System.ComponentModel.DataAnnotations;
+using BetterAPI.Guidelines;
 
 namespace Demo.Models
 {
@@ -26,6 +27,7 @@ namespace Demo.Models
         ///     The date and time of the predicted forecast
         /// </summary>
         [Required]
+        [LastModified]
         public DateTime Date { get; set; }
 
         /// <summary>
