@@ -14,21 +14,21 @@ namespace Demo.Tests
 {
     public class WeatherControllerCollectionStoreTests : GivenACollectionStore<WeatherForecastService, WeatherForecast>
     {
-        private static readonly Guid StableId = Guid.Parse("0F2F5096-C1D8-457C-A55C-04D3663FAD78");
-        private static readonly Guid SecondId = Guid.Parse("08A3C2A0-7786-4CCE-A8AD-29761EA0B95B");
+        private static readonly Guid GreaterThan = Guid.Parse("0F2F5096-C1D8-457C-A55C-04D3663FAD78");
+        private static readonly Guid LessThan = Guid.Parse("08A3C2A0-7786-4CCE-A8AD-29761EA0B95B");
 
         public WeatherControllerCollectionStoreTests(ITestOutputHelper output, WebApplicationFactory<Startup> factory) :
             base("/WeatherForecasts", Populate, output, factory)
         {
-            _first = StableId;
-            _second = SecondId;
+            IdGreaterThanInsertedFirst = GreaterThan;
+            IdLessThanInsertedSecond = LessThan;
         }
 
         private static void Populate(WeatherForecastService service)
         {
             Assert.True(service.TryAdd(new WeatherForecast
             {
-                Id = StableId,
+                Id = GreaterThan,
                 Date = DateTime.Now,
                 Summary = "Chilly",
                 TemperatureC = 0
@@ -36,7 +36,7 @@ namespace Demo.Tests
 
             Assert.True(service.TryAdd(new WeatherForecast
             {
-                Id = SecondId,
+                Id = LessThan,
                 Date = DateTime.Now,
                 Summary = "Scorching",
                 TemperatureC = 0

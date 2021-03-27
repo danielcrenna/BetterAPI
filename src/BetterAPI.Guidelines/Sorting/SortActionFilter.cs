@@ -42,8 +42,7 @@ namespace BetterAPI.Guidelines.Sorting
                 return;
             }
 
-            var members = AccessorMembers.Create(type, AccessorMemberTypes.Fields | AccessorMemberTypes.Properties,
-                AccessorMemberScope.Public);
+            var members = AccessorMembers.Create(type, AccessorMemberTypes.Fields | AccessorMemberTypes.Properties, AccessorMemberScope.Public);
 
             // FIXME: add attribute for model ID discriminator, or fail due to missing "Id"
             if (!members.TryGetValue("Id", out var id))

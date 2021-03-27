@@ -52,7 +52,7 @@ namespace Demo.Controllers
         [ProducesResponseType(StatusCodes.Status304NotModified)]
         public IActionResult Get()
         {
-            return Ok(_service.Get().OrderBy(x => x.Id));
+            return Ok(_service.Get());
         }
 
         /// <summary> Returns a saved weather forecast by its unique ID </summary>

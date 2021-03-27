@@ -12,6 +12,7 @@ using System.Net.Http.Json;
 using System.Threading.Tasks;
 using BetterAPI.Guidelines;
 using BetterAPI.Guidelines.Reflection;
+using BetterAPI.Guidelines.Sorting;
 using Demo.Models;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -29,8 +30,8 @@ namespace Demo.Tests
         private readonly string _endpoint;
         private readonly WebApplicationFactory<Startup> _factory;
 
-        protected Guid _first;
-        protected Guid _second;
+        protected Guid IdGreaterThanInsertedFirst;
+        protected Guid IdLessThanInsertedSecond;
         
         protected GivenACollectionStore(string endpoint, Action<TService> seeder, ITestOutputHelper output, WebApplicationFactory<Startup> factory)
         {
@@ -42,7 +43,7 @@ namespace Demo.Tests
                     services.RemoveAll<TService>();
                     services.AddSingleton(r =>
                     {
-                        var service = Instancing.CreateInstance<TService>(ServiceCollectionContainerBuilderExtensions.BuildServiceProvider(services));
+                        var service = Instancing.CreateInstance<TService>(services.BuildServiceProvider());
                         seeder(service);
                         return service;
                     });
@@ -51,7 +52,7 @@ namespace Demo.Tests
         }
 
         [Fact]
-        public async Task Get_without_order_by_returns_sorted_by_id()
+        public async Task Get_without_order_by_returns_sorted_by_id_ascending()
         {
             var client = _factory.CreateClientNoRedirects();
             var response = await client.GetAsync($"{_endpoint}");
@@ -67,12 +68,12 @@ namespace Demo.Tests
             var ordered = model.ToList() ?? throw new NullReferenceException();
             Assert.Equal(2, ordered.Count);
 
-            Assert.Equal(ordered[0]?.GetId(), _second);
-            Assert.Equal(ordered[1]?.GetId(), _first);
+            Assert.Equal(ordered[0]?.GetId(), IdLessThanInsertedSecond);
+            Assert.Equal(ordered[1]?.GetId(), IdGreaterThanInsertedFirst);
         } 
 
         [Fact]
-        public async Task Get_with_order_by_id_descending_returns_reversed_sort()
+        public async Task Get_with_order_by_id_descending_returns_result()
         {
             var client = _factory.CreateClientNoRedirects();
             var response = await client.GetAsync($"{_endpoint}/?$orderBy=id desc");
@@ -88,8 +89,38 @@ namespace Demo.Tests
             var ordered = model.ToList() ?? throw new NullReferenceException();
             Assert.Equal(2, ordered.Count);
 
-            Assert.Equal(ordered[0]?.GetId(), _first);
-            Assert.Equal(ordered[1]?.GetId(), _second);
+            Assert.Equal(ordered[0]?.GetId(), IdGreaterThanInsertedFirst);
+            Assert.Equal(ordered[1]?.GetId(), IdLessThanInsertedSecond);
+        } 
+
+        [Fact]
+        public async Task Get_returns_insertion_order_when_sorting_by_default_is_disabled()
+        {
+            var client = _factory
+                .WithWebHostBuilder(x =>
+                {
+                    x.ConfigureTestServices(services =>
+                    {
+                        services.Configure<SortOptions>(o => o.SortByDefault = false);
+                    });
+                })
+                .CreateClientNoRedirects();
+
+            var response = await client.GetAsync($"{_endpoint}");
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+            response.ShouldNotHaveHeader(ApiHeaderNames.PreferenceApplied);
+            response.ShouldHaveHeader(HeaderNames.ETag);
+            response.ShouldHaveContentHeader(HeaderNames.LastModified);
+
+            var model = await response.Content.ReadFromJsonAsync<IEnumerable<TModel>>();
+            Assert.NotNull(model ?? throw new NullReferenceException());
+
+            var ordered = model.ToList() ?? throw new NullReferenceException();
+            Assert.Equal(2, ordered.Count);
+
+            Assert.Equal(ordered[0]?.GetId(), IdGreaterThanInsertedFirst);
+            Assert.Equal(ordered[1]?.GetId(), IdLessThanInsertedSecond);
         } 
     }
 }
