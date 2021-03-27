@@ -4,7 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
-using Microsoft.AspNetCore.Hosting;
+using BetterAPI.Guidelines;
 using Microsoft.Extensions.Hosting;
 
 namespace Demo
@@ -19,7 +19,7 @@ namespace Demo
         public static IHostBuilder CreateHostBuilder(string[] args)
         {
             return Host.CreateDefaultBuilder(args)
-                .ConfigureWebHostDefaults(webBuilder => { webBuilder.UseStartup<Startup>(); });
+                .HostApiServer<Startup>();
         }
     }
 }

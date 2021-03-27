@@ -5,6 +5,8 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 using System;
+using System.Collections.Generic;
+using System.Net.Http;
 using System.Text;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -27,7 +29,8 @@ namespace Demo.Tests
         /// <param name="factory">The chained factory to enable test logging on</param>
         /// <param name="output">The current instance of the Xunit test output helper</param>
         /// <returns></returns>
-        public static WebApplicationFactory<TStartup> WithTestLogging<TStartup>(this WebApplicationFactory<TStartup> factory, ITestOutputHelper output) where TStartup : class
+        public static WebApplicationFactory<TStartup> WithTestLogging<TStartup>(
+            this WebApplicationFactory<TStartup> factory, ITestOutputHelper output) where TStartup : class
         {
             return factory.WithWebHostBuilder(builder =>
             {
@@ -55,13 +58,14 @@ namespace Demo.Tests
             private const string Warn = "warn";
             private const string Error = "fail";
             private const string Critical = "crit";
-            
+
             private readonly string _categoryName;
             private readonly bool _useScopes;
             private readonly ITestOutputHelper _output;
             private readonly IExternalScopeProvider _scopes;
 
-            public XunitLogger(ITestOutputHelper output, IExternalScopeProvider scopes, string categoryName, bool useScopes)
+            public XunitLogger(ITestOutputHelper output, IExternalScopeProvider scopes, string categoryName,
+                bool useScopes)
             {
                 _output = output;
                 _scopes = scopes;
@@ -196,10 +200,20 @@ namespace Demo.Tests
                 return false;
 
             var includeScopes = logging?.GetValue("Console:IncludeScopes", false);
-            if (!includeScopes.Value)
+
+            if (includeScopes != null && !includeScopes.Value)
                 includeScopes = logging?.GetValue("IncludeScopes", false);
 
             return includeScopes.GetValueOrDefault(false);
+        }
+
+        #endregion
+
+        #region Client Helpers
+
+        public static HttpClient CreateClientNoRedirects<TStartup>(this WebApplicationFactory<TStartup> factory) where TStartup : class
+        {
+            return factory.CreateClient(new WebApplicationFactoryClientOptions {AllowAutoRedirect = false});
         }
 
         #endregion

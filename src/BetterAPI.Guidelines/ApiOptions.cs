@@ -5,6 +5,8 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 using BetterAPI.Guidelines.Caching;
+using BetterAPI.Guidelines.Prefer;
+using BetterAPI.Guidelines.Sorting;
 
 namespace BetterAPI.Guidelines
 {
@@ -12,6 +14,11 @@ namespace BetterAPI.Guidelines
     {
         public string ApiName { get; set; } = "BetterAPI";
         public string ApiVersion { get; set; } = "v1";
+        public string ApiServer { get; set; } = $"BetterAPI-{typeof(ApiOptions).Assembly.GetName().Version}";
+
         public CacheOptions Cache { get; set; } = new CacheOptions();
+        public SortOptions Sort { get; set; } = new SortOptions();
+        public PreferOptions Prefer { get; set; } = new PreferOptions();
+        public ProblemDetailsOptions ProblemDetails { get; set; } = new ProblemDetailsOptions();
     }
 }

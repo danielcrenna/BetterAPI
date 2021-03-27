@@ -8,13 +8,12 @@ using System;
 using System.Text;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
-using Microsoft.Net.Http.Headers;
 
 namespace BetterAPI.Guidelines.Caching
 {
     public class InProcessHttpCache : InProcessCacheManager, IHttpCache
     {
-        public InProcessHttpCache(IOptions<ApiOptions> options, Func<DateTimeOffset> timestamps) : base(options, timestamps) { }
+        public InProcessHttpCache(IOptions<CacheOptions> options, Func<DateTimeOffset> timestamps) : base(options, timestamps) { }
 
         public bool TryGetETag(string cacheKey, out string? etag)
         {
@@ -39,15 +38,10 @@ namespace BetterAPI.Guidelines.Caching
             return false;
         }
 
-        public void Save(string displayUrl, string etag)
-        {
-            Cache.Set($"{displayUrl}_{HeaderNames.ETag}_{etag}", Encoding.UTF8.GetBytes(etag));
-        }
+        public void Save(string displayUrl, string etag) => Cache.Set(BuildETagCacheKey(displayUrl, etag), Encoding.UTF8.GetBytes(etag));
+        public void Save(string displayUrl, DateTimeOffset lastModified) => Cache.Set(BuildLastModifiedCacheKey(displayUrl, lastModified), Encoding.UTF8.GetBytes(lastModified.ToString("d")));
 
-        public void Save(string displayUrl, DateTimeOffset lastModified)
-        {
-            Cache.Set($"{displayUrl}_{HeaderNames.LastModified}_{lastModified:R}",
-                Encoding.UTF8.GetBytes(lastModified.ToString("d")));
-        }
+        private static string BuildLastModifiedCacheKey(string displayUrl, DateTimeOffset lastModified) => $"{displayUrl}_{ApiHeaderNames.LastModified}_{lastModified:R}";
+        private static string BuildETagCacheKey(string displayUrl, string etag) => $"{displayUrl}_{ApiHeaderNames.ETag}_{etag}";
     }
 }

@@ -6,11 +6,13 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Mime;
 using Demo.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Microsoft.Net.Http.Headers;
 
 namespace Demo.Controllers
 {
@@ -18,7 +20,7 @@ namespace Demo.Controllers
     ///     Manages operations for weather forecasts
     /// </summary>
     [ApiController]
-    [Route("[controller]")]
+    [Route("WeatherForecasts")]
     public class WeatherForecastController : ControllerBase
     {
         private readonly WeatherForecastService _service;
@@ -30,6 +32,18 @@ namespace Demo.Controllers
             _logger = logger;
         }
 
+        [HttpOptions]
+        public void GetOptions()
+        {
+            // See: https://github.com/microsoft/api-guidelines/blob/vNext/Guidelines.md#744-options-and-link-headers
+            // OPTIONS allows a client to retrieve information about a resource,
+            // at a minimum by returning the Allow header denoting the valid methods for this resource.
+            Response.Headers.TryAdd(HeaderNames.Allow, "GET, POST");
+
+            // In addition, services SHOULD include a Link header (see RFC 5988) to point to documentation for the resource in question:
+            // Link: <{help}>; rel="help"
+        }
+
         /// <summary> Returns all saved weather forecasts </summary>
         /// <response code="304">The resource was not returned, because it was not modified according to the ETag or LastModifiedDate. </response>
         [HttpGet]
@@ -38,7 +52,7 @@ namespace Demo.Controllers
         [ProducesResponseType(StatusCodes.Status304NotModified)]
         public IActionResult Get()
         {
-            return Ok(_service.Get());
+            return Ok(_service.Get().OrderBy(x => x.Id));
         }
 
         /// <summary> Returns a saved weather forecast by its unique ID </summary>

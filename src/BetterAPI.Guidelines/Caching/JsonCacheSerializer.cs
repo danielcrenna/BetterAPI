@@ -13,20 +13,21 @@ namespace BetterAPI.Guidelines.Caching
 {
     public sealed class JsonCacheSerializer : ICacheSerializer, ICacheDeserializer
     {
-        public T BufferToObject<T>(ReadOnlySpan<byte> bytes)
-        {
-            unsafe
-            {
-                fixed (byte* b = &bytes.GetPinnableReference())
-                {
-                    return JsonSerializer.Deserialize<T>(Encoding.UTF8.GetString(b, bytes.Length));
-                }
-            }
-        }
+        public T BufferToObject<T>(ReadOnlySpan<byte> buffer) => JsonBufferToInstance<T>(buffer);
+        
+        public void ObjectToBuffer<T>(T value, ref Span<byte> buffer, ref int startAt) => buffer.WriteString(ref startAt, new StringValues(JsonSerializer.Serialize(value)));
 
-        public void ObjectToBuffer<T>(T value, ref Span<byte> buffer, ref int startAt)
+        private static unsafe T JsonBufferToInstance<T>(ReadOnlySpan<byte> bytes)
         {
-            buffer.WriteString(ref startAt, new StringValues(JsonSerializer.Serialize(value)));
+            if (bytes.Length == 0)
+                return default!;
+
+            fixed (byte* b = &bytes.GetPinnableReference())
+            {
+                var json = Encoding.UTF8.GetString(b, bytes.Length);
+
+                return JsonSerializer.Deserialize<T>(json)!;
+            }
         }
     }
 }

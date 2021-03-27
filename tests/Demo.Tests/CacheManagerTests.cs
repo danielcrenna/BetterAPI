@@ -5,32 +5,34 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 using System.Net;
+using System.Net.Http.Json;
 using System.Threading.Tasks;
+using BetterAPI.Guidelines.Caching;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
 using Xunit.Abstractions;
 
 namespace Demo.Tests
 {
-    /// <summary>
-    ///     <see href="https://docs.microsoft.com/en-us/aspnet/core/test/integration-tests?view=aspnetcore-5.0" />
-    /// </summary>
-    public class EndpointTests : IClassFixture<WebApplicationFactory<Startup>>
+    public class CacheManagerTests : IClassFixture<WebApplicationFactory<Startup>>
     {
         private readonly WebApplicationFactory<Startup> _factory;
 
-        public EndpointTests(ITestOutputHelper output, WebApplicationFactory<Startup> factory)
+        public CacheManagerTests(ITestOutputHelper output, WebApplicationFactory<Startup> factory)
         {
             _factory = factory.WithTestLogging(output);
         }
 
-        [Theory]
-        [InlineData("/WeatherForecast")]
-        public async Task Get_Route_Returns_Response(string url)
+        [Fact]
+        public async Task Can_get_cache_info()
         {
-            var client = _factory.CreateClient(new WebApplicationFactoryClientOptions {AllowAutoRedirect = false});
-            var response = await client.GetAsync(url);
+            var client = _factory.CreateClientNoRedirects();
+            var response = await client.OptionsAsync("cache");
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+            var body = await response.Content.ReadFromJsonAsync<CacheInfo>();
+            Assert.Equal(0, body.KeyCount);
+            Assert.Equal(0, body.SizeBytes);
         }
     }
 }

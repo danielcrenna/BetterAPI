@@ -1,9 +1,9 @@
-﻿namespace BetterAPI.Guidelines.Caching
+﻿using System.Collections.Generic;
+
+namespace BetterAPI.Guidelines.Caching
 {
-    public interface ICacheManager
+    public interface ICacheManager : ICacheInfo
     {
-        int KeyCount { get; }
-        long? SizeLimitBytes { get; set; }
-        long SizeBytes { get; set; }
+        IEnumerable<string> IntrospectKeys();
     }
 }

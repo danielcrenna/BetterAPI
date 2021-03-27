@@ -12,7 +12,7 @@ namespace Demo.Models
 {
     public class WeatherForecastService
     {
-        private static readonly IDictionary<Guid, WeatherForecast> Store =
+        private readonly IDictionary<Guid, WeatherForecast> _store =
             new ConcurrentDictionary<Guid, WeatherForecast>();
 
         private static readonly string[] Summaries =
@@ -22,12 +22,12 @@ namespace Demo.Models
 
         public IEnumerable<WeatherForecast> Get()
         {
-            return Store.Values;
+            return _store.Values;
         }
 
         public bool TryGetById(Guid id, out WeatherForecast model)
         {
-            if(!Store.TryGetValue(id, out var stored))
+            if(!_store.TryGetValue(id, out var stored))
             {
                 model = default;
                 return false;
@@ -39,7 +39,7 @@ namespace Demo.Models
 
         public bool TryAdd(WeatherForecast model)
         {
-            return Store.TryAdd(model.Id, model);
+            return _store.TryAdd(model.Id, model);
         }
     }
 }

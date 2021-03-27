@@ -23,7 +23,7 @@ namespace BetterAPI.Guidelines.Reflection
             Types = types;
             Scope = scope;
 
-            NameToMember = new Dictionary<string, AccessorMember>();
+            NameToMember = new Dictionary<string, AccessorMember>(StringComparer.OrdinalIgnoreCase);
 
             var flags = BindingFlags.Instance | BindingFlags.Static;
             if (scope.HasFlagFast(AccessorMemberScope.Public))

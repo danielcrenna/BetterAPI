@@ -7,6 +7,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -17,16 +18,15 @@ using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Primitives;
-using Microsoft.Net.Http.Headers;
 
 namespace BetterAPI.Guidelines.Caching
 {
-    public sealed class HttpCacheFilterAttribute : IAsyncActionFilter
+    public sealed class HttpCacheActionFilter : IAsyncActionFilter
     {
         private readonly IHttpCache _cache;
         private readonly JsonSerializerOptions _options;
 
-        public HttpCacheFilterAttribute(IHttpCache cache, JsonSerializerOptions options)
+        public HttpCacheActionFilter(IHttpCache cache, JsonSerializerOptions options)
         {
             _cache = cache;
             _options = options;
@@ -34,6 +34,12 @@ namespace BetterAPI.Guidelines.Caching
 
         public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
         {
+            if (context.ActionDescriptor.EndpointMetadata.Any(x => x is DoNotHttpCacheAttribute))
+            {
+                await next.Invoke();
+                return;
+            }
+
             var request = context.HttpContext.Request;
             var displayUrl = request.GetDisplayUrl();
 
@@ -53,13 +59,13 @@ namespace BetterAPI.Guidelines.Caching
 
             if (executed.Result is ObjectResult result)
             {
-                var body = result.Value ?? executed.HttpContext.Items[ApiGuidelines.ObjectResultValue] ??
+                var body = result.Value ?? executed.HttpContext.Items[Constants.ObjectResultValue] ??
                     throw new NullReferenceException("Could not locate expected result body");
 
                 GenerateAndAppendETag(context, body, displayUrl);
-
                 GenerateAndAppendLastModified(context, body, displayUrl);
 
+                // we have to check again in case the resulting operation refreshed the cache
                 if (IsSafeRequest(request))
                 {
                     TryHandleSafeRequests(executed, request, displayUrl);
@@ -73,8 +79,14 @@ namespace BetterAPI.Guidelines.Caching
         
         private void TryHandleSafeRequests(ActionExecutingContext context, HttpRequest request, string displayUrl)
         {
-            if (NoneMatchFailed(request, displayUrl) || NotModifiedSinceFailed(request, displayUrl) ||
-                IfMatchFailed(request, displayUrl) || UnmodifiedSinceFailed(request, displayUrl))
+            // Before execution, if the cache misses, we have to let the request execute, in case the cache
+            // would otherwise populate with the value for this check during execution
+
+            if (IfNoneMatchFailed(request, displayUrl, true)
+                || IfMatchFailed(request, displayUrl, true)
+                //|| NotModifiedSinceFailed(request, displayUrl)
+                //|| UnmodifiedSinceFailed(request, displayUrl)
+                )
             {
                 context.Result = new StatusCodeResult((int) HttpStatusCode.NotModified);
             }
@@ -82,15 +94,26 @@ namespace BetterAPI.Guidelines.Caching
 
         private void TryHandleUnsafeRequests(ActionExecutingContext context, HttpRequest request, string displayUrl)
         {
-            if (IfMatchFailed(request, displayUrl) || UnmodifiedSinceFailed(request, displayUrl))
+            // After execution, we can assume that a cache miss is legitimate, since the server
+            // has had the opportunity to populate the cache with the requested value prior to this check
+
+            if (IfNoneMatchFailed(request, displayUrl, true) 
+                || IfMatchFailed(request, displayUrl, true) 
+                //|| NotModifiedSinceFailed(request, displayUrl) 
+                //|| UnmodifiedSinceFailed(request, displayUrl)
+                )
             {
-                context.Result = new StatusCodeResult((int) HttpStatusCode.PreconditionFailed);
+                context.Result = PreconditionFailed(displayUrl);
             }
         }
 
         private void TryHandleSafeRequests(ActionExecutedContext context, HttpRequest request, string displayUrl)
         {
-            if (NoneMatchFailed(request, displayUrl) || NotModifiedSinceFailed(request, displayUrl))
+            if (IfNoneMatchFailed(request, displayUrl, false) 
+                || IfMatchFailed(request, displayUrl, false) 
+                //|| NotModifiedSinceFailed(request, displayUrl) 
+                //|| UnmodifiedSinceFailed(request, displayUrl)
+                )
             {
                 context.Result = new StatusCodeResult((int) HttpStatusCode.NotModified);
             }
@@ -98,8 +121,11 @@ namespace BetterAPI.Guidelines.Caching
 
         private void TryHandleUnsafeRequests(ActionExecutedContext context, HttpRequest request, string displayUrl)
         {
-            if (NoneMatchFailed(request, displayUrl) || IfMatchFailed(request, displayUrl) ||
-                NotModifiedSinceFailed(request, displayUrl) || UnmodifiedSinceFailed(request, displayUrl))
+            if (IfNoneMatchFailed(request, displayUrl, false) 
+                || IfMatchFailed(request, displayUrl, false) 
+                //|| NotModifiedSinceFailed(request, displayUrl) 
+                //|| UnmodifiedSinceFailed(request, displayUrl)
+                )
             {
                 context.Result = PreconditionFailed(displayUrl);
             }
@@ -137,7 +163,7 @@ namespace BetterAPI.Guidelines.Caching
         {
             var json = JsonSerializer.Serialize(body, _options);
             var etag = ETagGenerator.Generate(Encoding.UTF8.GetBytes(json));
-            context.HttpContext.Response.Headers.Add(HeaderNames.ETag, new[] {etag.Value});
+            context.HttpContext.Response.Headers.Add(ApiHeaderNames.ETag, new[] {etag.Value});
             _cache.Save(displayUrl, etag.Value);
         }
 
@@ -170,33 +196,51 @@ namespace BetterAPI.Guidelines.Caching
             if (!changed || !lastModified.HasValue)
                 return lastModified;
 
-            context.HttpContext.Response.Headers.Remove(HeaderNames.LastModified);
-            context.HttpContext.Response.Headers.Add(HeaderNames.LastModified, lastModified.Value.ToString("R"));
+            context.HttpContext.Response.Headers.Remove(ApiHeaderNames.LastModified);
+            context.HttpContext.Response.Headers.Add(ApiHeaderNames.LastModified, lastModified.Value.ToString("R"));
             _cache.Save(displayUrl, lastModified.Value);
             return lastModified;
         }
 
-        private bool NoneMatchFailed(HttpRequest request, string displayUrl) =>
-            request.Headers.TryGetValue(HeaderNames.IfNoneMatch, out var ifNoneMatch) &&
-            _cache.TryGetETag(BuildETagKey(displayUrl, ifNoneMatch), out var etag) && ifNoneMatch == etag;
+        /// <summary>  The If-None-Match header is present and we have a match for the provided ETag </summary>
+        private bool IfNoneMatchFailed(HttpRequest request, string displayUrl, bool skipCheckOnCacheMiss)
+        {
+            if (!request.Headers.TryGetValue(ApiHeaderNames.IfNoneMatch, out var values))
+                return false; // no comparison needed
+            
+            if(!_cache.TryGetETag(BuildETagKey(displayUrl, values), out var etag) && skipCheckOnCacheMiss)
+                return !skipCheckOnCacheMiss; // cache miss, so none match (or skip this check)
+
+            // if they match, we fail
+            return values == etag;
+        }
         
-        private bool IfMatchFailed(HttpRequest request, string displayUrl) =>
-            request.Headers.TryGetValue(HeaderNames.IfMatch, out var ifMatch) &&
-            _cache.TryGetETag(BuildETagKey(displayUrl, ifMatch), out var etag) && ifMatch != etag;
+        /// <summary>  The If-Match header is present and we don't have a match for the provided ETag </summary>
+        private bool IfMatchFailed(HttpRequest request, string displayUrl, bool skipCheckOnCacheMiss)
+        {
+            if (!request.Headers.TryGetValue(ApiHeaderNames.IfMatch, out var values))
+                return false; // no comparison needed
+
+            if(!_cache.TryGetETag(BuildETagKey(displayUrl, values), out var etag) && skipCheckOnCacheMiss)
+                return !skipCheckOnCacheMiss; // cache miss, so none match (or skip this check)
+
+            // if they don't match, we fail
+            return values != etag;
+        }
 
         private bool UnmodifiedSinceFailed(HttpRequest request, string displayUrl) =>
-            request.Headers.TryGetValue(HeaderNames.IfUnmodifiedSince, out var ifUnmodifiedSince) &&
+            request.Headers.TryGetValue(ApiHeaderNames.IfUnmodifiedSince, out var ifUnmodifiedSince) &&
             DateTimeOffset.TryParse(ifUnmodifiedSince, out var ifUnmodifiedSinceDate) &&
             _cache.TryGetLastModified(BuildLastModifiedKey(displayUrl, ifUnmodifiedSince), out var lastModifiedDate) && lastModifiedDate > ifUnmodifiedSinceDate;
 
         private bool NotModifiedSinceFailed(HttpRequest request, string displayUrl) =>
-            request.Headers.TryGetValue(HeaderNames.IfModifiedSince, out var ifModifiedSince) &&
+            request.Headers.TryGetValue(ApiHeaderNames.IfModifiedSince, out var ifModifiedSince) &&
             DateTimeOffset.TryParse(ifModifiedSince, out var ifModifiedSinceDate)
             && _cache.TryGetLastModified(BuildLastModifiedKey(displayUrl, ifModifiedSince), out var lastModifiedDate) &&
             lastModifiedDate <= ifModifiedSinceDate;
         
-        private static string BuildETagKey(string displayUrl, StringValues values) => $"{displayUrl}_{HeaderNames.ETag}_{string.Join(",", (IEnumerable<string?>) values)}";
-        private static string BuildLastModifiedKey(string displayUrl, StringValues values) => $"{displayUrl}_{HeaderNames.LastModified}_{string.Join(",", (IEnumerable<string?>) values)}";
+        private static string BuildETagKey(string displayUrl, StringValues values) => $"{displayUrl}_{ApiHeaderNames.ETag}_{string.Join(",", (IEnumerable<string?>) values)}";
+        private static string BuildLastModifiedKey(string displayUrl, StringValues values) => $"{displayUrl}_{ApiHeaderNames.LastModified}_{string.Join(",", (IEnumerable<string?>) values)}";
 
         private static bool IsSafeRequest(HttpRequest request)
         {

@@ -236,9 +236,9 @@ namespace BetterAPI.Guidelines.Reflection
 				if (!parameterType.IsByRef)
 					continue;
 
-				il.Ldarg_2(); // args
-				il.Ldc_I4(i); // i
-				il.Ldloc(i + (method.IsStatic ? 0 : 1)); // args[i]
+				il.Ldarg_2();
+				il.Ldc_I4(i);
+				il.Ldloc(i + (method.IsStatic ? 0 : 1));
 
 				parameterType = parameterType.GetElementType() ?? parameterType;
 				if (parameterType.IsValueType)

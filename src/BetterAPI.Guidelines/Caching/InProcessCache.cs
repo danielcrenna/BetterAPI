@@ -6,7 +6,7 @@ namespace BetterAPI.Guidelines.Caching
 {
     public class InProcessCache : InProcessCacheManager, ICache
     {
-        public InProcessCache(IOptions<ApiOptions> options, Func<DateTimeOffset> timestamps) : base(options, timestamps) { }
+        public InProcessCache(IOptions<CacheOptions> options, Func<DateTimeOffset> timestamps) : base(options, timestamps) { }
 
         public void Remove(string key)
         {

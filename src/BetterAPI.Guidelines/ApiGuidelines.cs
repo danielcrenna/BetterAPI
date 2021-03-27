@@ -12,23 +12,7 @@ namespace BetterAPI.Guidelines
 {
     public static class ApiGuidelines
     {
-        internal static readonly string CreatedStatus = StatusCodes.Status201Created.ToString();
-
-        public const string ObjectResultValue = nameof(ObjectResultValue);
-
-        public static class Prefer
-        {
-            public const string ReturnMinimal = "return=minimal";
-            public const string ReturnRepresentation = "return=representation";
-        }
-
-        public static class Headers
-        {
-            // ReSharper disable once MemberHidesStaticFromOuterClass
-            public const string Prefer = "Prefer";
-            public const string PreferenceApplied = "Preference-Applied";
-        }
-
+        // FIXME: Use ImplementsOpenGeneric<IEnumerable<>>
         public static Type GetModelType(this Type type, out bool plural)
         {
             if (!type.IsGenericType)

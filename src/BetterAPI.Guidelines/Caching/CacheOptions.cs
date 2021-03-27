@@ -2,6 +2,6 @@
 {
     public class CacheOptions
     {
-        public long? MaxSizeBytes { get; set; }
+        public long? MaxSizeBytes { get; set; } = 10_240_000L;
     }
 }
