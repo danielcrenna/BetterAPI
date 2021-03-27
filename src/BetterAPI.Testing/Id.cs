@@ -7,7 +7,7 @@
 using BetterAPI.Guidelines.Reflection;
 using Xunit;
 
-namespace Demo.Tests
+namespace BetterAPI.Testing
 {
     public static class Id
     {

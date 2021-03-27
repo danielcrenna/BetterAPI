@@ -5,7 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using BetterAPI.Guidelines;
 
-namespace Demo.Tests
+namespace BetterAPI.Testing
 {
     public static class HttpClientExtensions
     {

@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using BetterAPI.Guidelines;
 using BetterAPI.Guidelines.Reflection;
 using BetterAPI.Guidelines.Sorting;
+using BetterAPI.Testing;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,11 +24,11 @@ using Xunit.Abstractions;
 
 namespace Demo.Tests
 {
-    public abstract class GivenACollectionStore<TService, TModel> : IClassFixture<WebApplicationFactory<Startup>>
-        where TService : class
+    public abstract class GivenACollectionStore<TService, TModel, TStartup> : IClassFixture<WebApplicationFactory<TStartup>>
+        where TService : class where TStartup : class
     {
         private readonly string _endpoint;
-        private readonly WebApplicationFactory<Startup> _factory;
+        private readonly WebApplicationFactory<TStartup> _factory;
 
         /// <summary>
         /// Overrides should return the first ID inserted into the store, and the first ID should come second compared to the second ID.
@@ -39,7 +40,7 @@ namespace Demo.Tests
         /// </summary>
         public abstract Guid IdLessThanInsertedSecond { get; }
         
-        protected GivenACollectionStore(string endpoint, ITestOutputHelper output, WebApplicationFactory<Startup> factory)
+        protected GivenACollectionStore(string endpoint, ITestOutputHelper output, WebApplicationFactory<TStartup> factory)
         {
             _endpoint = endpoint;
             _factory = factory.WithTestLogging(output).WithWebHostBuilder(builder =>

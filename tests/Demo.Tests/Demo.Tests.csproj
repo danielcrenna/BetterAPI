@@ -23,6 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\BetterAPI.Testing\BetterAPI.Testing.csproj" />
     <ProjectReference Include="..\Demo\Demo\Demo.csproj" />
   </ItemGroup>
 

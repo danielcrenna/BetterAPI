@@ -5,6 +5,7 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 using System;
+using BetterAPI.Testing;
 using Demo.Models;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
@@ -12,7 +13,7 @@ using Xunit.Abstractions;
 
 namespace Demo.Tests
 {
-    public class WeatherControllerSingleItemStoreTests : GivenASingleItemStore<WeatherForecastService, WeatherForecast>
+    public class WeatherControllerSingleItemStoreTests : GivenASingleItemStore<WeatherForecastService, WeatherForecast, Startup>
     {
         private static readonly Guid StableId = Guid.Parse("0F2F5096-C1D8-457C-A55C-04D3663FAD78");
 

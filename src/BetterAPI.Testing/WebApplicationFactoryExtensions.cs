@@ -5,7 +5,6 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 using System;
-using System.Collections.Generic;
 using System.Net.Http;
 using System.Text;
 using Microsoft.AspNetCore.Hosting;
@@ -16,9 +15,9 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
 using Xunit.Abstractions;
 
-namespace Demo.Tests
+namespace BetterAPI.Testing
 {
-    internal static class WebApplicationFactoryExtensions
+    public static class WebApplicationFactoryExtensions
     {
         #region Test Logging
 

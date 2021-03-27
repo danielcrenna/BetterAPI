@@ -15,6 +15,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Demo", "tests\Demo\Demo\Dem
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Demo.Tests", "tests\Demo.Tests\Demo.Tests.csproj", "{781AA2A0-7943-4696-BE12-3EA9D574001A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BetterAPI.Testing", "src\BetterAPI.Testing\BetterAPI.Testing.csproj", "{114FCEBB-7C12-4041-AD42-9013679ECEAE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{781AA2A0-7943-4696-BE12-3EA9D574001A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{781AA2A0-7943-4696-BE12-3EA9D574001A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{781AA2A0-7943-4696-BE12-3EA9D574001A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{114FCEBB-7C12-4041-AD42-9013679ECEAE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{114FCEBB-7C12-4041-AD42-9013679ECEAE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{114FCEBB-7C12-4041-AD42-9013679ECEAE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{114FCEBB-7C12-4041-AD42-9013679ECEAE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

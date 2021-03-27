@@ -17,17 +17,17 @@ using Microsoft.Net.Http.Headers;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace Demo.Tests
+namespace BetterAPI.Testing
 {
     /// <summary>
     ///     <see href="https://docs.microsoft.com/en-us/aspnet/core/test/integration-tests?view=aspnetcore-5.0" />
     /// </summary>
-    public abstract class GivenAnEmptyStore<T> : IClassFixture<WebApplicationFactory<Startup>>
+    public abstract class GivenAnEmptyStore<TModel, TStartup> : IClassFixture<WebApplicationFactory<TStartup>> where TStartup : class
     {
         private readonly string _endpoint;
-        private readonly WebApplicationFactory<Startup> _factory;
+        private readonly WebApplicationFactory<TStartup> _factory;
 
-        protected GivenAnEmptyStore(string endpoint, ITestOutputHelper output, WebApplicationFactory<Startup> factory)
+        protected GivenAnEmptyStore(string endpoint, ITestOutputHelper output, WebApplicationFactory<TStartup> factory)
         {
             _endpoint = endpoint;
             _factory = factory.WithTestLogging(output);
@@ -58,7 +58,7 @@ namespace Demo.Tests
             // there are no resources from which we can determine a modified date
             response.ShouldNotHaveContentHeader(HeaderNames.LastModified);
 
-            var body = await response.Content.ReadFromJsonAsync<IEnumerable<T>?>();
+            var body = await response.Content.ReadFromJsonAsync<IEnumerable<TModel>?>();
             Assert.Empty(body);
         }
 
@@ -80,7 +80,7 @@ namespace Demo.Tests
             // there are no resources from which we can determine a modified date
             response.ShouldNotHaveContentHeader(HeaderNames.LastModified);
 
-            var body = await response.Content.ReadFromJsonAsync<IEnumerable<T>?>();
+            var body = await response.Content.ReadFromJsonAsync<IEnumerable<TModel>?>();
             Assert.Empty(body);
         }
 

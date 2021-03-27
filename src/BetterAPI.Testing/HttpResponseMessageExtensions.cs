@@ -11,7 +11,7 @@ using System.Net.Http;
 using Microsoft.Net.Http.Headers;
 using Xunit;
 
-namespace Demo.Tests
+namespace BetterAPI.Testing
 {
     public static class HttpResponseMessageExtensions
     {

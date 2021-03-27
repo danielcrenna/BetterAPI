@@ -10,7 +10,6 @@ using System.Net.Http.Json;
 using System.Threading.Tasks;
 using BetterAPI.Guidelines;
 using BetterAPI.Guidelines.Reflection;
-using Demo.Models;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,17 +18,18 @@ using Microsoft.Net.Http.Headers;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace Demo.Tests
+namespace BetterAPI.Testing
 {
-    public abstract class GivenASingleItemStore<TService, TModel> : IClassFixture<WebApplicationFactory<Startup>> 
-        where TService : class
+    public abstract class GivenASingleItemStore<TService, TModel, TStartup> : IClassFixture<WebApplicationFactory<TStartup>> 
+        where TService : class 
+        where TStartup : class
     {
         private readonly string _endpoint;
-        private readonly WebApplicationFactory<Startup> _factory;
+        private readonly WebApplicationFactory<TStartup> _factory;
 
         protected Guid Id;
 
-        protected GivenASingleItemStore(string endpoint, Action<TService> seeder, ITestOutputHelper output, WebApplicationFactory<Startup> factory)
+        protected GivenASingleItemStore(string endpoint, Action<TService> seeder, ITestOutputHelper output, WebApplicationFactory<TStartup> factory)
         {
             _endpoint = endpoint;
             _factory = factory.WithTestLogging(output).WithWebHostBuilder(builder =>
