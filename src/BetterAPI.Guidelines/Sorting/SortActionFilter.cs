@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Reflection.Metadata.Ecma335;
 using System.Threading.Tasks;
 using BetterAPI.Guidelines.Reflection;
 using Microsoft.AspNetCore.Http;
@@ -50,7 +48,7 @@ namespace BetterAPI.Guidelines.Sorting
                     continue; // (FIXME: add a validation error?)
 
                 var clause = tokens[0];
-                var name = clause.Substring(clause.IndexOf('=', StringComparison.Ordinal) + 1);
+                var name = clause[(clause.IndexOf('=', StringComparison.Ordinal) + 1)..];
                 var sort = tokens.Length > 1 ? tokens[1].ToUpperInvariant() : "ASC";
 
                 if (members.TryGetValue(name, out var member))

@@ -99,13 +99,10 @@ namespace BetterAPI.Guidelines
             context.Response.Headers.TryAdd(HeaderNames.Server, app.GetServerHeaderValue());
         }
 
-        private static readonly ApiOptions NoOptions = new ApiOptions();
-
         private static string GetServerHeaderValue(this IApplicationBuilder app)
         {
-            // FIXME: use IOptions<ApiOptions>
-            var options = app.ApplicationServices.GetService<ApiOptions>() ?? NoOptions;
-            return options.ApiServer;
+            var options = app.ApplicationServices.GetRequiredService<IOptions<ApiOptions>>();
+            return options.Value.ApiServer;
         }
     }
 }

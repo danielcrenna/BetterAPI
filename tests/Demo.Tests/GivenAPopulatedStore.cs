@@ -9,6 +9,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
 using BetterAPI.Guidelines;
+using BetterAPI.Guidelines.Reflection;
 using Demo.Models;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -20,34 +21,25 @@ using Xunit.Abstractions;
 
 namespace Demo.Tests
 {
-    public abstract class GivenAPopulatedStore<T> : IClassFixture<WebApplicationFactory<Startup>>
+    public abstract class GivenAPopulatedStore<TService> : IClassFixture<WebApplicationFactory<Startup>> 
+        where TService : class
     {
         private readonly string _endpoint;
         private readonly WebApplicationFactory<Startup> _factory;
-        private readonly Guid _id;
+        protected Guid _id;
 
-        protected GivenAPopulatedStore(string endpoint, ITestOutputHelper output, WebApplicationFactory<Startup> factory)
+        protected GivenAPopulatedStore(string endpoint, Action<TService> seeder, ITestOutputHelper output, WebApplicationFactory<Startup> factory)
         {
-            _id = Guid.Parse("0F2F5096-C1D8-457C-A55C-04D3663FAD78");
             _endpoint = endpoint;
             _factory = factory.WithTestLogging(output).WithWebHostBuilder(builder =>
             {
                 builder.ConfigureTestServices(services =>
                 {
-                    services.RemoveAll<WeatherForecastService>();
+                    services.RemoveAll<TService>();
                     services.AddSingleton(r =>
                     {
-                        var model = new WeatherForecast
-                        {
-                            Id = _id,
-                            Date = DateTime.Now,
-                            Summary = "Chilly",
-                            TemperatureC = 0
-                        };
-
-                        var service = new WeatherForecastService();
-                        Assert.True(service.TryAdd(model));
-
+                        var service = Instancing.CreateInstance<TService>(services.BuildServiceProvider());
+                        seeder(service);
                         return service;
                     });
                 });

@@ -11,7 +11,6 @@ using System.Net.Http.Json;
 using System.Threading.Tasks;
 using BetterAPI.Guidelines;
 using BetterAPI.Guidelines.Caching;
-using Demo.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Net.Http.Headers;
