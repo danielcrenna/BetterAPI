@@ -4,14 +4,11 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
-using System.Collections.Generic;
-
 namespace BetterAPI.Guidelines.Sorting
 {
-    public class SortOptions
+    public class SortClause
     {
-        public bool SortByDefault { get; set; } = true;
-
-        public SortClause[] DefaultSort { get; set; } = {new SortClause {Field = "Id", Direction = SortDirection.Ascending}};
+        public string Field { get; set; } = "Id";
+        public SortDirection Direction { get; set; } = SortDirection.Ascending;
     }
 }

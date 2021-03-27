@@ -12,6 +12,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using BetterAPI.Guidelines.Extensions;
 using BetterAPI.Guidelines.Reflection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
@@ -53,14 +54,13 @@ namespace BetterAPI.Guidelines.Caching
             }
 
             if (context.Result is StatusCodeResult)
-                return;
+                return; // short-circuit
 
             var executed = await next.Invoke();
 
             if (executed.Result is ObjectResult result)
             {
-                var body = result.Value ?? executed.HttpContext.Items[Constants.ObjectResultValue] ??
-                    throw new NullReferenceException("Could not locate expected result body");
+                var body = executed.GetResultBody(result);
 
                 GenerateAndAppendETag(context, body, displayUrl);
                 GenerateAndAppendLastModified(context, body, displayUrl);

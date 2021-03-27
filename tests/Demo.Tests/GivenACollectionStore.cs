@@ -13,7 +13,6 @@ using System.Threading.Tasks;
 using BetterAPI.Guidelines;
 using BetterAPI.Guidelines.Reflection;
 using BetterAPI.Guidelines.Sorting;
-using Demo.Models;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,10 +29,17 @@ namespace Demo.Tests
         private readonly string _endpoint;
         private readonly WebApplicationFactory<Startup> _factory;
 
-        protected Guid IdGreaterThanInsertedFirst;
-        protected Guid IdLessThanInsertedSecond;
+        /// <summary>
+        /// Overrides should return the first ID inserted into the store, and the first ID should come second compared to the second ID.
+        /// </summary>
+        public abstract Guid IdGreaterThanInsertedFirst { get; }
+
+        /// <summary>
+        /// Overrides should return the second ID inserted into the store, and the second ID should come first compared to the first ID.
+        /// </summary>
+        public abstract Guid IdLessThanInsertedSecond { get; }
         
-        protected GivenACollectionStore(string endpoint, Action<TService> seeder, ITestOutputHelper output, WebApplicationFactory<Startup> factory)
+        protected GivenACollectionStore(string endpoint, ITestOutputHelper output, WebApplicationFactory<Startup> factory)
         {
             _endpoint = endpoint;
             _factory = factory.WithTestLogging(output).WithWebHostBuilder(builder =>
@@ -44,17 +50,63 @@ namespace Demo.Tests
                     services.AddSingleton(r =>
                     {
                         var service = Instancing.CreateInstance<TService>(services.BuildServiceProvider());
-                        seeder(service);
+                        Populate(service);
                         return service;
                     });
                 });
             });
         }
 
+        /// <summary>
+        /// Overrides should return a sort clause that produces the reverse insertion order for the added items to the store.
+        /// </summary>
+        /// <returns></returns>
+        public abstract SortClause AlternateSort();
+
+        /// <summary>
+        /// Overrides should call the provided service to populate the data store.
+        /// </summary>
+        /// <param name="service"></param>
+        public abstract void Populate(TService service);
+
         [Fact]
         public async Task Get_without_order_by_returns_sorted_by_id_ascending()
         {
             var client = _factory.CreateClientNoRedirects();
+            var response = await client.GetAsync($"{_endpoint}");
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+            response.ShouldNotHaveHeader(ApiHeaderNames.PreferenceApplied);
+            response.ShouldHaveHeader(HeaderNames.ETag);
+            response.ShouldHaveContentHeader(HeaderNames.LastModified);
+
+            var model = await response.Content.ReadFromJsonAsync<IEnumerable<TModel>>();
+            Assert.NotNull(model ?? throw new NullReferenceException());
+
+            var ordered = model.ToList() ?? throw new NullReferenceException();
+            Assert.Equal(2, ordered.Count);
+
+            Assert.Equal(ordered[0]?.GetId(), IdLessThanInsertedSecond);
+            Assert.Equal(ordered[1]?.GetId(), IdGreaterThanInsertedFirst);
+        } 
+
+        [Fact]
+        public async Task Get_without_order_by_returns_custom_default_sort()
+        {
+            var client = _factory
+                .WithWebHostBuilder(x =>
+                {
+                    x.ConfigureTestServices(services =>
+                    {
+                        services.Configure<SortOptions>(o =>
+                        {
+                            o.SortByDefault = true;
+                            o.DefaultSort = new[] { AlternateSort() };
+                        });
+                    });
+                })    
+                .CreateClientNoRedirects();
+
             var response = await client.GetAsync($"{_endpoint}");
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 

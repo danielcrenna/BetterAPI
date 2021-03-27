@@ -4,6 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading.Tasks;
+using BetterAPI.Guidelines.Extensions;
 using BetterAPI.Guidelines.Reflection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -84,15 +85,20 @@ namespace BetterAPI.Guidelines.Sorting
 
             if (sortMap.Count == 0)
             {
-                // sort by ID ascending by default
-                sortMap.Add((id, SortDirection.Ascending));
+                foreach (var clause in _options.Value.DefaultSort)
+                {
+                    if (members.TryGetValue(clause.Field, out var member))
+                    {
+                        sortMap.Add((member, clause.Direction));
+                    }
+                }
             }
             
             var executed = await next();
 
             if (executed.Result is OkObjectResult result)
             {
-                var collection = result.Value;
+                var collection = executed.GetResultBody(result, out var settable);
 
                 // FIXME: use call accessor here
                 var method = BuilderMethod.MakeGenericMethod(type) ?? throw new NullReferenceException();
@@ -108,7 +114,9 @@ namespace BetterAPI.Guidelines.Sorting
                 var lambda = (LambdaExpression) orderBy;
                 var compiled = lambda.Compile(); // FIXME: cache me
                 var sorted = compiled.DynamicInvoke(collection);
-                result.Value = sorted;
+
+                if(settable)
+                    result.Value = sorted;
             }
         }
 
