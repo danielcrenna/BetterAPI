@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Mvc.ActionConstraints;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 
 namespace BetterAPI.Guidelines.Sorting
@@ -19,12 +20,18 @@ namespace BetterAPI.Guidelines.Sorting
     /// </summary>
     public sealed class SortActionFilter : IAsyncActionFilter
     {
+        private readonly IOptionsSnapshot<SortOptions> _options;
         private static readonly MethodInfo BuilderMethod;
 
         static SortActionFilter()
         {
             BuilderMethod = typeof(SortActionFilter).GetMethod(nameof(BuildOrderByExpression), BindingFlags.NonPublic | BindingFlags.Static)
                 ?? throw new InvalidOperationException();
+        }
+
+        public SortActionFilter(IOptionsSnapshot<SortOptions> options)
+        {
+            _options = options;
         }
 
         public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
@@ -37,6 +44,13 @@ namespace BetterAPI.Guidelines.Sorting
 
             var members = AccessorMembers.Create(type, AccessorMemberTypes.Fields | AccessorMemberTypes.Properties,
                 AccessorMemberScope.Public);
+
+            // FIXME: add attribute for model ID discriminator, or fail due to missing "Id"
+            if (!members.TryGetValue("Id", out var id))
+            {
+                await next.Invoke();
+                return;
+            }
             
             // FIXME: avoid allocation here?
             var sortMap = new List<(AccessorMember, SortDirection)>(values.Count);
@@ -56,7 +70,7 @@ namespace BetterAPI.Guidelines.Sorting
                     switch (sort)
                     {
                         case "DESC":
-                            sortMap.Add((member, SortDirection.Ascending));
+                            sortMap.Add((member, SortDirection.Descending));
                             break;
                         case "ASC":
                             sortMap.Add((member, SortDirection.Ascending));
@@ -70,7 +84,10 @@ namespace BetterAPI.Guidelines.Sorting
             }
 
             if (sortMap.Count == 0)
-                return;
+            {
+                // sort by ID ascending by default
+                sortMap.Add((id, SortDirection.Ascending));
+            }
             
             var executed = await next();
 
@@ -108,7 +125,7 @@ namespace BetterAPI.Guidelines.Sorting
             return ReturnsEnumerableType(descriptor, out var collectionType) || collectionType == null;
         }
 
-        internal static bool IsValidForRequest(ActionContext context, out StringValues sortClauses, out Type? collectionType)
+        internal bool IsValidForRequest(ActionContext context, out StringValues sortClauses, out Type? collectionType)
         {
             if (context.HttpContext.Request.Method != HttpMethods.Get)
             {
@@ -117,13 +134,13 @@ namespace BetterAPI.Guidelines.Sorting
                 return false;
             }
 
-            if (!context.HttpContext.Request.Query.TryGetValue(Constants.Operators.OrderBy, out sortClauses))
+            if (!context.HttpContext.Request.Query.TryGetValue(Constants.Operators.OrderBy, out sortClauses) && !_options.Value.SortByDefault)
             {
                 collectionType = null;
                 return false;
             }
 
-            if (sortClauses.Count != 0)
+            if (sortClauses.Count != 0 || _options.Value.SortByDefault)
                 return ReturnsEnumerableType(context.ActionDescriptor, out collectionType) || collectionType == null;
 
             collectionType = null;

@@ -8,6 +8,6 @@ namespace BetterAPI.Guidelines.Sorting
 {
     public class SortOptions
     {
-
+        public bool SortByDefault { get; set; } = true;
     }
 }

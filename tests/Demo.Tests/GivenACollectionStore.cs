@@ -6,6 +6,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
@@ -27,6 +28,9 @@ namespace Demo.Tests
     {
         private readonly string _endpoint;
         private readonly WebApplicationFactory<Startup> _factory;
+
+        protected Guid _first;
+        protected Guid _second;
         
         protected GivenACollectionStore(string endpoint, Action<TService> seeder, ITestOutputHelper output, WebApplicationFactory<Startup> factory)
         {
@@ -47,7 +51,7 @@ namespace Demo.Tests
         }
 
         [Fact]
-        public async Task Get_returns_result()
+        public async Task Get_without_order_by_returns_sorted_by_id()
         {
             var client = _factory.CreateClientNoRedirects();
             var response = await client.GetAsync($"{_endpoint}");
@@ -58,7 +62,34 @@ namespace Demo.Tests
             response.ShouldHaveContentHeader(HeaderNames.LastModified);
 
             var model = await response.Content.ReadFromJsonAsync<IEnumerable<TModel>>();
-            Assert.NotNull(model);
+            Assert.NotNull(model ?? throw new NullReferenceException());
+
+            var ordered = model.ToList() ?? throw new NullReferenceException();
+            Assert.Equal(2, ordered.Count);
+
+            Assert.Equal(ordered[0]?.GetId(), _second);
+            Assert.Equal(ordered[1]?.GetId(), _first);
+        } 
+
+        [Fact]
+        public async Task Get_with_order_by_id_descending_returns_reversed_sort()
+        {
+            var client = _factory.CreateClientNoRedirects();
+            var response = await client.GetAsync($"{_endpoint}/?$orderBy=id desc");
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+            response.ShouldNotHaveHeader(ApiHeaderNames.PreferenceApplied);
+            response.ShouldHaveHeader(HeaderNames.ETag);
+            response.ShouldHaveContentHeader(HeaderNames.LastModified);
+
+            var model = await response.Content.ReadFromJsonAsync<IEnumerable<TModel>>();
+            Assert.NotNull(model ?? throw new NullReferenceException());
+
+            var ordered = model.ToList() ?? throw new NullReferenceException();
+            Assert.Equal(2, ordered.Count);
+
+            Assert.Equal(ordered[0]?.GetId(), _first);
+            Assert.Equal(ordered[1]?.GetId(), _second);
         } 
     }
 }

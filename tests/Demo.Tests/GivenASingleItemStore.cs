@@ -59,8 +59,8 @@ namespace Demo.Tests
             response.ShouldHaveContentHeader(HeaderNames.LastModified);
 
             var model = await response.Content.ReadFromJsonAsync<TModel>();
-            Assert.NotNull(model);
-            Assert.Equal(Id, GetModelId(model));
+            Assert.NotNull(model ?? throw new NullReferenceException());
+            Assert.Equal(Id, model.GetId());
         }
         
         [Fact]
@@ -96,8 +96,8 @@ namespace Demo.Tests
             response.ShouldHaveContentHeader(HeaderNames.LastModified);
 
             var model = await response.Content.ReadFromJsonAsync<TModel>();
-            Assert.NotNull(model);
-            Assert.Equal(Id, GetModelId(model));
+            Assert.NotNull(model ?? throw new NullReferenceException());
+            Assert.Equal(Id, model.GetId());
         }
 
         [Fact]
@@ -160,13 +160,6 @@ namespace Demo.Tests
             client.DefaultRequestHeaders.TryAddWithoutValidation(HeaderNames.IfMatch, response.Headers.ETag.ToString());
             response = await client.GetAsync($"{_endpoint}/{Id}");
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        }
-        
-        private static object GetModelId(TModel model)
-        {
-            var accessor = ReadAccessor.Create(model);
-            Assert.True(accessor.TryGetValue(model, "Id", out var id));
-            return id;
         }
     }
 }
