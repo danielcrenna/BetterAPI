@@ -21,14 +21,15 @@ using Xunit.Abstractions;
 
 namespace Demo.Tests
 {
-    public abstract class GivenAPopulatedStore<TService> : IClassFixture<WebApplicationFactory<Startup>> 
+    public abstract class GivenASingleItemStore<TService, TModel> : IClassFixture<WebApplicationFactory<Startup>> 
         where TService : class
     {
         private readonly string _endpoint;
         private readonly WebApplicationFactory<Startup> _factory;
-        protected Guid _id;
 
-        protected GivenAPopulatedStore(string endpoint, Action<TService> seeder, ITestOutputHelper output, WebApplicationFactory<Startup> factory)
+        protected Guid Id;
+
+        protected GivenASingleItemStore(string endpoint, Action<TService> seeder, ITestOutputHelper output, WebApplicationFactory<Startup> factory)
         {
             _endpoint = endpoint;
             _factory = factory.WithTestLogging(output).WithWebHostBuilder(builder =>
@@ -43,32 +44,32 @@ namespace Demo.Tests
                         return service;
                     });
                 });
-            });;
+            });
         }
 
         [Fact]
         public async Task Get_by_id_returns_result()
         {
             var client = _factory.CreateClientNoRedirects();
-            var response = await client.GetAsync($"{_endpoint}/{_id}");
+            var response = await client.GetAsync($"{_endpoint}/{Id}");
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
             response.ShouldNotHaveHeader(ApiHeaderNames.PreferenceApplied);
             response.ShouldHaveHeader(HeaderNames.ETag);
             response.ShouldHaveContentHeader(HeaderNames.LastModified);
 
-            var model = await response.Content.ReadFromJsonAsync<WeatherForecast>();
+            var model = await response.Content.ReadFromJsonAsync<TModel>();
             Assert.NotNull(model);
-            Assert.Equal(_id, model.Id);
+            Assert.Equal(Id, GetModelId(model));
         }
-
+        
         [Fact]
         public async Task Get_by_id_with_minimal_preference_returns_empty_body()
         {
             var client = _factory.CreateClientNoRedirects()
                 .PreferMinimal();
 
-            var response = await client.GetAsync($"{_endpoint}/{_id}");
+            var response = await client.GetAsync($"{_endpoint}/{Id}");
             Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
 
             response.ShouldHaveHeader(ApiHeaderNames.PreferenceApplied);
@@ -87,16 +88,16 @@ namespace Demo.Tests
             var client = _factory.CreateClientNoRedirects()
                 .PreferRepresentation();
 
-            var response = await client.GetAsync($"{_endpoint}/{_id}");
+            var response = await client.GetAsync($"{_endpoint}/{Id}");
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
             response.ShouldHaveHeader(ApiHeaderNames.PreferenceApplied);
             response.ShouldHaveHeader(HeaderNames.ETag);
             response.ShouldHaveContentHeader(HeaderNames.LastModified);
 
-            var model = await response.Content.ReadFromJsonAsync<WeatherForecast>();
+            var model = await response.Content.ReadFromJsonAsync<TModel>();
             Assert.NotNull(model);
-            Assert.Equal(_id, model.Id);
+            Assert.Equal(Id, GetModelId(model));
         }
 
         [Fact]
@@ -115,7 +116,7 @@ namespace Demo.Tests
             // use the invalid etag to request a result only if there are none matching it (and there is no match)
             client.DefaultRequestHeaders.TryAddWithoutValidation(HeaderNames.IfNoneMatch, "W/\"00000000000000000000000000000000\"");
 
-            var response = await client.GetAsync($"{_endpoint}/{_id}");
+            var response = await client.GetAsync($"{_endpoint}/{Id}");
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         }
 
@@ -124,13 +125,13 @@ namespace Demo.Tests
         {
             // get the etag that corresponds to this ID
             var client = _factory.CreateClientNoRedirects();
-            var response = await client.GetAsync($"{_endpoint}/{_id}");
+            var response = await client.GetAsync($"{_endpoint}/{Id}");
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.NotNull(response.Headers.ETag);
 
             // use the etag to request a result only if there are none matching it (but there is a match)
             client.DefaultRequestHeaders.TryAddWithoutValidation(HeaderNames.IfNoneMatch, response.Headers.ETag.ToString());
-            response = await client.GetAsync($"{_endpoint}/{_id}");
+            response = await client.GetAsync($"{_endpoint}/{Id}");
             Assert.Equal(HttpStatusCode.NotModified, response.StatusCode);
         }
         
@@ -142,7 +143,7 @@ namespace Demo.Tests
             // use the invalid etag to request a result only if there is a match for it (but there is no match)
             client.DefaultRequestHeaders.TryAddWithoutValidation(HeaderNames.IfMatch, "W/\"00000000000000000000000000000000\"");
 
-            var response = await client.GetAsync($"{_endpoint}/{_id}");
+            var response = await client.GetAsync($"{_endpoint}/{Id}");
             Assert.Equal(HttpStatusCode.NotModified, response.StatusCode);
         }
 
@@ -151,14 +152,21 @@ namespace Demo.Tests
         {
             // get the etag that corresponds to this ID
             var client = _factory.CreateClientNoRedirects();
-            var response = await client.GetAsync($"{_endpoint}/{_id}");
+            var response = await client.GetAsync($"{_endpoint}/{Id}");
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.NotNull(response.Headers.ETag);
 
             // use the etag to request a result only if there is a match for it (and there is a match)
             client.DefaultRequestHeaders.TryAddWithoutValidation(HeaderNames.IfMatch, response.Headers.ETag.ToString());
-            response = await client.GetAsync($"{_endpoint}/{_id}");
+            response = await client.GetAsync($"{_endpoint}/{Id}");
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        }
+        
+        private static object GetModelId(TModel model)
+        {
+            var accessor = ReadAccessor.Create(model);
+            Assert.True(accessor.TryGetValue(model, "Id", out var id));
+            return id;
         }
     }
 }

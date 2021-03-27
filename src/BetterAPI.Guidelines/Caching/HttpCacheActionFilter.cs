@@ -151,7 +151,7 @@ namespace BetterAPI.Guidelines.Caching
             {
                 DateTimeOffset? lastModified = default;
                 foreach (var item in enumerable)
-                    lastModified = GenerateAndAppendLastModified(context, item, type, displayUrl, lastModified);
+                    lastModified = GenerateAndAppendLastModified(context, item, item.GetType(), displayUrl, lastModified);
             }
             else
             {
