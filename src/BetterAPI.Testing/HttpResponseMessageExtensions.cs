@@ -33,7 +33,8 @@ namespace BetterAPI.Testing
             return response;
         }
 
-        public static HttpResponseMessage ShouldNotHaveContentHeader(this HttpResponseMessage response, string headerName)
+        public static HttpResponseMessage ShouldNotHaveContentHeader(this HttpResponseMessage response,
+            string headerName)
         {
             Assert.False(response.Content.Headers.Contains(headerName));
             return response;
@@ -41,7 +42,7 @@ namespace BetterAPI.Testing
 
         public static void ShouldHaveValidDateHeader(this HttpResponseMessage response)
         {
-             response.ShouldHaveHeader(HeaderNames.Date);
+            response.ShouldHaveHeader(HeaderNames.Date);
 
             var dateString = response.Headers.GetValues(HeaderNames.Date).SingleOrDefault();
             Assert.NotNull(dateString);
@@ -49,13 +50,14 @@ namespace BetterAPI.Testing
 
             var provider = CultureInfo.InvariantCulture;
             var format = provider.DateTimeFormat.RFC1123Pattern;
-            
+
             // Microsoft REST Guidelines specified https://tools.ietf.org/html/rfc5322#section-3.3
             // But RFC 1123 seems to point back to RFC 5322 or is otherwise identical
             //
             // Also guidelines specifies GMT (ala RFC 1123), and ignores the stipulations of RFC 5322:
             // 'The date and time-of-day SHOULD express local time.'
-            Assert.True(DateTimeOffset.TryParseExact(dateString, format, provider, DateTimeStyles.AdjustToUniversal, out _));
+            Assert.True(DateTimeOffset.TryParseExact(dateString, format, provider, DateTimeStyles.AdjustToUniversal,
+                out _));
         }
     }
 }

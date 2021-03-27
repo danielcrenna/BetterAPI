@@ -6,7 +6,7 @@
 
 using System;
 using System.ComponentModel.DataAnnotations;
-using BetterAPI.Guidelines;
+using BetterAPI;
 
 namespace Demo.Models
 {

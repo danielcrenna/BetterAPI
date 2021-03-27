@@ -8,8 +8,7 @@ using System;
 using System.Net;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
-using BetterAPI.Guidelines;
-using BetterAPI.Guidelines.Reflection;
+using BetterAPI.Reflection;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,8 +19,9 @@ using Xunit.Abstractions;
 
 namespace BetterAPI.Testing
 {
-    public abstract class GivenASingleItemStore<TService, TModel, TStartup> : IClassFixture<WebApplicationFactory<TStartup>> 
-        where TService : class 
+    public abstract class
+        GivenASingleItemStore<TService, TModel, TStartup> : IClassFixture<WebApplicationFactory<TStartup>>
+        where TService : class
         where TStartup : class
     {
         private readonly string _endpoint;
@@ -29,7 +29,8 @@ namespace BetterAPI.Testing
 
         protected Guid Id;
 
-        protected GivenASingleItemStore(string endpoint, Action<TService> seeder, ITestOutputHelper output, WebApplicationFactory<TStartup> factory)
+        protected GivenASingleItemStore(string endpoint, Action<TService> seeder, ITestOutputHelper output,
+            WebApplicationFactory<TStartup> factory)
         {
             _endpoint = endpoint;
             _factory = factory.WithTestLogging(output).WithWebHostBuilder(builder =>
@@ -62,7 +63,7 @@ namespace BetterAPI.Testing
             Assert.NotNull(model ?? throw new NullReferenceException());
             Assert.Equal(Id, model.GetId());
         }
-        
+
         [Fact]
         public async Task Get_by_id_with_minimal_preference_returns_empty_body()
         {
@@ -112,9 +113,10 @@ namespace BetterAPI.Testing
         public async Task Get_by_id_with_invalid_if_none_match_returns_result()
         {
             var client = _factory.CreateClientNoRedirects();
-            
+
             // use the invalid etag to request a result only if there are none matching it (and there is no match)
-            client.DefaultRequestHeaders.TryAddWithoutValidation(HeaderNames.IfNoneMatch, "W/\"00000000000000000000000000000000\"");
+            client.DefaultRequestHeaders.TryAddWithoutValidation(HeaderNames.IfNoneMatch,
+                "W/\"00000000000000000000000000000000\"");
 
             var response = await client.GetAsync($"{_endpoint}/{Id}");
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -130,18 +132,20 @@ namespace BetterAPI.Testing
             Assert.NotNull(response.Headers.ETag);
 
             // use the etag to request a result only if there are none matching it (but there is a match)
-            client.DefaultRequestHeaders.TryAddWithoutValidation(HeaderNames.IfNoneMatch, response.Headers.ETag.ToString());
+            client.DefaultRequestHeaders.TryAddWithoutValidation(HeaderNames.IfNoneMatch,
+                response.Headers.ETag.ToString());
             response = await client.GetAsync($"{_endpoint}/{Id}");
             Assert.Equal(HttpStatusCode.NotModified, response.StatusCode);
         }
-        
+
         [Fact]
         public async Task Get_by_id_with_invalid_if_match_returns_not_modified()
         {
             var client = _factory.CreateClientNoRedirects();
 
             // use the invalid etag to request a result only if there is a match for it (but there is no match)
-            client.DefaultRequestHeaders.TryAddWithoutValidation(HeaderNames.IfMatch, "W/\"00000000000000000000000000000000\"");
+            client.DefaultRequestHeaders.TryAddWithoutValidation(HeaderNames.IfMatch,
+                "W/\"00000000000000000000000000000000\"");
 
             var response = await client.GetAsync($"{_endpoint}/{Id}");
             Assert.Equal(HttpStatusCode.NotModified, response.StatusCode);

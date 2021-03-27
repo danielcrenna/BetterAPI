@@ -9,8 +9,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
-using BetterAPI.Guidelines;
-using BetterAPI.Guidelines.Caching;
+using BetterAPI.Caching;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Net.Http.Headers;
@@ -22,7 +21,8 @@ namespace BetterAPI.Testing
     /// <summary>
     ///     <see href="https://docs.microsoft.com/en-us/aspnet/core/test/integration-tests?view=aspnetcore-5.0" />
     /// </summary>
-    public abstract class GivenAnEmptyStore<TModel, TStartup> : IClassFixture<WebApplicationFactory<TStartup>> where TStartup : class
+    public abstract class GivenAnEmptyStore<TModel, TStartup> : IClassFixture<WebApplicationFactory<TStartup>>
+        where TStartup : class
     {
         private readonly string _endpoint;
         private readonly WebApplicationFactory<TStartup> _factory;
@@ -45,7 +45,7 @@ namespace BetterAPI.Testing
         public async Task Get_returns_empty_collection()
         {
             var client = _factory.CreateClientNoRedirects();
-            
+
             var response = await client.GetAsync(_endpoint);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
@@ -67,7 +67,7 @@ namespace BetterAPI.Testing
         {
             var client = _factory.CreateClientNoRedirects()
                 .PreferRepresentation();
-            
+
             var response = await client.GetAsync(_endpoint);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
@@ -145,7 +145,7 @@ namespace BetterAPI.Testing
             var response = await client.GetAsync(_endpoint);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         }
-         
+
         [Fact]
         public async Task Get_with_any_valid_id_returns_not_found()
         {

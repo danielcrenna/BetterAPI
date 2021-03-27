@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\BetterApi.Guidelines\BetterAPI.Guidelines.csproj" />
+    <ProjectReference Include="..\..\..\src\BetterAPI\BetterAPI.csproj" />
   </ItemGroup>
 
 </Project>

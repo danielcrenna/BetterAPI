@@ -9,13 +9,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		README.md = README.md
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BetterAPI.Guidelines", "src\BetterApi.Guidelines\BetterAPI.Guidelines.csproj", "{55210566-0314-49D2-9031-9BA71D12FE74}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Demo", "tests\Demo\Demo\Demo.csproj", "{05F92319-9097-4CA2-81A7-10C2039C07A8}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Demo.Tests", "tests\Demo.Tests\Demo.Tests.csproj", "{781AA2A0-7943-4696-BE12-3EA9D574001A}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BetterAPI.Testing", "src\BetterAPI.Testing\BetterAPI.Testing.csproj", "{114FCEBB-7C12-4041-AD42-9013679ECEAE}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BetterAPI", "src\BetterAPI\BetterAPI.csproj", "{B23C600F-E447-497F-AC7D-400CE781B5A9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -23,10 +23,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{55210566-0314-49D2-9031-9BA71D12FE74}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{55210566-0314-49D2-9031-9BA71D12FE74}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{55210566-0314-49D2-9031-9BA71D12FE74}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{55210566-0314-49D2-9031-9BA71D12FE74}.Release|Any CPU.Build.0 = Release|Any CPU
 		{05F92319-9097-4CA2-81A7-10C2039C07A8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{05F92319-9097-4CA2-81A7-10C2039C07A8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{05F92319-9097-4CA2-81A7-10C2039C07A8}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -39,6 +35,10 @@ Global
 		{114FCEBB-7C12-4041-AD42-9013679ECEAE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{114FCEBB-7C12-4041-AD42-9013679ECEAE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{114FCEBB-7C12-4041-AD42-9013679ECEAE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B23C600F-E447-497F-AC7D-400CE781B5A9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B23C600F-E447-497F-AC7D-400CE781B5A9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B23C600F-E447-497F-AC7D-400CE781B5A9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B23C600F-E447-497F-AC7D-400CE781B5A9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

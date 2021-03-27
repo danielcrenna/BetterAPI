@@ -5,7 +5,8 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 using System;
-using BetterAPI.Guidelines.Sorting;
+using BetterAPI.Sorting;
+using BetterAPI.Testing;
 using Demo.Models;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;

@@ -19,10 +19,20 @@ namespace BetterAPI.Testing
 {
     public static class WebApplicationFactoryExtensions
     {
+        #region Client Helpers
+
+        public static HttpClient CreateClientNoRedirects<TStartup>(this WebApplicationFactory<TStartup> factory)
+            where TStartup : class
+        {
+            return factory.CreateClient(new WebApplicationFactoryClientOptions {AllowAutoRedirect = false});
+        }
+
+        #endregion
+
         #region Test Logging
 
         /// <summary>
-        /// Redirect all application logging to the test console.
+        ///     Redirect all application logging to the test console.
         /// </summary>
         /// <typeparam name="TStartup">The web application under test</typeparam>
         /// <param name="factory">The chained factory to enable test logging on</param>
@@ -59,9 +69,9 @@ namespace BetterAPI.Testing
             private const string Critical = "crit";
 
             private readonly string _categoryName;
-            private readonly bool _useScopes;
             private readonly ITestOutputHelper _output;
             private readonly IExternalScopeProvider _scopes;
+            private readonly bool _useScopes;
 
             public XunitLogger(ITestOutputHelper output, IExternalScopeProvider scopes, string categoryName,
                 bool useScopes)
@@ -193,7 +203,8 @@ namespace BetterAPI.Testing
             // look for other configuration sources
             // See: https://docs.microsoft.com/en-us/dotnet/core/extensions/logging?tabs=command-line#set-log-level-by-command-line-environment-variables-and-other-configuration
 
-            var config = serviceProvider.GetService<IConfigurationRoot>() ?? serviceProvider.GetService<IConfiguration>();
+            var config = serviceProvider.GetService<IConfigurationRoot>() ??
+                         serviceProvider.GetService<IConfiguration>();
             var logging = config?.GetSection("Logging");
             if (logging == default)
                 return false;
@@ -204,15 +215,6 @@ namespace BetterAPI.Testing
                 includeScopes = logging?.GetValue("IncludeScopes", false);
 
             return includeScopes.GetValueOrDefault(false);
-        }
-
-        #endregion
-
-        #region Client Helpers
-
-        public static HttpClient CreateClientNoRedirects<TStartup>(this WebApplicationFactory<TStartup> factory) where TStartup : class
-        {
-            return factory.CreateClient(new WebApplicationFactoryClientOptions {AllowAutoRedirect = false});
         }
 
         #endregion

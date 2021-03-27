@@ -7,7 +7,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
-using BetterAPI.Guidelines.Caching;
+using BetterAPI.Caching;
 using BetterAPI.Testing;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
