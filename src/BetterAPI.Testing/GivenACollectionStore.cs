@@ -83,10 +83,10 @@ namespace BetterAPI.Testing
             response.ShouldHaveHeader(HeaderNames.ETag);
             response.ShouldHaveContentHeader(HeaderNames.LastModified);
 
-            var model = await response.Content.ReadFromJsonAsync<IEnumerable<TModel>>();
+            var model = await response.Content.ReadFromJsonAsync<Envelope<TModel>>();
             Assert.NotNull(model ?? throw new NullReferenceException());
 
-            var ordered = model.ToList();
+            var ordered = model.Values.ToList();
             Assert.Equal(2, ordered.Count);
 
             Assert.Equal(ordered[0]?.GetId(), IdLessThanInsertedSecond);
@@ -117,10 +117,10 @@ namespace BetterAPI.Testing
             response.ShouldHaveHeader(HeaderNames.ETag);
             response.ShouldHaveContentHeader(HeaderNames.LastModified);
 
-            var model = await response.Content.ReadFromJsonAsync<IEnumerable<TModel>>();
+            var model = await response.Content.ReadFromJsonAsync<Envelope<TModel>>();
             Assert.NotNull(model ?? throw new NullReferenceException());
 
-            var ordered = model.ToList();
+            var ordered = model.Values.ToList();
             Assert.Equal(2, ordered.Count);
 
             Assert.Equal(ordered[0]?.GetId(), IdLessThanInsertedSecond);
@@ -138,10 +138,10 @@ namespace BetterAPI.Testing
             response.ShouldHaveHeader(HeaderNames.ETag);
             response.ShouldHaveContentHeader(HeaderNames.LastModified);
 
-            var model = await response.Content.ReadFromJsonAsync<IEnumerable<TModel>>();
+            var model = await response.Content.ReadFromJsonAsync<Envelope<TModel>>();
             Assert.NotNull(model ?? throw new NullReferenceException());
 
-            var ordered = model.ToList();
+            var ordered = model.Values.ToList();
             Assert.Equal(2, ordered.Count);
 
             Assert.Equal(ordered[0]?.GetId(), IdGreaterThanInsertedFirst);
@@ -168,10 +168,10 @@ namespace BetterAPI.Testing
             response.ShouldHaveHeader(HeaderNames.ETag);
             response.ShouldHaveContentHeader(HeaderNames.LastModified);
 
-            var model = await response.Content.ReadFromJsonAsync<IEnumerable<TModel>>();
+            var model = await response.Content.ReadFromJsonAsync<Envelope<TModel>>();
             Assert.NotNull(model ?? throw new NullReferenceException());
 
-            var ordered = model.ToList();
+            var ordered = model.Values.ToList();
             Assert.Equal(2, ordered.Count);
 
             Assert.Equal(ordered[0]?.GetId(), IdGreaterThanInsertedFirst);

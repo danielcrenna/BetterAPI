@@ -19,10 +19,9 @@ namespace BetterAPI.Sorting
             return services.AddCollectionSorting(configuration.Bind);
         }
 
-        public static IServiceCollection AddCollectionSorting(this IServiceCollection services,
-            Action<CacheOptions>? configureAction = null)
+        public static IServiceCollection AddCollectionSorting(this IServiceCollection services, Action<CacheOptions>? configureAction = default)
         {
-            if (configureAction != null)
+            if (configureAction != default)
             {
                 services.AddOptions();
                 services.Configure(configureAction);

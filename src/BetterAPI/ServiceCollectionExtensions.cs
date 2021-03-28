@@ -8,6 +8,7 @@ using System;
 using System.IO;
 using System.Reflection;
 using BetterAPI.Caching;
+using BetterAPI.Enveloping;
 using BetterAPI.Prefer;
 using BetterAPI.Sorting;
 using Microsoft.AspNetCore.Mvc;
@@ -40,6 +41,7 @@ namespace BetterAPI
 
             // Each feature is available bespoke or bundled here by convention:
             services.AddCors();
+            services.AddEnveloping();
             services.AddPrefer(configuration.GetSection(nameof(ApiOptions.Prefer)));
             services.AddHttpCaching(configuration.GetSection(nameof(ApiOptions.Cache)));
             services.AddCollectionSorting(configuration.GetSection(nameof(ApiOptions.Sort)));

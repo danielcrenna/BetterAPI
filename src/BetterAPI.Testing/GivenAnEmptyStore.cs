@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Net.Http.Headers;
 using Xunit;
 using Xunit.Abstractions;
+using Xunit.Sdk;
 
 namespace BetterAPI.Testing
 {
@@ -58,8 +59,8 @@ namespace BetterAPI.Testing
             // there are no resources from which we can determine a modified date
             response.ShouldNotHaveContentHeader(HeaderNames.LastModified);
 
-            var body = await response.Content.ReadFromJsonAsync<IEnumerable<TModel>?>();
-            Assert.Empty(body);
+            var body = await response.Content.ReadFromJsonAsync<Envelope<TModel>>() ?? throw new NullReferenceException();
+            Assert.Empty(body.Values);
         }
 
         [Fact]
@@ -80,8 +81,8 @@ namespace BetterAPI.Testing
             // there are no resources from which we can determine a modified date
             response.ShouldNotHaveContentHeader(HeaderNames.LastModified);
 
-            var body = await response.Content.ReadFromJsonAsync<IEnumerable<TModel>?>();
-            Assert.Empty(body);
+            var body = await response.Content.ReadFromJsonAsync<Envelope<TModel>>() ?? throw new NullReferenceException();
+            Assert.Empty(body.Values);
         }
 
         [Fact]

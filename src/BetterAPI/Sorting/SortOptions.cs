@@ -10,6 +10,8 @@ namespace BetterAPI.Sorting
     {
         public bool SortByDefault { get; set; } = true;
 
+        public string Operator { get; set; } = "$orderBy";
+
         public SortClause[] DefaultSort { get; set; } =
             {new SortClause {Field = "Id", Direction = SortDirection.Ascending}};
     }

@@ -131,7 +131,7 @@ namespace BetterAPI.Sorting
                 return false;
             }
 
-            return ReturnsEnumerableType(descriptor, out var collectionType) || collectionType == null;
+            return descriptor.ReturnsEnumerableType(out var collectionType) || collectionType == null;
         }
 
         internal bool IsValidForRequest(ActionContext context, out StringValues sortClauses, out Type? collectionType)
@@ -143,7 +143,7 @@ namespace BetterAPI.Sorting
                 return false;
             }
 
-            if (!context.HttpContext.Request.Query.TryGetValue(Constants.Operators.OrderBy, out sortClauses) &&
+            if (!context.HttpContext.Request.Query.TryGetValue(_options.Value.Operator, out sortClauses) &&
                 !_options.Value.SortByDefault)
             {
                 collectionType = null;
@@ -151,26 +151,13 @@ namespace BetterAPI.Sorting
             }
 
             if (sortClauses.Count != 0 || _options.Value.SortByDefault)
-                return ReturnsEnumerableType(context.ActionDescriptor, out collectionType) || collectionType == null;
+                return context.ActionDescriptor.ReturnsEnumerableType(out collectionType) || collectionType == null;
 
             collectionType = null;
             return false;
         }
 
-        private static bool ReturnsEnumerableType(ActionDescriptor descriptor, out Type? type)
-        {
-            foreach (var producesResponseType in descriptor.EndpointMetadata.OfType<ProducesResponseTypeAttribute>())
-            {
-                if (!producesResponseType.Type.ImplementsGeneric(typeof(IEnumerable<>)))
-                    continue;
-
-                type = producesResponseType.Type.GetGenericArguments()[0];
-                return true;
-            }
-
-            type = default;
-            return false;
-        }
+        
 
         private static Expression<Func<IEnumerable<T>, IEnumerable<T>>> BuildOrderByExpression<T>(AccessorMember key,
             SortDirection direction)
