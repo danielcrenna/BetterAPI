@@ -29,8 +29,16 @@ namespace BetterAPI.Tests.DeltaQueries
             Assert.NotNull(serialized);
             Assert.NotEmpty(serialized);
 
-            var flattened = JsonSerializer.Deserialize<FooAnnotated>(serialized, options);
-
+            // vs. round trip
+            var deserialized = JsonSerializer.Deserialize<DeltaAnnotated<Foo>>(serialized, options);
+            Assert.NotNull(deserialized.Data);
+            Assert.Equal(model.Id, deserialized.Data.Id);
+            Assert.Equal(model.Bar, deserialized.Data.Bar);
+            Assert.NotNull(deserialized.Data);
+            Assert.Equal(link, deserialized.DeltaLink);
+            
+            // vs. projection (no access to internal converter)
+            var flattened = JsonSerializer.Deserialize<FooAnnotated>(serialized);
             Assert.NotNull(flattened);
             Assert.Equal(model.Id, flattened.Id);
             Assert.Equal(model.Bar, flattened.Bar);

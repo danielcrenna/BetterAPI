@@ -41,9 +41,8 @@ namespace BetterAPI.DeltaQueries
 
         public JsonDeltaConverter()
         {
-            _reader = ReadAccessor.Create(typeof(T), AccessorMemberTypes.Properties, AccessorMemberScope.Public,
-                out _members);
-            _writer = WriteAccessor.Create(typeof(T));
+            _reader = ReadAccessor.Create(typeof(T), AccessorMemberTypes.Properties, AccessorMemberScope.Public, out _members);
+            _writer = WriteAccessor.Create(typeof(T), AccessorMemberTypes.Properties, AccessorMemberScope.Public);
         }
 
         public override bool CanConvert(Type typeToConvert)
@@ -71,6 +70,9 @@ namespace BetterAPI.DeltaQueries
 
                 if (key != null && key.Equals(_deltaLinkName, StringComparison.OrdinalIgnoreCase))
                 {
+                    if(!reader.Read() || reader.TokenType != JsonTokenType.String)
+                        throw new JsonException();
+                        
                     link = reader.GetString();
                     continue;
                 }
@@ -79,7 +81,9 @@ namespace BetterAPI.DeltaQueries
                     continue;
 
                 var value = JsonSerializer.Deserialize(ref reader, member.Type, options);
-                _writer.TrySetValue(data, key, value!);
+
+                if (!_writer.TrySetValue(data, key, value!))
+                    throw new JsonException();
             }
 
             // fail: passed through JsonTokenType.EndObject
