@@ -13,9 +13,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Demo", "tests\Demo\Demo\Dem
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Demo.Tests", "tests\Demo.Tests\Demo.Tests.csproj", "{781AA2A0-7943-4696-BE12-3EA9D574001A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BetterAPI.Testing", "src\BetterAPI.Testing\BetterAPI.Testing.csproj", "{114FCEBB-7C12-4041-AD42-9013679ECEAE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BetterAPI.Testing", "src\BetterAPI.Testing\BetterAPI.Testing.csproj", "{114FCEBB-7C12-4041-AD42-9013679ECEAE}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BetterAPI", "src\BetterAPI\BetterAPI.csproj", "{B23C600F-E447-497F-AC7D-400CE781B5A9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BetterAPI.Tests", "tests\BetterAPI.Tests\BetterAPI.Tests.csproj", "{E6764F6B-4EF6-4B6C-8DD8-AC7411355D09}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,6 +41,10 @@ Global
 		{B23C600F-E447-497F-AC7D-400CE781B5A9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B23C600F-E447-497F-AC7D-400CE781B5A9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B23C600F-E447-497F-AC7D-400CE781B5A9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E6764F6B-4EF6-4B6C-8DD8-AC7411355D09}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E6764F6B-4EF6-4B6C-8DD8-AC7411355D09}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E6764F6B-4EF6-4B6C-8DD8-AC7411355D09}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E6764F6B-4EF6-4B6C-8DD8-AC7411355D09}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
