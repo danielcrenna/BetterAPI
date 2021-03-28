@@ -6,7 +6,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net.Mime;
 using Demo.Models;
 using Microsoft.AspNetCore.Http;
@@ -23,8 +22,8 @@ namespace Demo.Controllers
     [Route("WeatherForecasts")]
     public class WeatherForecastController : ControllerBase
     {
-        private readonly WeatherForecastService _service;
         private readonly ILogger<WeatherForecastController> _logger;
+        private readonly WeatherForecastService _service;
 
         public WeatherForecastController(WeatherForecastService service, ILogger<WeatherForecastController> logger)
         {
@@ -45,7 +44,10 @@ namespace Demo.Controllers
         }
 
         /// <summary> Returns all saved weather forecasts </summary>
-        /// <response code="304">The resource was not returned, because it was not modified according to the ETag or LastModifiedDate. </response>
+        /// <response code="304">
+        ///     The resource was not returned, because it was not modified according to the ETag or
+        ///     LastModifiedDate.
+        /// </response>
         [HttpGet]
         [Produces(MediaTypeNames.Application.Json)]
         [ProducesResponseType(typeof(IEnumerable<WeatherForecast>), StatusCodes.Status200OK)]
@@ -56,7 +58,10 @@ namespace Demo.Controllers
         }
 
         /// <summary> Returns a saved weather forecast by its unique ID </summary>
-        /// <response code="304">The resource was not returned, because it was not modified according to the ETag or LastModifiedDate </response>
+        /// <response code="304">
+        ///     The resource was not returned, because it was not modified according to the ETag or
+        ///     LastModifiedDate
+        /// </response>
         [HttpGet("{id}")]
         [Produces(MediaTypeNames.Application.Json)]
         [ProducesResponseType(typeof(WeatherForecast), StatusCodes.Status200OK)]
@@ -97,29 +102,44 @@ namespace Demo.Controllers
             // FIXME: The corner-case where we're creating but also have a pre-condition which should block this create operation.
             //        It is unlikely to occur in real life, but technically we should know what the ETag is before we attempt this,
             //        but the LastModifiedDate would always be 'now' since we're not expecting anything to exist.
-            
+
             if (!_service.TryAdd(model))
             {
-                _logger.LogError(LogEvents.ErrorSavingWeatherForecast, "Adding weather forecast {Model} failed to save to the underlying data store.", model);
-                return InternalServerErrorWithDetails("An unexpected error occurred saving this weather forecast. An error was logged. Please try again later.");
+                _logger.LogError(LogEvents.ErrorSavingWeatherForecast,
+                    "Adding weather forecast {Model} failed to save to the underlying data store.", model);
+                return InternalServerErrorWithDetails(
+                    "An unexpected error occurred saving this weather forecast. An error was logged. Please try again later.");
             }
 
             return Created(Location(), model);
 
-            string Location() => $"{Request.Path}/{model.Id}";
+            string Location()
+            {
+                return $"{Request.Path}/{model.Id}";
+            }
         }
 
-        private IActionResult BadRequestWithDetails(string details) => StatusCodeWithProblemDetails(StatusCodes.Status400BadRequest, "Bad Request", details);
-
-        private IActionResult InternalServerErrorWithDetails(string details) => StatusCodeWithProblemDetails(StatusCodes.Status500InternalServerError, "Internal Server Error", details);
-
-        private IActionResult StatusCodeWithProblemDetails(int statusCode, string statusDescription, string details) => StatusCode(statusCode, new ProblemDetails
+        private IActionResult BadRequestWithDetails(string details)
         {
-            Status = statusCode,
-            Type = "https://httpstatuscodes.com/" + statusCode,
-            Title = statusDescription,
-            Detail = details,
-            Instance = Request.Path
-        });
+            return StatusCodeWithProblemDetails(StatusCodes.Status400BadRequest, "Bad Request", details);
+        }
+
+        private IActionResult InternalServerErrorWithDetails(string details)
+        {
+            return StatusCodeWithProblemDetails(StatusCodes.Status500InternalServerError, "Internal Server Error",
+                details);
+        }
+
+        private IActionResult StatusCodeWithProblemDetails(int statusCode, string statusDescription, string details)
+        {
+            return StatusCode(statusCode, new ProblemDetails
+            {
+                Status = statusCode,
+                Type = "https://httpstatuscodes.com/" + statusCode,
+                Title = statusDescription,
+                Detail = details,
+                Instance = Request.Path
+            });
+        }
     }
 }

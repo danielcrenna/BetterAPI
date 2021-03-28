@@ -12,13 +12,13 @@ namespace Demo.Models
 {
     public class WeatherForecastService
     {
-        private readonly IDictionary<Guid, WeatherForecast> _store =
-            new ConcurrentDictionary<Guid, WeatherForecast>();
-
         private static readonly string[] Summaries =
         {
             "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
         };
+
+        private readonly IDictionary<Guid, WeatherForecast> _store =
+            new ConcurrentDictionary<Guid, WeatherForecast>();
 
         public IEnumerable<WeatherForecast> Get()
         {
@@ -27,7 +27,7 @@ namespace Demo.Models
 
         public bool TryGetById(Guid id, out WeatherForecast model)
         {
-            if(!_store.TryGetValue(id, out var stored))
+            if (!_store.TryGetValue(id, out var stored))
             {
                 model = default;
                 return false;

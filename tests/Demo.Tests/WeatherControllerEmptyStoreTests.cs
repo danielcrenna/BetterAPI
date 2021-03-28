@@ -13,7 +13,9 @@ namespace Demo.Tests
 {
     public class WeatherControllerEmptyStoreTests : GivenAnEmptyStore<WeatherForecast, Startup>
     {
-        public WeatherControllerEmptyStoreTests(ITestOutputHelper output, WebApplicationFactory<Startup> factory) : 
-            base("/WeatherForecasts", output, factory) { }
+        public WeatherControllerEmptyStoreTests(ITestOutputHelper output, WebApplicationFactory<Startup> factory) :
+            base("/WeatherForecasts", output, factory)
+        {
+        }
     }
 }

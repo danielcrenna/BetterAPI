@@ -14,14 +14,21 @@ using Xunit.Abstractions;
 
 namespace Demo.Tests
 {
-    public class WeatherControllerCollectionStoreTests : GivenACollectionStore<WeatherForecastService, WeatherForecast, Startup>
+    public class
+        WeatherControllerCollectionStoreTests : GivenACollectionStore<WeatherForecastService, WeatherForecast, Startup>
     {
+        public WeatherControllerCollectionStoreTests(ITestOutputHelper output, WebApplicationFactory<Startup> factory) :
+            base("/WeatherForecasts", output, factory)
+        {
+        }
+
         public override Guid IdGreaterThanInsertedFirst => Guid.Parse("0F2F5096-C1D8-457C-A55C-04D3663FAD78");
         public override Guid IdLessThanInsertedSecond => Guid.Parse("08A3C2A0-7786-4CCE-A8AD-29761EA0B95B");
 
-        public WeatherControllerCollectionStoreTests(ITestOutputHelper output, WebApplicationFactory<Startup> factory) : base("/WeatherForecasts", output, factory) { }
-
-        public override SortClause AlternateSort() => new SortClause {Field = nameof(WeatherForecast.Summary), Direction = SortDirection.Descending};
+        public override SortClause AlternateSort()
+        {
+            return new SortClause {Field = nameof(WeatherForecast.Summary), Direction = SortDirection.Descending};
+        }
 
         public override void Populate(WeatherForecastService service)
         {

@@ -1,4 +1,10 @@
-﻿using System.Threading.Tasks;
+﻿// Copyright (c) Daniel Crenna. All rights reserved.
+// 
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, you can obtain one at http://mozilla.org/MPL/2.0/.
+
+using System.Threading.Tasks;
 using BetterAPI.Extensions;
 using BetterAPI.Reflection;
 using Microsoft.AspNetCore.Mvc;
@@ -13,7 +19,6 @@ namespace BetterAPI.Enveloping
             var executed = await next();
 
             if (executed.Result is ObjectResult result)
-            {
                 if (context.ActionDescriptor.ReturnsEnumerableType(out var collectionType))
                 {
                     var body = executed.GetResultBody(result, out var settable);
@@ -24,7 +29,6 @@ namespace BetterAPI.Enveloping
                         result.Value = envelope;
                     }
                 }
-            }
         }
     }
 }

@@ -12,8 +12,7 @@ namespace BetterAPI.DeltaQueries
     {
         public T Data { get; }
 
-        [JsonPropertyName("@deltaLink")]
-        public string? DeltaLink { get; }
+        [JsonPropertyName("@deltaLink")] public string? DeltaLink { get; }
 
         public DeltaAnnotated(T data, string? deltaLink)
         {

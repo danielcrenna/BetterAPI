@@ -5,7 +5,6 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 using System;
-using System.Collections.Generic;
 using System.Net;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
@@ -15,7 +14,6 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Net.Http.Headers;
 using Xunit;
 using Xunit.Abstractions;
-using Xunit.Sdk;
 
 namespace BetterAPI.Testing
 {
@@ -59,7 +57,8 @@ namespace BetterAPI.Testing
             // there are no resources from which we can determine a modified date
             response.ShouldNotHaveContentHeader(HeaderNames.LastModified);
 
-            var body = await response.Content.ReadFromJsonAsync<Envelope<TModel>>() ?? throw new NullReferenceException();
+            var body = await response.Content.ReadFromJsonAsync<Envelope<TModel>>() ??
+                       throw new NullReferenceException();
             Assert.Empty(body.Values);
         }
 
@@ -81,7 +80,8 @@ namespace BetterAPI.Testing
             // there are no resources from which we can determine a modified date
             response.ShouldNotHaveContentHeader(HeaderNames.LastModified);
 
-            var body = await response.Content.ReadFromJsonAsync<Envelope<TModel>>() ?? throw new NullReferenceException();
+            var body = await response.Content.ReadFromJsonAsync<Envelope<TModel>>() ??
+                       throw new NullReferenceException();
             Assert.Empty(body.Values);
         }
 

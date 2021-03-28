@@ -157,7 +157,6 @@ namespace BetterAPI.Sorting
             return false;
         }
 
-        
 
         private static Expression<Func<IEnumerable<T>, IEnumerable<T>>> BuildOrderByExpression<T>(AccessorMember key,
             SortDirection direction)

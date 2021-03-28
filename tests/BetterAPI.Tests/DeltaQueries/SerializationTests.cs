@@ -1,3 +1,9 @@
+// Copyright (c) Daniel Crenna. All rights reserved.
+// 
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, you can obtain one at http://mozilla.org/MPL/2.0/.
+
 using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -22,7 +28,7 @@ namespace BetterAPI.Tests.DeltaQueries
             var serialized = JsonSerializer.Serialize(wrapper, options);
             Assert.NotNull(serialized);
             Assert.NotEmpty(serialized);
-            
+
             var flattened = JsonSerializer.Deserialize<FooAnnotated>(serialized, options);
 
             Assert.NotNull(flattened);
@@ -42,8 +48,7 @@ namespace BetterAPI.Tests.DeltaQueries
             public Guid Id { get; set; }
             public string Bar { get; set; }
 
-            [JsonPropertyName("@deltaLink")]
-            public string Link { get; set; }
+            [JsonPropertyName("@deltaLink")] public string Link { get; set; }
         }
     }
 }

@@ -17,20 +17,23 @@ namespace Demo.Tests
         {
             var instance = RuntimeAttributes.AddAttributeToClass<FooClass, FooAttribute>("Foo");
             Assert.NotNull(instance);
-            Assert.Contains(instance.GetType().GetCustomAttributes(true), x => x is FooAttribute foo && foo.Foo == "Foo");
+            Assert.Contains(instance.GetType().GetCustomAttributes(true),
+                x => x is FooAttribute foo && foo.Foo == "Foo");
         }
 
-        public class FooClass { }
+        public class FooClass
+        {
+        }
 
         [AttributeUsage(AttributeTargets.Class)]
         public class FooAttribute : Attribute
         {
-            public string Foo { get; }
-
             public FooAttribute(string foo)
             {
                 Foo = foo;
             }
+
+            public string Foo { get; }
         }
     }
 }

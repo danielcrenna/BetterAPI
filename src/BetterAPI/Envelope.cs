@@ -10,11 +10,11 @@ namespace BetterAPI
 {
     public class Envelope<T>
     {
-        public IEnumerable<T> Values { get; }
-
         public Envelope(IEnumerable<T> values)
         {
             Values = values;
         }
+
+        public IEnumerable<T> Values { get; }
     }
 }
