@@ -5,25 +5,22 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using BetterAPI.Reflection;
 
 namespace BetterAPI.DeltaQueries
 {
-    // FIXME: It might be faster to implement this as a converter factory rather than use reflection emit to create a generic wrapper.
-
-    /// <summary>
-    ///     <seealso
-    ///         href="https://docs.microsoft.com/en-us/dotnet/standard/serialization/system-text-json-converters-how-to?pivots=dotnet-5-0#sample-factory-pattern-converter" />
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    public class JsonDeltaConverter<T> : JsonConverter<DeltaAnnotated<T>>
+    /// <summary> Serializes a flattened object so that delta annotations can appear on any outgoing model. </summary>
+    public sealed class JsonDeltaConverter<T> : JsonConverter<DeltaAnnotated<T>>
     {
-        private static readonly string _deltaLinkName;
+        // ReSharper disable once StaticMemberInGenericType
+        private static readonly string DeltaLinkName;
+
         private readonly AccessorMembers _members;
         private readonly ITypeReadAccessor _reader;
-
         private readonly ITypeWriteAccessor _writer;
 
         static JsonDeltaConverter()
@@ -36,7 +33,7 @@ namespace BetterAPI.DeltaQueries
             if (!deltaLink.TryGetAttribute<JsonPropertyNameAttribute>(out var attribute))
                 throw new InvalidOperationException();
 
-            _deltaLinkName = attribute.Name;
+            DeltaLinkName = attribute.Name;
         }
 
         public JsonDeltaConverter()
@@ -55,7 +52,21 @@ namespace BetterAPI.DeltaQueries
         {
             if (reader.TokenType != JsonTokenType.StartObject) throw new JsonException();
 
-            var data = Instancing.CreateInstance<T>();
+            T data;
+            if (typeof(T).ImplementsGeneric(typeof(Envelope<>)))
+            {
+                // FIXME: Instancing can't handle nested generic types, so we have to use manual reflection here
+                //        until it is resolved.
+                var underlyingType = typeof(T).GetGenericArguments()[0];
+                var enumerableType = typeof(List<>).MakeGenericType(underlyingType);
+                var enumerable = Activator.CreateInstance(enumerableType);
+                data = (T) (Activator.CreateInstance(typeof(T), enumerable) ?? throw new NullReferenceException());
+            }
+            else
+            { 
+                data = Instancing.CreateInstance<T>();
+            }
+
             string? link = default;
 
             while (reader.Read())
@@ -68,7 +79,7 @@ namespace BetterAPI.DeltaQueries
 
                 var key = reader.GetString();
 
-                if (key != null && key.Equals(_deltaLinkName, StringComparison.OrdinalIgnoreCase))
+                if (key != null && key.Equals(DeltaLinkName, StringComparison.OrdinalIgnoreCase))
                 {
                     if(!reader.Read() || reader.TokenType != JsonTokenType.String)
                         throw new JsonException();
@@ -108,7 +119,7 @@ namespace BetterAPI.DeltaQueries
                     JsonSerializer.Serialize(writer, item, options);
                 }
 
-            writer.WritePropertyName(_deltaLinkName);
+            writer.WritePropertyName(DeltaLinkName);
             writer.WriteStringValue(value.DeltaLink);
             writer.WriteEndObject();
         }

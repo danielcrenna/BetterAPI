@@ -15,6 +15,6 @@ namespace BetterAPI
             Values = values;
         }
 
-        public IEnumerable<T> Values { get; }
+        public IEnumerable<T> Values { get; set; }
     }
 }

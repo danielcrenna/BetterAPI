@@ -121,42 +121,28 @@ namespace BetterAPI.Sorting
             }
         }
 
-        internal static bool IsValidForAction(ActionDescriptor descriptor)
-        {
-            foreach (var http in descriptor.ActionConstraints?.OfType<HttpMethodActionConstraint>() ??
-                                 Enumerable.Empty<HttpMethodActionConstraint>())
-            {
-                if (http.HttpMethods.Contains(HttpMethods.Get))
-                    break; // is queryable
-                return false;
-            }
+        internal static bool IsValidForAction(ActionDescriptor descriptor) => descriptor.IsCollectionQuery(out _);
 
-            return descriptor.ReturnsEnumerableType(out var collectionType) || collectionType == null;
-        }
-
-        internal bool IsValidForRequest(ActionContext context, out StringValues sortClauses, out Type? collectionType)
+        internal bool IsValidForRequest(ActionContext context, out StringValues sortClauses, out Type? underlyingType)
         {
-            if (context.HttpContext.Request.Method != HttpMethods.Get)
+            if (!context.IsCollectionQuery(out underlyingType))
             {
                 sortClauses = default;
-                collectionType = null;
                 return false;
             }
 
-            if (!context.HttpContext.Request.Query.TryGetValue(_options.Value.Operator, out sortClauses) &&
-                !_options.Value.SortByDefault)
+            if (!context.HttpContext.Request.Query.TryGetValue(_options.Value.Operator, out sortClauses) && !_options.Value.SortByDefault)
             {
-                collectionType = null;
+                sortClauses = default;
                 return false;
             }
 
             if (sortClauses.Count != 0 || _options.Value.SortByDefault)
-                return context.ActionDescriptor.ReturnsEnumerableType(out collectionType) || collectionType == null;
+                return true;
 
-            collectionType = null;
+            sortClauses = default;
             return false;
         }
-
 
         private static Expression<Func<IEnumerable<T>, IEnumerable<T>>> BuildOrderByExpression<T>(AccessorMember key,
             SortDirection direction)

@@ -5,11 +5,10 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 using System;
-using BetterAPI.DeltaQueries;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace BetterAPI.Deltas
+namespace BetterAPI.DeltaQueries
 {
     public static class ServiceCollectionExtensions
     {
@@ -27,6 +26,7 @@ namespace BetterAPI.Deltas
                 services.Configure(configureAction);
             }
 
+            services.AddSerializerOptions();
             services.AddScoped<DeltaQueryActionFilter>();
             services.AddMvc(o => { o.Filters.AddService<DeltaQueryActionFilter>(int.MinValue); });
             return services;

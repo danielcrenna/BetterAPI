@@ -8,25 +8,42 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using BetterAPI.Reflection;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Abstractions;
+using Microsoft.AspNetCore.Mvc.ActionConstraints;
 
 namespace BetterAPI.Extensions
 {
     internal static class ActionDescriptorExtensions
     {
-        public static bool ReturnsEnumerableType(this ActionDescriptor descriptor, out Type? type)
+        public static bool IsCollectionQuery(this ActionDescriptor descriptor, out Type? underlyingType)
+        {
+            foreach (var http in descriptor.ActionConstraints?.OfType<HttpMethodActionConstraint>() ??
+                                 Enumerable.Empty<HttpMethodActionConstraint>())
+            {
+                if (http.HttpMethods.Contains(HttpMethods.Get))
+                    break; // is queryable
+
+                underlyingType = default;
+                return false;
+            }
+
+            return descriptor.ReturnsEnumerableType(out underlyingType) || underlyingType == null;
+        }
+
+        public static bool ReturnsEnumerableType(this ActionDescriptor descriptor, out Type? underlyingType)
         {
             foreach (var producesResponseType in descriptor.EndpointMetadata.OfType<ProducesResponseTypeAttribute>())
             {
                 if (!producesResponseType.Type.ImplementsGeneric(typeof(IEnumerable<>)))
                     continue;
 
-                type = producesResponseType.Type.GetGenericArguments()[0];
+                underlyingType = producesResponseType.Type.GetGenericArguments()[0];
                 return true;
             }
 
-            type = null;
+            underlyingType = null;
             return false;
         }
     }

@@ -25,6 +25,8 @@ namespace BetterAPI.Caching
                 services.Configure(configureAction);
 
             services.AddTimestamps();
+            services.AddSerializerOptions();
+
             services.TryAdd(ServiceDescriptor.Singleton<IMemoryCache, MemoryCache>());
             services.TryAdd(ServiceDescriptor.Singleton<ICache, InProcessCache>());
 
@@ -34,12 +36,15 @@ namespace BetterAPI.Caching
         public static IServiceCollection AddDistributedCache(this IServiceCollection services,
             Action<CacheOptions>? configureAction = null)
         {
-            services.AddOptions();
-
             if (configureAction != null)
+            {
+                services.AddOptions();
                 services.Configure(configureAction);
+            }
 
             services.AddTimestamps();
+            services.AddSerializerOptions();
+
             services.TryAdd(ServiceDescriptor.Singleton<IDistributedCache, MemoryDistributedCache>());
             services.TryAdd(ServiceDescriptor.Singleton<ICache, DistributedCache>());
 
@@ -55,16 +60,19 @@ namespace BetterAPI.Caching
             Action<CacheOptions>? configureAction = null)
         {
             if (configureAction != null)
+            {
+                services.AddOptions();
                 services.Configure(configureAction);
+            }
+
+            services.AddTimestamps();
+            services.AddSerializerOptions();
 
             services.TryAddSingleton<InProcessHttpCache>();
             services.TryAddSingleton<IHttpCache>(r => r.GetRequiredService<InProcessHttpCache>());
             services.TryAddSingleton<ICacheManager>(r => r.GetRequiredService<InProcessHttpCache>());
 
-            services.TryAddSingleton(r => new JsonSerializerOptions(JsonSerializerDefaults.Web));
-            services.AddScoped(r =>
-                new HttpCacheActionFilter(r.GetRequiredService<IHttpCache>(),
-                    r.GetRequiredService<JsonSerializerOptions>()));
+            services.AddScoped<HttpCacheActionFilter>();
             services.AddMvc(o => { o.Filters.AddService<HttpCacheActionFilter>(int.MinValue); });
             return services;
         }

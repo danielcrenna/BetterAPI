@@ -26,10 +26,5 @@ namespace BetterAPI
             public const string ReturnMinimal = "return=minimal";
             public const string ReturnRepresentation = "return=representation";
         }
-
-        public static class Operators
-        {
-            public const string OrderBy = "$orderBy";
-        }
     }
 }

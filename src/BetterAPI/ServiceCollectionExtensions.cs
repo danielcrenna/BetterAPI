@@ -7,7 +7,9 @@
 using System;
 using System.IO;
 using System.Reflection;
+using System.Text.Json;
 using BetterAPI.Caching;
+using BetterAPI.DeltaQueries;
 using BetterAPI.Enveloping;
 using BetterAPI.Prefer;
 using BetterAPI.Sorting;
@@ -38,9 +40,11 @@ namespace BetterAPI
 
             // Add core services
             services.AddTimestamps();
+            services.AddSerializerOptions();
 
             // Each feature is available bespoke or bundled here by convention:
             services.AddCors();
+            services.AddDeltaQueries(configuration.GetSection(nameof(ApiOptions.DeltaQueries)));
             services.AddEnveloping();
             services.AddPrefer(configuration.GetSection(nameof(ApiOptions.Prefer)));
             services.AddHttpCaching(configuration.GetSection(nameof(ApiOptions.Cache)));
@@ -57,10 +61,15 @@ namespace BetterAPI
                     };
                 });
 
-            // FIXME: Implement me
-            services.AddControllers().ConfigureApplicationPartManager(x =>
+            var mvc = services.AddControllers().ConfigureApplicationPartManager(x =>
             {
+                // FIXME: Implement me
                 x.FeatureProviders.Add(new ApiGuidelinesControllerFeatureProvider());
+            });
+
+            mvc.AddJsonOptions(o =>
+            {
+                o.JsonSerializerOptions.Converters.Add(new JsonDeltaConverterFactory());
             });
 
             services.AddSwaggerGen(c =>
@@ -115,6 +124,17 @@ namespace BetterAPI
         public static IServiceCollection AddTimestamps(this IServiceCollection services)
         {
             services.TryAdd(ServiceDescriptor.Singleton<Func<DateTimeOffset>>(r => () => DateTimeOffset.Now));
+            return services;
+        }
+
+        public static IServiceCollection AddSerializerOptions(this IServiceCollection services)
+        {
+            services.TryAddSingleton(r =>
+            {
+                var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+                options.Converters.Add(new JsonDeltaConverterFactory());
+                return options;
+            });
             return services;
         }
     }

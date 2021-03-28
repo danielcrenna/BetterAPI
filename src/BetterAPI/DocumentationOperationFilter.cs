@@ -9,9 +9,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using BetterAPI.Caching;
+using BetterAPI.DeltaQueries;
 using BetterAPI.Sorting;
 using Humanizer;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using Microsoft.OpenApi;
 using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Expressions;
@@ -25,6 +27,13 @@ namespace BetterAPI
     /// </summary>
     internal sealed class DocumentationOperationFilter : IOperationFilter
     {
+        private readonly IOptionsMonitor<ApiOptions> _options;
+
+        public DocumentationOperationFilter(IOptionsMonitor<ApiOptions> options)
+        {
+            _options = options;
+        }
+
         public void Apply(OpenApiOperation operation, OperationFilterContext context)
         {
             EnsureOperationsHaveIds(operation, context);
@@ -36,7 +45,10 @@ namespace BetterAPI
             DocumentLinks(operation);
 
             DocumentSorting(operation, context);
+
+            DocumentDeltaQueries(operation, context);
         }
+
 
         private static void EnsureOperationsHaveIds(OpenApiOperation operation, OperationFilterContext context)
         {
@@ -124,8 +136,7 @@ namespace BetterAPI
             {
                 Name = "If-None-Match",
                 In = ParameterLocation.Header,
-                Description =
-                    "Only supply a result or perform an action if it does not match the specified entity resource identifier (ETag)",
+                Description = "Only supply a result or perform an action if it does not match the specified entity resource identifier (ETag)",
                 Example = new OpenApiString("")
             });
 
@@ -133,8 +144,7 @@ namespace BetterAPI
             {
                 Name = "If-Match",
                 In = ParameterLocation.Header,
-                Description =
-                    "Only supply a result or perform an action if it matches the specified entity resource identifier (ETag)",
+                Description = "Only supply a result or perform an action if it matches the specified entity resource identifier (ETag)",
                 Example = new OpenApiString("")
             });
 
@@ -151,8 +161,7 @@ namespace BetterAPI
             {
                 Name = "If-Unmodified-Since",
                 In = ParameterLocation.Header,
-                Description =
-                    "Only supply a result or perform an action if the resource's logical timestamp has not been modified since the given date (Last-Modified)",
+                Description = "Only supply a result or perform an action if the resource's logical timestamp has not been modified since the given date (Last-Modified)",
                 Example = new OpenApiString("")
             });
         }
@@ -210,17 +219,31 @@ namespace BetterAPI
             response.Value.Links.Add(operationId, getById);
         }
 
-        private static void DocumentSorting(OpenApiOperation operation, OperationFilterContext context)
+        private void DocumentSorting(OpenApiOperation operation, OperationFilterContext context)
         {
             if (!SortActionFilter.IsValidForAction(context.ApiDescription.ActionDescriptor))
                 return;
 
             operation.Parameters.Add(new OpenApiParameter
             {
-                Name = Constants.Operators.OrderBy,
+                Name = _options.CurrentValue.Sort.Operator,
                 In = ParameterLocation.Query,
                 Description = "Apply a property-level sort to the collection query",
-                Example = new OpenApiString($"{Constants.Operators.OrderBy}=id asc")
+                Example = new OpenApiString($"{_options.CurrentValue.Sort.Operator}=id asc")
+            });
+        }
+
+        private void DocumentDeltaQueries(OpenApiOperation operation, OperationFilterContext context)
+        {
+            if (!DeltaQueryActionFilter.IsValidForAction(context.ApiDescription.ActionDescriptor))
+                return;
+
+            operation.Parameters.Add(new OpenApiParameter
+            {
+                Name = _options.CurrentValue.DeltaQueries.Operator,
+                In = ParameterLocation.Query,
+                Description = "Add an opaque URL to the end of the collection results for querying deltas since the query was executed.",
+                Example = new OpenApiString(_options.CurrentValue.DeltaQueries.Operator)
             });
         }
     }

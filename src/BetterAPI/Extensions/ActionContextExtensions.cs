@@ -5,6 +5,7 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 using System;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BetterAPI.Extensions
@@ -29,6 +30,22 @@ namespace BetterAPI.Extensions
                    throw new NullReferenceException("Could not locate expected result body");
             settable = false;
             return body;
+        }
+
+        /// <summary> Tests whether the current request is a GET request for a collection. </summary>
+        public static bool IsCollectionQuery(this ActionContext context, out Type? underlyingType)
+        {
+            if (context.HttpContext.Request.Method != HttpMethods.Get)
+            {
+                underlyingType = null;
+                return false;
+            }
+
+            if (context.ActionDescriptor.ReturnsEnumerableType(out underlyingType))
+                return true;
+
+            underlyingType = null;
+            return false;
         }
     }
 }
