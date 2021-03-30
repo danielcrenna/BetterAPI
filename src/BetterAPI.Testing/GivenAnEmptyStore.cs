@@ -62,7 +62,7 @@ namespace BetterAPI.Testing
 
             var body = await response.Content.ReadFromJsonAsync<Envelope<TModel>>() ??
                        throw new NullReferenceException();
-            Assert.Empty(body.Values);
+            Assert.Empty(body.Value);
         }
 
         [Fact]

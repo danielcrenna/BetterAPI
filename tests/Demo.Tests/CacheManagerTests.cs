@@ -15,11 +15,11 @@ using Xunit.Abstractions;
 
 namespace Demo.Tests
 {
-    public class CacheManagerTests : IClassFixture<WebApplicationFactory<Startup>>
+    public class CacheControllerTests : IClassFixture<WebApplicationFactory<Startup>>
     {
         private readonly WebApplicationFactory<Startup> _factory;
 
-        public CacheManagerTests(ITestOutputHelper output, WebApplicationFactory<Startup> factory)
+        public CacheControllerTests(ITestOutputHelper output, WebApplicationFactory<Startup> factory)
         {
             _factory = factory.WithTestLogging(output);
         }

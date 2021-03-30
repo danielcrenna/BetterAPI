@@ -85,7 +85,7 @@ namespace BetterAPI.Testing
             var model = await response.Content.ReadFromJsonAsync<Envelope<TModel>>();
             Assert.NotNull(model ?? throw new NullReferenceException());
 
-            var ordered = model.Values.ToList();
+            var ordered = model.Value.ToList();
             Assert.Equal(2, ordered.Count);
 
             Assert.Equal(ordered[0]?.GetId(), IdLessThanInsertedSecond);
@@ -119,7 +119,7 @@ namespace BetterAPI.Testing
             var model = await response.Content.ReadFromJsonAsync<Envelope<TModel>>();
             Assert.NotNull(model ?? throw new NullReferenceException());
 
-            var ordered = model.Values.ToList();
+            var ordered = model.Value.ToList();
             Assert.Equal(2, ordered.Count);
 
             Assert.Equal(ordered[0]?.GetId(), IdLessThanInsertedSecond);
@@ -140,7 +140,7 @@ namespace BetterAPI.Testing
             var model = await response.Content.ReadFromJsonAsync<Envelope<TModel>>();
             Assert.NotNull(model ?? throw new NullReferenceException());
 
-            var ordered = model.Values.ToList();
+            var ordered = model.Value.ToList();
             Assert.Equal(2, ordered.Count);
 
             Assert.Equal(ordered[0]?.GetId(), IdGreaterThanInsertedFirst);
@@ -170,7 +170,7 @@ namespace BetterAPI.Testing
             var model = await response.Content.ReadFromJsonAsync<Envelope<TModel>>();
             Assert.NotNull(model ?? throw new NullReferenceException());
 
-            var ordered = model.Values.ToList();
+            var ordered = model.Value.ToList();
             Assert.Equal(2, ordered.Count);
 
             Assert.Equal(ordered[0]?.GetId(), IdGreaterThanInsertedFirst);

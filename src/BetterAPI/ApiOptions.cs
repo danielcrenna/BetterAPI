@@ -10,6 +10,7 @@ using BetterAPI.DeltaQueries;
 using BetterAPI.Filtering;
 using BetterAPI.Prefer;
 using BetterAPI.Sorting;
+using BetterAPI.Tokens;
 
 namespace BetterAPI
 {
@@ -26,5 +27,6 @@ namespace BetterAPI
         public PreferOptions Prefer { get; set; } = new PreferOptions();
         public DeltaQueryOptions DeltaQueries { get; set; } = new DeltaQueryOptions();
         public ProblemDetailsOptions ProblemDetails { get; set; } = new ProblemDetailsOptions();
+        public TokenOptions Tokens { get; set; } = new TokenOptions();
     }
 }

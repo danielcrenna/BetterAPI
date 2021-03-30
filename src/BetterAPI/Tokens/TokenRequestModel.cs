@@ -4,17 +4,13 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
-using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
-namespace BetterAPI
+namespace BetterAPI.Tokens
 {
-    public class Envelope<T>
+    public class TokenRequestModel
     {
-        public Envelope(IEnumerable<T> value)
-        {
-            Value = value;
-        }
-
-        public IEnumerable<T> Value { get; set; }
+        [Required]
+        public string Identity { get; set; }
     }
 }

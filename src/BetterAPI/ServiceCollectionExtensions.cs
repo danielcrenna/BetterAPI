@@ -19,6 +19,7 @@ using BetterAPI.Enveloping;
 using BetterAPI.Filtering;
 using BetterAPI.Prefer;
 using BetterAPI.Sorting;
+using BetterAPI.Tokens;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BetterAPI
@@ -47,6 +48,7 @@ namespace BetterAPI
 
             // Each feature is available bespoke or bundled here by convention:
             services.AddCors(configuration.GetSection(nameof(ApiOptions.Cors)));
+            services.AddTokens(configuration.GetSection(nameof(ApiOptions.Tokens)));
             services.AddDeltaQueries(configuration.GetSection(nameof(ApiOptions.DeltaQueries)));
             services.AddEnveloping();
             services.AddPrefer(configuration.GetSection(nameof(ApiOptions.Prefer)));
