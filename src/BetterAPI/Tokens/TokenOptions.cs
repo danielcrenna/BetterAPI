@@ -12,17 +12,19 @@ namespace BetterAPI.Tokens
 {
     public class TokenOptions
     {
+        public string? Realm { get; set; }
         public string Issuer { get; set; }
         public string Audience { get; set; }
-        public string Key { get; set; }
-
+        public string SigningKey { get; set; }
+        public TokenFormat Format { get; set; }
+        
         public TokenOptions()
         {
             var buffer = new byte[32];
             using var random = RandomNumberGenerator.Create();
             random.GetBytes(buffer);
 
-            Key = Convert.ToBase64String(buffer);
+            SigningKey = Convert.ToBase64String(buffer);
             Issuer = GetDefaultServerUrl();
             Audience = Issuer;
         }

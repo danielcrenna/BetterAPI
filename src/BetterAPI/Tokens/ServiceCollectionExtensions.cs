@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
@@ -24,21 +25,27 @@ namespace BetterAPI.Tokens
                 configureAction(options);
             }
 
-            services.AddAuthentication()
-                .AddJwtBearer(o =>
-                {
-                    var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(options.Key));
+            services.AddSingleton<IEncryptionKeyStore, NoEncryptionKeyStore>();
 
-                    o.TokenValidationParameters = new TokenValidationParameters
-                    {
-                        ValidateIssuer = true,
-                        ValidateAudience = true,
-                        ValidateIssuerSigningKey = true,
-                        ValidAudience = options.Audience,
-                        ValidIssuer = options.Issuer,
-                        IssuerSigningKey = signingKey
-                    };
-                });
+            services.AddAuthentication(o =>
+            {
+                o.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                o.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer(o =>
+            {
+                o.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidIssuer = options.Issuer,
+
+                    ValidateAudience = true,
+                    ValidAudience = options.Audience,
+
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(options.SigningKey))
+                };
+            });
 
             return services;
         }
