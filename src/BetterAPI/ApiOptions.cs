@@ -5,7 +5,9 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 using BetterAPI.Caching;
+using BetterAPI.Cors;
 using BetterAPI.DeltaQueries;
+using BetterAPI.Filtering;
 using BetterAPI.Prefer;
 using BetterAPI.Sorting;
 
@@ -18,7 +20,9 @@ namespace BetterAPI
         public string ApiServer { get; set; } = $"BetterAPI-{typeof(ApiOptions).Assembly.GetName().Version}";
 
         public CacheOptions Cache { get; set; } = new CacheOptions();
+        public CorsOptions Cors { get; set; } = new CorsOptions();
         public SortOptions Sort { get; set; } = new SortOptions();
+        public FilterOptions Filter { get; set; } = new FilterOptions();
         public PreferOptions Prefer { get; set; } = new PreferOptions();
         public DeltaQueryOptions DeltaQueries { get; set; } = new DeltaQueryOptions();
         public ProblemDetailsOptions ProblemDetails { get; set; } = new ProblemDetailsOptions();

@@ -12,11 +12,9 @@ using System.Reflection;
 using System.Threading.Tasks;
 using BetterAPI.Extensions;
 using BetterAPI.Reflection;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Abstractions;
-using Microsoft.AspNetCore.Mvc.ActionConstraints;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 
@@ -25,7 +23,7 @@ namespace BetterAPI.Sorting
     /// <summary>
     ///     See: https://github.com/microsoft/api-guidelines/blob/vNext/Guidelines.md#96-sorting-collections
     /// </summary>
-    public sealed class SortActionFilter : IAsyncActionFilter
+    public sealed class SortActionFilter : CollectionQueryActionFilter<SortOptions>
     {
         private static readonly MethodInfo BuilderMethod;
         private readonly IOptionsSnapshot<SortOptions> _options;
@@ -37,33 +35,27 @@ namespace BetterAPI.Sorting
                             ?? throw new InvalidOperationException();
         }
 
-        public SortActionFilter(IOptionsSnapshot<SortOptions> options)
+        public SortActionFilter(IOptionsSnapshot<SortOptions> options, ILogger<SortActionFilter> logger) : base(options, logger)
         {
             _options = options;
         }
 
-        public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
+        public override async Task OnValidRequestAsync(Type underlyingType, StringValues clauses, ActionExecutingContext context, ActionExecutionDelegate next)
         {
-            if (!IsValidForRequest(context, out var values, out var type) || type == null)
-            {
-                await next.Invoke();
-                return;
-            }
-
-            var members = AccessorMembers.Create(type, AccessorMemberTypes.Fields | AccessorMemberTypes.Properties,
+            var members = AccessorMembers.Create(underlyingType, AccessorMemberTypes.Fields | AccessorMemberTypes.Properties,
                 AccessorMemberScope.Public);
 
             // FIXME: add attribute for model ID discriminator, or fail due to missing "Id"
-            if (!members.TryGetValue("Id", out var id))
+            if (!members.TryGetValue("Id", out _))
             {
                 await next.Invoke();
                 return;
             }
 
             // FIXME: avoid allocation here?
-            var sortMap = new List<(AccessorMember, SortDirection)>(values.Count);
+            var sortMap = new List<(AccessorMember, SortDirection)>(clauses.Count);
 
-            foreach (var value in values)
+            foreach (var value in clauses)
             {
                 var tokens = value.Split(new[] {' '},
                     StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -102,7 +94,7 @@ namespace BetterAPI.Sorting
                 var collection = executed.GetResultBody(result, out var settable);
 
                 // FIXME: use call accessor here
-                var method = BuilderMethod.MakeGenericMethod(type) ?? throw new NullReferenceException();
+                var method = BuilderMethod.MakeGenericMethod(underlyingType) ?? throw new NullReferenceException();
 
                 // FIXME: support multiple order by expressions 
                 var key = sortMap[0].Item1;
@@ -120,30 +112,7 @@ namespace BetterAPI.Sorting
                     result.Value = sorted;
             }
         }
-
-        internal static bool IsValidForAction(ActionDescriptor descriptor) => descriptor.IsCollectionQuery(out _);
-
-        internal bool IsValidForRequest(ActionContext context, out StringValues sortClauses, out Type? underlyingType)
-        {
-            if (!context.IsCollectionQuery(out underlyingType))
-            {
-                sortClauses = default;
-                return false;
-            }
-
-            if (!context.HttpContext.Request.Query.TryGetValue(_options.Value.Operator, out sortClauses) && !_options.Value.SortByDefault)
-            {
-                sortClauses = default;
-                return false;
-            }
-
-            if (sortClauses.Count != 0 || _options.Value.SortByDefault)
-                return true;
-
-            sortClauses = default;
-            return false;
-        }
-
+        
         private static Expression<Func<IEnumerable<T>, IEnumerable<T>>> BuildOrderByExpression<T>(AccessorMember key,
             SortDirection direction)
         {

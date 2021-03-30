@@ -102,7 +102,7 @@ namespace BetterAPI.Testing
                     {
                         services.Configure<SortOptions>(o =>
                         {
-                            o.SortByDefault = true;
+                            o.EnabledByDefault = true;
                             o.DefaultSort = new[] {AlternateSort()};
                         });
                     });
@@ -155,7 +155,7 @@ namespace BetterAPI.Testing
                 {
                     x.ConfigureTestServices(services =>
                     {
-                        services.Configure<SortOptions>(o => o.SortByDefault = false);
+                        services.Configure<SortOptions>(o => o.EnabledByDefault = false);
                     });
                 })
                 .CreateClientNoRedirects();

@@ -9,8 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using BetterAPI.Caching;
-using BetterAPI.DeltaQueries;
-using BetterAPI.Sorting;
+using BetterAPI.Extensions;
 using Humanizer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -27,6 +26,7 @@ namespace BetterAPI
     /// </summary>
     internal sealed class DocumentationOperationFilter : IOperationFilter
     {
+        // FIXME: We need to rebuild the swagger document if the options change
         private readonly IOptionsMonitor<ApiOptions> _options;
 
         public DocumentationOperationFilter(IOptionsMonitor<ApiOptions> options)
@@ -46,9 +46,10 @@ namespace BetterAPI
 
             DocumentSorting(operation, context);
 
+            DocumentFiltering(operation, context);
+
             DocumentDeltaQueries(operation, context);
         }
-
 
         private static void EnsureOperationsHaveIds(OpenApiOperation operation, OperationFilterContext context)
         {
@@ -221,7 +222,7 @@ namespace BetterAPI
 
         private void DocumentSorting(OpenApiOperation operation, OperationFilterContext context)
         {
-            if (!SortActionFilter.IsValidForAction(context.ApiDescription.ActionDescriptor))
+            if (!context.ApiDescription.ActionDescriptor.IsCollectionQuery(out _))
                 return;
 
             operation.Parameters.Add(new OpenApiParameter
@@ -233,9 +234,23 @@ namespace BetterAPI
             });
         }
 
+        private void DocumentFiltering(OpenApiOperation operation, OperationFilterContext context)
+        {
+            if (!context.ApiDescription.ActionDescriptor.IsCollectionQuery(out _))
+                return;
+
+            operation.Parameters.Add(new OpenApiParameter
+            {
+                Name = _options.CurrentValue.Filter.Operator,
+                In = ParameterLocation.Query,
+                Description = "Apply a property-level filter to the collection query",
+                Example = new OpenApiString("")
+            });
+        }
+
         private void DocumentDeltaQueries(OpenApiOperation operation, OperationFilterContext context)
         {
-            if (!DeltaQueryActionFilter.IsValidForAction(context.ApiDescription.ActionDescriptor))
+            if (!context.ApiDescription.ActionDescriptor.IsCollectionQuery(out _))
                 return;
 
             operation.Parameters.Add(new OpenApiParameter

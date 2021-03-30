@@ -4,12 +4,15 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
+using System;
+using System.Collections.Generic;
+
 namespace BetterAPI.DeltaQueries
 {
-    public sealed class DeltaQueryOptions : IQueryOptions
+    public interface IDeltaQueryStore
     {
-        public bool EnabledByDefault { get; set; } = false;
-
-        public string Operator { get; set; } = "$delta";
+        string? BuildDeltaLinkForQuery(Type context);
+        bool TryGetDelta<T>(string deltaLink, out IEnumerable<Delta<T>>? changes);
+        void TryPushAdd<T>(T model);
     }
 }

@@ -17,6 +17,11 @@ namespace BetterAPI.Extensions
 {
     internal static class ActionDescriptorExtensions
     {
+        public static bool IsCollection(this ActionDescriptor descriptor, out Type? underlyingType)
+        {
+            return descriptor.ReturnsEnumerableType(out underlyingType) || underlyingType == null;
+        }
+
         public static bool IsCollectionQuery(this ActionDescriptor descriptor, out Type? underlyingType)
         {
             foreach (var http in descriptor.ActionConstraints?.OfType<HttpMethodActionConstraint>() ??
@@ -29,7 +34,7 @@ namespace BetterAPI.Extensions
                 return false;
             }
 
-            return descriptor.ReturnsEnumerableType(out underlyingType) || underlyingType == null;
+            return IsCollection(descriptor, out underlyingType);
         }
 
         public static bool ReturnsEnumerableType(this ActionDescriptor descriptor, out Type? underlyingType)

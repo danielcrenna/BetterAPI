@@ -6,10 +6,8 @@
 
 namespace BetterAPI.DeltaQueries
 {
-    public sealed class DeltaQueryOptions : IQueryOptions
+    public class Delta<T>
     {
-        public bool EnabledByDefault { get; set; } = false;
 
-        public string Operator { get; set; } = "$delta";
     }
 }

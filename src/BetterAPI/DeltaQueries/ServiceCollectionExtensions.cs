@@ -7,6 +7,7 @@
 using System;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace BetterAPI.DeltaQueries
 {
@@ -27,7 +28,8 @@ namespace BetterAPI.DeltaQueries
             }
 
             services.AddSerializerOptions();
-            services.AddScoped<DeltaQueryActionFilter>();
+            services.TryAddSingleton<IDeltaQueryStore, DefaultDeltaQueryStore>();
+            services.TryAddScoped<DeltaQueryActionFilter>();
             services.AddMvc(o => { o.Filters.AddService<DeltaQueryActionFilter>(int.MinValue); });
             return services;
         }

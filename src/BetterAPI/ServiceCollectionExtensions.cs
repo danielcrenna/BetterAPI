@@ -8,16 +8,18 @@ using System;
 using System.IO;
 using System.Reflection;
 using System.Text.Json;
-using BetterAPI.Caching;
-using BetterAPI.DeltaQueries;
-using BetterAPI.Enveloping;
-using BetterAPI.Prefer;
-using BetterAPI.Sorting;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.OpenApi.Models;
+using BetterAPI.Caching;
+using BetterAPI.Cors;
+using BetterAPI.DeltaQueries;
+using BetterAPI.Enveloping;
+using BetterAPI.Filtering;
+using BetterAPI.Prefer;
+using BetterAPI.Sorting;
+using Microsoft.AspNetCore.Mvc;
 
 namespace BetterAPI
 {
@@ -41,14 +43,16 @@ namespace BetterAPI
             // Add core services
             services.AddTimestamps();
             services.AddSerializerOptions();
+            services.AddEventServices();
 
             // Each feature is available bespoke or bundled here by convention:
-            services.AddCors();
+            services.AddCors(configuration.GetSection(nameof(ApiOptions.Cors)));
             services.AddDeltaQueries(configuration.GetSection(nameof(ApiOptions.DeltaQueries)));
             services.AddEnveloping();
             services.AddPrefer(configuration.GetSection(nameof(ApiOptions.Prefer)));
             services.AddHttpCaching(configuration.GetSection(nameof(ApiOptions.Cache)));
             services.AddCollectionSorting(configuration.GetSection(nameof(ApiOptions.Sort)));
+            services.AddCollectionFiltering(configuration.GetSection(nameof(ApiOptions.Filter)));
 
             services.AddControllers()
                 // See: https://docs.microsoft.com/en-us/aspnet/core/web-api/handle-errors?view=aspnetcore-5.0#use-apibehavioroptionsclienterrormapping
@@ -94,29 +98,6 @@ namespace BetterAPI
         }
 
         /// <summary>
-        ///     Adds CORS support per the Microsoft REST Guidelines.
-        ///     <see href=" https://github.com/microsoft/api-guidelines/blob/vNext/Guidelines.md#8-cors/" />
-        /// </summary>
-        /// <param name="services"></param>
-        public static void AddCors(this IServiceCollection services)
-        {
-            // Services compliant with the Microsoft REST API Guidelines MUST support CORS (Cross Origin Resource Sharing).
-            // Services SHOULD support an allowed origin of CORS * and enforce authorization through valid OAuth tokens.
-            // Services SHOULD NOT support user credentials with origin validation. There MAY be exceptions for special cases.
-
-            services.AddCors(o =>
-            {
-                o.AddDefaultPolicy(x =>
-                {
-                    x.AllowAnyOrigin();
-                    x.AllowAnyHeader();
-                    x.AllowAnyMethod();
-                    x.DisallowCredentials();
-                });
-            });
-        }
-
-        /// <summary>
         ///     Adds timestamp generation for services that require them. The default implementation is the local server wall time.
         /// </summary>
         /// <param name="services"></param>
@@ -135,6 +116,12 @@ namespace BetterAPI
                 options.Converters.Add(new JsonDeltaConverterFactory());
                 return options;
             });
+            return services;
+        }
+
+        public static IServiceCollection AddEventServices(this IServiceCollection services)
+        {
+            services.TryAddSingleton<IEventBroadcaster, DefaultEventBroadcaster>();
             return services;
         }
     }

@@ -29,7 +29,7 @@ namespace BetterAPI.Tests.DeltaQueries
             Assert.NotNull(serialized);
             Assert.NotEmpty(serialized);
 
-            // vs. round trip
+            // Converter round-trip
             var deserialized = JsonSerializer.Deserialize<DeltaAnnotated<Foo>>(serialized, options);
             Assert.NotNull(deserialized.Data);
             Assert.Equal(model.Id, deserialized.Data.Id);
@@ -37,7 +37,7 @@ namespace BetterAPI.Tests.DeltaQueries
             Assert.NotNull(deserialized.Data);
             Assert.Equal(link, deserialized.DeltaLink);
             
-            // vs. projection (no access to internal converter)
+            // JSON projection (serializer does not need access to internal converter)
             var flattened = JsonSerializer.Deserialize<FooAnnotated>(serialized);
             Assert.NotNull(flattened);
             Assert.Equal(model.Id, flattened.Id);
@@ -47,8 +47,8 @@ namespace BetterAPI.Tests.DeltaQueries
 
         public sealed class Foo
         {
-            public Guid Id { get; set; } = Guid.NewGuid();
-            public string Bar { get; set; } = "Baz";
+            public Guid Id { get; set; }
+            public string Bar { get; set; }
         }
 
         public sealed class FooAnnotated

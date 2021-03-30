@@ -5,22 +5,21 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 using System;
-using BetterAPI.Caching;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace BetterAPI.Sorting
+namespace BetterAPI.Filtering
 {
     public static class ServiceCollectionExtensions
     {
-        public static IServiceCollection AddCollectionSorting(this IServiceCollection services,
+        public static IServiceCollection AddCollectionFiltering(this IServiceCollection services,
             IConfiguration configuration)
         {
-            return services.AddCollectionSorting(configuration.Bind);
+            return services.AddCollectionFiltering(configuration.Bind);
         }
 
-        public static IServiceCollection AddCollectionSorting(this IServiceCollection services,
-            Action<SortOptions>? configureAction = default)
+        public static IServiceCollection AddCollectionFiltering(this IServiceCollection services,
+            Action<FilterOptions>? configureAction = default)
         {
             if (configureAction != default)
             {
@@ -28,8 +27,8 @@ namespace BetterAPI.Sorting
                 services.Configure(configureAction);
             }
 
-            services.AddScoped<SortActionFilter>();
-            services.AddMvc(o => { o.Filters.AddService<SortActionFilter>(int.MinValue); });
+            services.AddScoped<FilterActionFilter>();
+            services.AddMvc(o => { o.Filters.AddService<FilterActionFilter>(int.MinValue); });
             return services;
         }
     }

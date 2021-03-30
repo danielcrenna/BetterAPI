@@ -7,6 +7,7 @@
 using System;
 using System.Collections.Generic;
 using System.Net.Mime;
+using BetterAPI;
 using Demo.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -24,10 +25,12 @@ namespace Demo.Controllers
     {
         private readonly ILogger<WeatherForecastController> _logger;
         private readonly WeatherForecastService _service;
+        private readonly IEventBroadcaster _events;
 
-        public WeatherForecastController(WeatherForecastService service, ILogger<WeatherForecastController> logger)
+        public WeatherForecastController(WeatherForecastService service, IEventBroadcaster events, ILogger<WeatherForecastController> logger)
         {
             _service = service;
+            _events = events;
             _logger = logger;
         }
 
@@ -105,12 +108,11 @@ namespace Demo.Controllers
 
             if (!_service.TryAdd(model))
             {
-                _logger.LogError(LogEvents.ErrorSavingWeatherForecast,
-                    "Adding weather forecast {Model} failed to save to the underlying data store.", model);
-                return InternalServerErrorWithDetails(
-                    "An unexpected error occurred saving this weather forecast. An error was logged. Please try again later.");
+                _logger.LogError(LogEvents.ErrorSavingWeatherForecast, "Adding weather forecast {Model} failed to save to the underlying data store.", model);
+                return InternalServerErrorWithDetails("An unexpected error occurred saving this weather forecast. An error was logged. Please try again later.");
             }
 
+            _events.Created(model);
             return Created(Location(), model);
 
             string Location()

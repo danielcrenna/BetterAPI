@@ -4,12 +4,18 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
+using System;
+
 namespace BetterAPI.DeltaQueries
 {
-    public sealed class DeltaQueryOptions : IQueryOptions
+    public sealed class DeltaTrackingInfo
     {
-        public bool EnabledByDefault { get; set; } = false;
+        public Type Type { get; set; }
+        public DateTimeOffset TrackingDateTime { get; set; }
 
-        public string Operator { get; set; } = "$delta";
+        public DeltaTrackingInfo(Type type)
+        {
+            Type = type;
+        }
     }
 }
