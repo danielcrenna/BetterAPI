@@ -94,6 +94,7 @@ namespace BetterAPI
                 var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
                 c.IncludeXmlComments(xmlPath, true);
 
+                c.DocumentFilter<DocumentationDocumentFilter>();
                 c.OperationFilter<DocumentationOperationFilter>();
             });
 

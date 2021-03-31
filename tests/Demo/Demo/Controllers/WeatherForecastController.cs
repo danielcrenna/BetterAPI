@@ -17,9 +17,6 @@ using Microsoft.Net.Http.Headers;
 
 namespace Demo.Controllers
 {
-    /// <summary>
-    /// This is a controller comment.
-    /// </summary>
     [Route("WeatherForecasts")]
     [Display(Description = "Manages operations for weather forecasts")]
     public class WeatherForecastController : ApiController
