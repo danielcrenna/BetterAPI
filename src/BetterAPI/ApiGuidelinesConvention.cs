@@ -5,7 +5,6 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 using System;
-using System.Linq;
 using System.Net.Mime;
 using BetterAPI.Caching;
 using BetterAPI.Extensions;
@@ -17,18 +16,39 @@ using Microsoft.Extensions.Options;
 
 namespace BetterAPI
 {
-    internal sealed class ApiGuidelinesConventions : IActionModelConvention, IControllerModelConvention, IApplicationModelConvention
+    /// <summary>
+    /// IMPORTANT: Because this isn't wrapped like the MvcOptions available in services.AddControllers(...),
+    /// only the IApplicationModelConvention Apply method will fire, so we need to cascade down through the
+    /// methods from top to bottom.
+    /// </summary>
+    internal sealed class ApiGuidelinesConvention : 
+        IApplicationModelConvention,
+        IControllerModelConvention,
+        IActionModelConvention, 
+        IParameterModelConvention
     {
         private readonly IOptions<ApiOptions> _options;
 
-        public ApiGuidelinesConventions(IOptions<ApiOptions> options)
+        public ApiGuidelinesConvention(IOptions<ApiOptions> options)
         {
             _options = options;
         }
 
-        public void Apply(ApplicationModel application) { }
-
-        public void Apply(ControllerModel controller) { }
+        public void Apply(ApplicationModel application)
+        {
+            foreach (var controller in application.Controllers)
+            {
+                Apply(controller);
+            }
+        }
+        
+        public void Apply(ControllerModel controller)
+        {
+            foreach (var action in controller.Actions)
+            {
+                Apply(action);
+            }
+        }
 
         public void Apply(ActionModel action)
         {
@@ -37,9 +57,7 @@ namespace BetterAPI
                 Produces(action);
 
                 if (!action.HasAttribute<DoNotHttpCacheAttribute>())
-                {
                     action.ProducesResponseType(StatusCodes.Status304NotModified);
-                }
             }
 
             if (action.Is(HttpMethod.Post))
@@ -51,23 +69,30 @@ namespace BetterAPI
                 {
                     action.ProducesResponseType(StatusCodes.Status201Created);
                     action.ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest);
-
-                    foreach (var parameter in action.Parameters)
-                    {
-                        foreach (var attribute in parameter.Attributes)
-                        {
-                            if (attribute is FromBodyAttribute)
-                            {
-                                action.ProducesResponseType(parameter.ParameterType, StatusCodes.Status201Created);
-                            }
-                        }
-                    }
                 }
 
                 if (!action.HasAttribute<DoNotHttpCacheAttribute>())
-                {
                     action.ProducesResponseType(StatusCodes.Status412PreconditionFailed);
-                }
+            }
+
+            foreach (var parameter in action.Parameters)
+                Apply(parameter);
+        }
+
+        public void Apply(ParameterModel parameter)
+        {
+            foreach (var attribute in parameter.Attributes)
+            {
+                if (attribute is not FromBodyAttribute)
+                    continue;
+
+                if (!parameter.Action.Is(HttpMethod.Post))
+                    continue;
+
+                if (!parameter.Action.ActionName.Equals("Create", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                parameter.Action.ProducesResponseType(parameter.ParameterType, StatusCodes.Status201Created);
             }
         }
 

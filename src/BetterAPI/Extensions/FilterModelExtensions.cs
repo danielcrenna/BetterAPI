@@ -34,7 +34,7 @@ namespace BetterAPI.Extensions
         {
             if (model.Filters.Any(x => x is ProducesResponseTypeAttribute a && a.Type == typeof(void) && a.StatusCode == statusCode))
                 return;
-            var producesResponse = new ProducesResponseTypeAttribute(statusCode);
+            var producesResponse = new ProducesResponseTypeAttribute(typeof(void), statusCode);
             model.Filters.Add(producesResponse);
         }
 
@@ -42,7 +42,7 @@ namespace BetterAPI.Extensions
         {
             if (model.Filters.Any(x => x is ProducesResponseTypeAttribute a && a.Type == typeof(T) && a.StatusCode == statusCode))
                 return;
-            var producesResponse = new ProducesResponseTypeAttribute(statusCode);
+            var producesResponse = new ProducesResponseTypeAttribute(typeof(T), statusCode);
             model.Filters.Add(producesResponse);
         }
 
@@ -50,7 +50,7 @@ namespace BetterAPI.Extensions
         {
             if (model.Filters.Any(x => x is ProducesResponseTypeAttribute a && a.Type == type && a.StatusCode == statusCode))
                 return;
-            var producesResponse = new ProducesResponseTypeAttribute(statusCode);
+            var producesResponse = new ProducesResponseTypeAttribute(type, statusCode);
             model.Filters.Add(producesResponse);
         }
     }

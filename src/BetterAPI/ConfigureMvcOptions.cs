@@ -9,18 +9,25 @@ using Microsoft.Extensions.Options;
 
 namespace BetterAPI
 {
+    /// <summary>
+    /// The convention itself must be in DI, it can't be constructed here, or it will never fire.
+    /// This is because the usual IMvcBuilder configureAction creates a delegate, which will look for our convention in DI.
+    /// If it's constructed here, it is never found and therefore never executed.
+    /// 
+    /// See: https://github.com/aspnet/Mvc/issues/6214#issuecomment-297880860
+    /// </summary>
     internal sealed class ConfigureMvcOptions : IConfigureOptions<MvcOptions>
     {
-        private readonly IOptions<ApiOptions> _options;
+        private readonly ApiGuidelinesConvention _convention;
 
-        public ConfigureMvcOptions(IOptions<ApiOptions> options)
+        public ConfigureMvcOptions(ApiGuidelinesConvention convention)
         {
-            _options = options;
+            _convention = convention;
         }
 
         public void Configure(MvcOptions options)
         {
-            options.Conventions.Add(new ApiGuidelinesConventions(_options));
+            options.Conventions.Add(_convention);
         }
     }
 }

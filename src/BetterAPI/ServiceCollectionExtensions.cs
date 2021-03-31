@@ -22,6 +22,7 @@ using BetterAPI.Prefer;
 using BetterAPI.Sorting;
 using BetterAPI.Tokens;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.Extensions.Options;
 
 namespace BetterAPI
@@ -59,9 +60,12 @@ namespace BetterAPI
             services.AddCollectionFiltering(configuration.GetSection(nameof(ApiOptions.Filter)));
 
             var mvc = services.AddControllers();
+            
+            // MVC configuration with dependencies:
             services.AddSingleton<IConfigureOptions<ApiBehaviorOptions>, ConfigureApiBehaviorOptions>();
+            services.AddSingleton<ApiGuidelinesConvention>();
             services.AddSingleton<IConfigureOptions<MvcOptions>, ConfigureMvcOptions>();
-               
+            
             mvc.ConfigureApplicationPartManager(x =>
             {
                 // FIXME: Implement me
