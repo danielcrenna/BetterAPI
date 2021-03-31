@@ -65,15 +65,14 @@ namespace BetterAPI
             if (!descriptor.MethodInfo.TryGetAttribute<DisplayAttribute>(true, out var display))
                 return;
 
-            var summary = display.GetName();
-            if(summary != default)
-                operation.Summary = display.GetName();
-
             var description = display.GetDescription();
             if(description != default)
                 operation.Description = display.GetDescription();
+            
+            operation.Summary = display.GetName() ?? operation.Description;
 
             var groupName = display.GetGroupName();
+
             if (groupName != default)
             {
                 var controllerNameTag = operation.Tags.SingleOrDefault(x =>

@@ -34,7 +34,7 @@ namespace Demo.Controllers
         }
 
         [HttpOptions]
-        [Display(Name = "Options", Description = "Returns all HTTP methods allowed by this resource")]
+        [Display(Description = "Returns all HTTP methods allowed by this resource")]
         public void GetOptions()
         {
             // See: https://github.com/microsoft/api-guidelines/blob/vNext/Guidelines.md#744-options-and-link-headers
@@ -52,7 +52,7 @@ namespace Demo.Controllers
         /// </response>
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<WeatherForecast>), StatusCodes.Status200OK)]
-        [Display(Name = "Get", Description = "Returns all saved weather forecasts")]
+        [Display(Description = "Returns all saved weather forecasts")]
         public IActionResult Get()
         {
             return Ok(_service.Get());
@@ -65,7 +65,7 @@ namespace Demo.Controllers
         [HttpGet("{id}")]
         [ProducesResponseType(typeof(WeatherForecast), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [Display(Name = "Get by ID", Description = "Returns a saved weather forecast by its unique ID")]
+        [Display(Description = "Returns a saved weather forecast by its unique ID")]
         public IActionResult GetById(Guid id)
         {
             if (!_service.TryGetById(id, out var model))
@@ -79,7 +79,7 @@ namespace Demo.Controllers
         /// <response code="400">There was an error with the request, and further problem details are available </response>
         /// <response code="412">The resource was not created, because it has unmet pre-conditions </response>
         [HttpPost]
-        [Display(Name = "Create", Description = "Creates a new weather forecast")]
+        [Display(Description = "Creates a new weather forecast")]
         public IActionResult Create([FromBody] WeatherForecast model)
         {
             if (!TryValidateModel(model))
