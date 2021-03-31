@@ -12,6 +12,7 @@ using Demo.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
 
 namespace Demo.Controllers
@@ -26,11 +27,13 @@ namespace Demo.Controllers
         private readonly ILogger<WeatherForecastController> _logger;
         private readonly WeatherForecastService _service;
         private readonly IEventBroadcaster _events;
+        private readonly IOptionsSnapshot<ProblemDetailsOptions> _problemDetailsOptions;
 
-        public WeatherForecastController(WeatherForecastService service, IEventBroadcaster events, ILogger<WeatherForecastController> logger)
+        public WeatherForecastController(WeatherForecastService service, IEventBroadcaster events, IOptionsSnapshot<ProblemDetailsOptions> problemDetailsOptions, ILogger<WeatherForecastController> logger)
         {
             _service = service;
             _events = events;
+            _problemDetailsOptions = problemDetailsOptions;
             _logger = logger;
         }
 
@@ -137,7 +140,7 @@ namespace Demo.Controllers
             return StatusCode(statusCode, new ProblemDetails
             {
                 Status = statusCode,
-                Type = "https://httpstatuscodes.com/" + statusCode,
+                Type = $"{_problemDetailsOptions.Value.BaseUrl}{statusCode}",
                 Title = statusDescription,
                 Detail = details,
                 Instance = Request.Path

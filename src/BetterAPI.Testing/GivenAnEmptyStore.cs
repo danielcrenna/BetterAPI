@@ -14,6 +14,7 @@ using BetterAPI.DeltaQueries;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
 using Xunit;
 using Xunit.Abstractions;
@@ -80,11 +81,13 @@ namespace BetterAPI.Testing
             var response = await client.GetAsync($"{_endpoint}/rosebud");
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
+            var options = _factory.Services.GetRequiredService<IOptions<ProblemDetailsOptions>>();
+
             var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
             Assert.NotNull(problemDetails);
             Assert.Equal((int) HttpStatusCode.BadRequest, problemDetails.Status);
             Assert.Equal("One or more validation errors occurred.", problemDetails.Title);
-            Assert.Equal("https://httpstatuscodes.com/400", problemDetails.Type);
+            Assert.Equal($"{options.Value.BaseUrl}{(int)HttpStatusCode.BadRequest}", problemDetails.Type);
         }
     }
 }

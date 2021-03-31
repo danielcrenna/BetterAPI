@@ -11,7 +11,7 @@ using Microsoft.Extensions.Options;
 
 namespace BetterAPI.DataProtection
 {
-    public class ConfigurePolicyProtection : IConfigureOptions<JsonOptions>
+    internal sealed class ConfigurePolicyProtection : IConfigureOptions<JsonOptions>
     {
         private readonly IAuthorizationService _authorization;
         private readonly IHttpContextAccessor _http;

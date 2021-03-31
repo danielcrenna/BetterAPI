@@ -18,6 +18,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 
 namespace BetterAPI.Caching
@@ -26,11 +27,13 @@ namespace BetterAPI.Caching
     {
         private readonly IHttpCache _cache;
         private readonly JsonSerializerOptions _options;
+        private readonly IOptionsSnapshot<ProblemDetailsOptions> _problemDetailOptions;
 
-        public HttpCacheActionFilter(IHttpCache cache, JsonSerializerOptions options)
+        public HttpCacheActionFilter(IHttpCache cache, JsonSerializerOptions options, IOptionsSnapshot<ProblemDetailsOptions> problemDetailOptions)
         {
             _cache = cache;
             _options = options;
+            _problemDetailOptions = problemDetailOptions;
         }
 
         public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
@@ -115,12 +118,14 @@ namespace BetterAPI.Caching
                 context.Result = PreconditionFailed(displayUrl);
         }
 
-        private static ObjectResult PreconditionFailed(string displayUrl)
+        private ObjectResult PreconditionFailed(string displayUrl)
         {
+            const int statusCode = (int)HttpStatusCode.PreconditionFailed;
+
             return new ObjectResult(new ProblemDetails
             {
-                Status = (int) HttpStatusCode.PreconditionFailed,
-                Type = "https://httpstatuscodes.com/412",
+                Status = statusCode,
+                Type = $"{_problemDetailOptions.Value.BaseUrl}{statusCode}",
                 Title = "Precondition Failed",
                 Detail = "The operation was aborted because it had unmet pre-conditions.",
                 Instance = displayUrl

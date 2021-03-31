@@ -21,6 +21,7 @@ using BetterAPI.Prefer;
 using BetterAPI.Sorting;
 using BetterAPI.Tokens;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 
 namespace BetterAPI
 {
@@ -56,16 +57,8 @@ namespace BetterAPI
             services.AddCollectionSorting(configuration.GetSection(nameof(ApiOptions.Sort)));
             services.AddCollectionFiltering(configuration.GetSection(nameof(ApiOptions.Filter)));
 
-            services.AddControllers()
-                // See: https://docs.microsoft.com/en-us/aspnet/core/web-api/handle-errors?view=aspnetcore-5.0#use-apibehavioroptionsclienterrormapping
-                .ConfigureApiBehaviorOptions(o =>
-                {
-                    o.ClientErrorMapping[400] = new ClientErrorData
-                    {
-                        Title = "Bad Request",
-                        Link = "https://httpstatuscodes.com/400"
-                    };
-                });
+            services.AddControllers();
+            services.AddSingleton<IConfigureOptions<ApiBehaviorOptions>, ConfigureApiBehaviorOptions>();
 
             var mvc = services.AddControllers().ConfigureApplicationPartManager(x =>
             {
