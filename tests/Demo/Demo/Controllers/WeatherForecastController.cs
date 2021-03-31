@@ -56,7 +56,6 @@ namespace Demo.Controllers
         /// </response>
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<WeatherForecast>), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status304NotModified)]
         public IActionResult Get()
         {
             return Ok(_service.Get());
@@ -70,7 +69,6 @@ namespace Demo.Controllers
         [HttpGet("{id}")]
         [ProducesResponseType(typeof(WeatherForecast), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status304NotModified)]
         public IActionResult GetById(Guid id)
         {
             if (!_service.TryGetById(id, out var model))
@@ -85,10 +83,6 @@ namespace Demo.Controllers
         /// <response code="400">There was an error with the request, and further problem details are available </response>
         /// <response code="412">The resource was not created, because it has unmet pre-conditions </response>
         [HttpPost]
-        [ProducesResponseType(StatusCodes.Status201Created)]
-        [ProducesResponseType(StatusCodes.Status412PreconditionFailed)]
-        [ProducesResponseType(typeof(WeatherForecast), StatusCodes.Status201Created)]
-        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
         public IActionResult Create([FromBody] WeatherForecast model)
         {
             if (!TryValidateModel(model))

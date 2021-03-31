@@ -19,6 +19,7 @@ namespace BetterAPI
         public string ApiName { get; set; } = "BetterAPI";
         public string ApiVersion { get; set; } = "v1";
         public string ApiServer { get; set; } = $"BetterAPI-{typeof(ApiOptions).Assembly.GetName().Version}";
+        public ApiSupportedMediaTypes ApiFormats { get; set; } = ApiSupportedMediaTypes.ApplicationJson;
 
         public CacheOptions Cache { get; set; } = new CacheOptions();
         public CorsOptions Cors { get; set; } = new CorsOptions();

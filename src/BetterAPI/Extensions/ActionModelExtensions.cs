@@ -29,5 +29,24 @@ namespace BetterAPI.Extensions
 
             return false;
         }
+
+        public static bool HasAttribute<T>(this ActionModel action) where T : Attribute
+        {
+            foreach (var selector in action.Selectors)
+            {
+                foreach (var metadata in selector.EndpointMetadata)
+                {
+                    if (metadata.GetType() == typeof(T))
+                        return true;
+                }
+            }
+
+            foreach (var _ in action.Attributes.OfType<T>())
+            {
+                return true;
+            }
+
+            return false;
+        }
     }
 }

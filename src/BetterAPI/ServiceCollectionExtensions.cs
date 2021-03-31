@@ -58,13 +58,9 @@ namespace BetterAPI
             services.AddCollectionSorting(configuration.GetSection(nameof(ApiOptions.Sort)));
             services.AddCollectionFiltering(configuration.GetSection(nameof(ApiOptions.Filter)));
 
-            services.AddControllers();
+            var mvc = services.AddControllers();
             services.AddSingleton<IConfigureOptions<ApiBehaviorOptions>, ConfigureApiBehaviorOptions>();
-
-            var mvc = services.AddControllers(o =>
-            {
-                o.Conventions.Add(new ApiGuidelinesConventions());
-            });
+            services.AddSingleton<IConfigureOptions<MvcOptions>, ConfigureMvcOptions>();
                
             mvc.ConfigureApplicationPartManager(x =>
             {
