@@ -6,7 +6,6 @@
 
 using System;
 using System.ComponentModel.DataAnnotations;
-using BetterAPI;
 using BetterAPI.Caching;
 using BetterAPI.DataProtection;
 

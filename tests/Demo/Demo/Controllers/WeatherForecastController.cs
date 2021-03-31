@@ -6,7 +6,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Net.Mime;
 using BetterAPI;
 using Demo.Models;
 using Microsoft.AspNetCore.Http;
@@ -20,20 +19,18 @@ namespace Demo.Controllers
     /// <summary>
     ///     Manages operations for weather forecasts
     /// </summary>
-    [ApiController]
     [Route("WeatherForecasts")]
-    public class WeatherForecastController : ControllerBase
+    public class WeatherForecastController : ApiController
     {
         private readonly ILogger<WeatherForecastController> _logger;
         private readonly WeatherForecastService _service;
         private readonly IEventBroadcaster _events;
-        private readonly IOptionsSnapshot<ProblemDetailsOptions> _problemDetailsOptions;
 
-        public WeatherForecastController(WeatherForecastService service, IEventBroadcaster events, IOptionsSnapshot<ProblemDetailsOptions> problemDetailsOptions, ILogger<WeatherForecastController> logger)
+        public WeatherForecastController(WeatherForecastService service, IEventBroadcaster events, IOptionsSnapshot<ProblemDetailsOptions> problemDetails, ILogger<WeatherForecastController> logger)
+            : base(problemDetails)
         {
             _service = service;
             _events = events;
-            _problemDetailsOptions = problemDetailsOptions;
             _logger = logger;
         }
 
@@ -112,29 +109,6 @@ namespace Demo.Controllers
             {
                 return $"{Request.Path}/{model.Id}";
             }
-        }
-
-        private IActionResult BadRequestWithDetails(string details)
-        {
-            return StatusCodeWithProblemDetails(StatusCodes.Status400BadRequest, "Bad Request", details);
-        }
-
-        private IActionResult InternalServerErrorWithDetails(string details)
-        {
-            return StatusCodeWithProblemDetails(StatusCodes.Status500InternalServerError, "Internal Server Error",
-                details);
-        }
-
-        private IActionResult StatusCodeWithProblemDetails(int statusCode, string statusDescription, string details)
-        {
-            return StatusCode(statusCode, new ProblemDetails
-            {
-                Status = statusCode,
-                Type = $"{_problemDetailsOptions.Value.BaseUrl}{statusCode}",
-                Title = statusDescription,
-                Detail = details,
-                Instance = Request.Path
-            });
         }
     }
 }
