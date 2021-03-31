@@ -22,7 +22,6 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Xunit;
 using Xunit.Abstractions;
-using Xunit.Sdk;
 
 namespace Demo.Tests
 {
@@ -65,9 +64,8 @@ namespace Demo.Tests
         public async Task Can_issue_jwe_token_with_valid_claims()
         {
             var keyStore = new FakeEncryptionKeyStore();
-            TokenOptions? options = default;
 
-            var client = _factory
+            var factory = _factory
                 .WithWebHostBuilder(builder =>
                 {
                     builder.ConfigureTestServices(services =>
@@ -75,44 +73,40 @@ namespace Demo.Tests
                         services.PostConfigure<TokenOptions>(o =>
                         {
                             o.Format = TokenFormat.JsonWebEncryption;
-                            options = o; // HACK: we can't get options from DI without double-initializing
                         });
                         services.RemoveAll<IEncryptionKeyStore>();
                         services.AddSingleton<IEncryptionKeyStore>(keyStore);
                     });
-                })
+                });
+
+            var client = factory
                 .CreateClientNoRedirects();
 
             var response = await client.PostAsJsonAsync("tokens", new TokenRequestModel { Identity = "bob@loblaw.com"});
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-
-            // Confirm that we obtained the options from ConfigureTestServices
-            Assert.NotNull(options ?? throw new NullReferenceException());
             
             var body = (await response.Content.ReadFromJsonAsync<TokenResponseModel>()) ?? throw new NullReferenceException();
 
             // Verify the controller used our fake key store
             Assert.NotNull(keyStore.TokenDecryptionKey);
 
+            var options = _factory.Services.GetRequiredService<IOptions<TokenOptions>>();
+
             var handler = new JwtSecurityTokenHandler();
-
-            // WTF: Calling this causes the TestServer to call services.AddTokens() again!
-            // var options = _factory.Services.GetRequiredService<IOptions<TokenOptions>>();
-
             handler.ValidateToken(body.Token, new TokenValidationParameters
             {
-                ValidAudience = options.Audience,
-                ValidIssuer = options.Issuer,
+                ValidAudience = options.Value.Audience,
+                ValidIssuer = options.Value.Issuer,
                 RequireSignedTokens = false,
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(options.SigningKey)),
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(options.Value.SigningKey)),
                 TokenDecryptionKey = keyStore.TokenDecryptionKey,
             }, out SecurityToken token);
 
             Assert.True(token is JwtSecurityToken);
             var jwt = (JwtSecurityToken) token;
 
-            Assert.Equal(options.Issuer, token.Issuer);
-            Assert.Equal(options.Audience, jwt.Audiences.FirstOrDefault());
+            Assert.Equal(options.Value.Issuer, token.Issuer);
+            Assert.Equal(options.Value.Audience, jwt.Audiences.FirstOrDefault());
         }
 
         public sealed class FakeEncryptionKeyStore : IEncryptionKeyStore
