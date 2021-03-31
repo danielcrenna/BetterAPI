@@ -8,7 +8,6 @@ using System;
 using System.Threading.Tasks;
 using BetterAPI.Extensions;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -26,8 +25,6 @@ namespace BetterAPI
             _options = options;
             _logger = logger;
         }
-
-        internal override bool IsValidForAction(ActionDescriptor descriptor) => descriptor.IsCollectionQuery(out _);
 
         public override async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
         {

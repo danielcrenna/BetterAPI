@@ -92,7 +92,7 @@ namespace BetterAPI
                 var assemblyName = assembly?.GetName().Name;
                 var xmlFile = $"{assemblyName}.xml";
                 var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-                c.IncludeXmlComments(xmlPath);
+                c.IncludeXmlComments(xmlPath, true);
 
                 c.OperationFilter<DocumentationOperationFilter>();
             });

@@ -6,12 +6,16 @@
 
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using BetterAPI.Caching;
 using BetterAPI.Extensions;
+using BetterAPI.Reflection;
 using Humanizer;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi;
 using Microsoft.OpenApi.Any;
@@ -38,17 +42,46 @@ namespace BetterAPI
         {
             EnsureOperationsHaveIds(operation, context);
 
+            DocumentFeatures(operation, context);
+
+            DocumentActions(operation, context);
+        }
+
+        private void DocumentFeatures(OpenApiOperation operation, OperationFilterContext context)
+        {
             DocumentPrefer(operation);
-
             DocumentHttpCaching(operation, context);
-
             DocumentLinks(operation);
-
             DocumentSorting(operation, context);
-
             DocumentFiltering(operation, context);
-
             DocumentDeltaQueries(operation, context);
+        }
+
+        private static void DocumentActions(OpenApiOperation operation, OperationFilterContext context)
+        {
+            if (!(context.ApiDescription.ActionDescriptor is ControllerActionDescriptor descriptor))
+                return;
+
+            if (!descriptor.MethodInfo.TryGetAttribute<DisplayAttribute>(true, out var display))
+                return;
+
+            var summary = display.GetName();
+            if(summary != default)
+                operation.Summary = display.GetName();
+
+            var description = display.GetDescription();
+            if(description != default)
+                operation.Description = display.GetDescription();
+
+            var groupName = display.GetGroupName();
+            if (groupName != default)
+            {
+                var controllerNameTag = operation.Tags.SingleOrDefault(x =>
+                    x.Name.Equals(descriptor.ControllerName, StringComparison.OrdinalIgnoreCase));
+
+                if (controllerNameTag != default && operation.Tags.Remove(controllerNameTag))
+                    operation.Tags.Add(new OpenApiTag { Name = groupName });
+            }
         }
 
         private static void EnsureOperationsHaveIds(OpenApiOperation operation, OperationFilterContext context)
@@ -177,7 +210,7 @@ namespace BetterAPI
         private static void DocumentLinks(OpenApiOperation operation)
         {
             foreach (var response in operation.Responses.Where(
-                response => response.Key == Constants.CreatedStatusString))
+                response => response.Key == Constants.Status201CreatedString))
                 AddGetByIdLink(operation, response);
         }
 

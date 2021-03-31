@@ -19,7 +19,7 @@ namespace BetterAPI
         /// </summary>
         public const string ObjectResultValue = nameof(ObjectResultValue);
 
-        internal static readonly string CreatedStatusString = StatusCodes.Status201Created.ToString();
+        internal static readonly string Status201CreatedString = StatusCodes.Status201Created.ToString();
 
         public static class Prefer
         {

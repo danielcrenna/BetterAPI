@@ -5,8 +5,6 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 using System.Threading.Tasks;
-using BetterAPI.Extensions;
-using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace BetterAPI
@@ -14,7 +12,5 @@ namespace BetterAPI
     public abstract class CollectionActionFilter : IAsyncActionFilter
     {
         public abstract Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next);
-
-        internal virtual bool IsValidForAction(ActionDescriptor descriptor) => descriptor.IsCollection(out _);
     }
 }
