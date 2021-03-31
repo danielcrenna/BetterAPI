@@ -6,10 +6,10 @@
 
 using System;
 
-namespace BetterAPI
+namespace BetterAPI.Caching
 {
     [AttributeUsage(AttributeTargets.Property)]
-    public class LastModifiedAttribute : Attribute
+    public sealed class LastModifiedAttribute : Attribute
     {
     }
 }

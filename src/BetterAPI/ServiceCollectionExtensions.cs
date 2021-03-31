@@ -74,9 +74,11 @@ namespace BetterAPI
             });
 
             mvc.AddJsonOptions(o =>
-            {
-                o.JsonSerializerOptions.Converters.Add(new JsonDeltaConverterFactory());
-            });
+                {
+                    o.JsonSerializerOptions.Converters.Add(new JsonDeltaConverterFactory());
+                })
+                //.AddPolicyProtection()
+                ;
 
             services.AddSwaggerGen(c =>
             {

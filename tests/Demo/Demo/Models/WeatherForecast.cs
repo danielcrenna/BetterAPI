@@ -7,6 +7,8 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using BetterAPI;
+using BetterAPI.Caching;
+using BetterAPI.DataProtection;
 
 namespace Demo.Models
 {
@@ -47,5 +49,8 @@ namespace Demo.Models
         /// </summary>
         [Required]
         public string? Summary { get; set; }
+
+        [ProtectedByPolicy("TopSecret")]
+        public string SecretMessage { get; set; } = "ThisIsTopSecret!";
     }
 }

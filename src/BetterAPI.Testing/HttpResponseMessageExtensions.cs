@@ -59,5 +59,12 @@ namespace BetterAPI.Testing
             Assert.True(DateTimeOffset.TryParseExact(dateString, format, provider, DateTimeStyles.AdjustToUniversal,
                 out _));
         }
+
+        public static HttpResponseMessage ShouldBeMock(this HttpResponseMessage response)
+        {
+            Assert.True(response.Headers.TryGetValues(ApiHeaderNames.MockResponse, out var values));
+            Assert.Equal("true", string.Join(',', values));
+            return response;
+        }
     }
 }

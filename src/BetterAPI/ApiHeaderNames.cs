@@ -21,5 +21,7 @@ namespace BetterAPI
         public static readonly string IfMatch = HeaderNames.IfMatch;
         public static readonly string IfUnmodifiedSince = HeaderNames.IfUnmodifiedSince;
         public static readonly string IfModifiedSince = HeaderNames.IfModifiedSince;
+
+        public static readonly string MockResponse = "X-Mock-Response";
     }
 }

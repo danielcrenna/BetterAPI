@@ -17,6 +17,14 @@ namespace Demo
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddSingleton<WeatherForecastService>();
+
+            services.AddAuthorization(o =>
+            {
+                o.AddPolicy("TopSecret", builder =>
+                {
+                    builder.RequireAssertion(context => false);
+                });
+            });
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
