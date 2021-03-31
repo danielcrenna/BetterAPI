@@ -14,6 +14,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.OpenApi.Models;
 using BetterAPI.Caching;
 using BetterAPI.Cors;
+using BetterAPI.DataProtection;
 using BetterAPI.DeltaQueries;
 using BetterAPI.Enveloping;
 using BetterAPI.Filtering;
@@ -60,19 +61,24 @@ namespace BetterAPI
             services.AddControllers();
             services.AddSingleton<IConfigureOptions<ApiBehaviorOptions>, ConfigureApiBehaviorOptions>();
 
-            var mvc = services.AddControllers().ConfigureApplicationPartManager(x =>
+            var mvc = services.AddControllers(o =>
+            {
+                o.Conventions.Add(new ApiGuidelinesConventions());
+            });
+               
+            mvc.ConfigureApplicationPartManager(x =>
             {
                 // FIXME: Implement me
                 x.FeatureProviders.Add(new ApiGuidelinesControllerFeatureProvider());
             });
 
             mvc.AddJsonOptions(o =>
-                {
-                    o.JsonSerializerOptions.Converters.Add(new JsonDeltaConverterFactory());
-                })
-                //.AddPolicyProtection()
-                ;
+            {
+                o.JsonSerializerOptions.Converters.Add(new JsonDeltaConverterFactory());
+            });
 
+            // mvc.AddPolicyProtection();
+            
             services.AddSwaggerGen(c =>
             {
                 var settings = configuration.Get<ApiOptions>() ?? new ApiOptions();
