@@ -12,7 +12,8 @@ namespace BetterAPI
     public enum ApiSupportedMediaTypes
     {
         None = 0x0,
-        ApplicationJson = 1 << 0
+        ApplicationJson = 1 << 0,
+        ApplicationXml = 2 << 0
     }
 
     public static class ApiSupportedMediaTypesExtensions

@@ -4,10 +4,10 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
-namespace Demo.Models
+namespace BetterAPI
 {
-    public class LogEvents
+    public class ErrorEvents
     {
-        public const int ErrorSavingWeatherForecast = 5001;
+        public const int ErrorSavingResource = 5001;
     }
 }

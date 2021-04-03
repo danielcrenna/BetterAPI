@@ -10,6 +10,8 @@ namespace BetterAPI.Caching
 {
     [Route("cache")]
     [DoNotHttpCache]
+    // [ApiExplorerSettings(GroupName = "ops")]
+    // [ApiController]
     public sealed class CacheController : Controller
     {
         private readonly ICacheManager _cacheManager;

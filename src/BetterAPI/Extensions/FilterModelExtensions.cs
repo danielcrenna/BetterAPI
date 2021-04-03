@@ -6,7 +6,6 @@
 
 using System;
 using System.Linq;
-using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 
@@ -14,20 +13,32 @@ namespace BetterAPI.Extensions
 {
     internal static class FilterModelExtensions
     {
-        public static void Produces(this IFilterModel model, string contentType)
+        public static void Produces(this IFilterModel model, params string[] contentTypes)
         {
-            if (model.Filters.Any(x => x is ProducesAttribute a && a.ContentTypes.Contains(contentType, StringComparer.OrdinalIgnoreCase)))
+            if (contentTypes.Length == 0)
                 return;
-            var produces = new ProducesAttribute(MediaTypeNames.Application.Json);
+            if (model.Filters.Any(x => x is ProducesAttribute a && a.ContentTypes.Contains(contentTypes, StringComparison.OrdinalIgnoreCase)))
+                return;
+
+            var produces = contentTypes.Length == 1
+                ? new ProducesAttribute(contentTypes[0])
+                : new ProducesAttribute(contentTypes[0], contentTypes[1..]);
+
             model.Filters.Add(produces);
         }
 
-        public static void Consumes(this IFilterModel model, string contentType)
+        public static void Consumes(this IFilterModel model, params string[] contentTypes)
         {
-            if (model.Filters.Any(x => x is ConsumesAttribute a && a.ContentTypes.Contains(contentType, StringComparer.OrdinalIgnoreCase)))
+            if (contentTypes.Length == 0)
                 return;
-            var produces = new ConsumesAttribute(MediaTypeNames.Application.Json);
-            model.Filters.Add(produces);
+            if (model.Filters.Any(x => x is ConsumesAttribute a && a.ContentTypes.Contains(contentTypes, StringComparison.OrdinalIgnoreCase)))
+                return;
+            
+            var consumes = contentTypes.Length == 1
+                ? new ConsumesAttribute(contentTypes[0])
+                : new ConsumesAttribute(contentTypes[0], contentTypes[1..]);
+
+            model.Filters.Add(consumes);
         }
 
         public static void ProducesResponseType(this IFilterModel model, int statusCode)

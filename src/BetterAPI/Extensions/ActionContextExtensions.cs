@@ -19,20 +19,32 @@ namespace BetterAPI.Extensions
 
         public static object GetResultBody(this ActionContext context, ObjectResult result, out bool settable)
         {
-            var body = result.Value;
+            // We must first check if we have a terminal result
+            var body = context.HttpContext.Items[Constants.TerminalObjectResultValue];
+            if (body != default)
+            {
+                settable = false;
+                return body;
+            }
+
+            // We can then check if there is a canonical result, so we don't need to deal
+            // with modified results in unrelated middleware
+            body = context.HttpContext.Items[Constants.CanonicalObjectResultValue];
             if (body != default)
             {
                 settable = true;
                 return body;
             }
 
-            body = context.HttpContext.Items[Constants.ObjectResultValue] ??
-                   throw new NullReferenceException("Could not locate expected result body");
-            settable = false;
+            body = result.Value;
+            if(body == default)
+                throw new NullReferenceException("Could not locate expected result body");
+
+            settable = true;
             return body;
         }
 
-        /// <summary> Tests whether the current request is a GET request for a collection. </summary>
+        /// <summary> Tests whether the current request is a GET request for a resource collection. </summary>
         public static bool IsCollectionQuery(this ActionContext context, out Type? underlyingType)
         {
             if (context.HttpContext.Request.Method != HttpMethods.Get)
@@ -46,6 +58,18 @@ namespace BetterAPI.Extensions
 
             underlyingType = null;
             return false;
+        }
+
+        /// <summary> Tests whether the current request is a GET request for a resource. </summary>
+        public static bool IsQuery(this ActionContext context, out Type? underlyingType)
+        {
+            if (context.HttpContext.Request.Method != HttpMethods.Get)
+            {
+                underlyingType = null;
+                return false;
+            }
+
+            return context.ActionDescriptor.ReturnsType(out underlyingType);
         }
     }
 }

@@ -14,6 +14,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using BetterAPI.Extensions;
 using BetterAPI.Reflection;
+using BetterAPI.Shaping;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
@@ -132,16 +133,24 @@ namespace BetterAPI.Caching
             });
         }
 
-        private void GenerateAndAppendLastModified(ActionContext context, object body, string displayUrl)
+        private void GenerateAndAppendLastModified(ActionContext context, object? body, string displayUrl)
         {
+            if (body == default)
+                return;
+
             var type = body.GetType();
 
             if (type.ImplementsGeneric(typeof(IEnumerable<>)) && body is IEnumerable enumerable)
             {
                 DateTimeOffset? lastModified = default;
                 foreach (var item in enumerable)
-                    lastModified =
-                        GenerateAndAppendLastModified(context, item, item.GetType(), displayUrl, lastModified);
+                    lastModified = GenerateAndAppendLastModified(context, item, item.GetType(), displayUrl, lastModified);
+            }
+            else if(type.ImplementsGeneric(typeof(ShapedData<>)))
+            {
+                type = type.GetGenericArguments()[0];
+                body = ((IShapedData) body).Body;
+                GenerateAndAppendLastModified(context, body, type, displayUrl);
             }
             else
             {
@@ -157,9 +166,12 @@ namespace BetterAPI.Caching
             _cache.Save(displayUrl, etag.Value);
         }
 
-        private DateTimeOffset? GenerateAndAppendLastModified(ActionContext context, object body, Type type,
+        private DateTimeOffset? GenerateAndAppendLastModified(ActionContext context, object? body, Type type,
             string displayUrl, DateTimeOffset? lastModified = default)
         {
+            if (body == default)
+                return default;
+
             var changed = false;
             var members = AccessorMembers.Create(type, AccessorMemberTypes.Properties, AccessorMemberScope.Public);
             foreach (var member in members)

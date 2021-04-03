@@ -13,8 +13,18 @@ namespace BetterAPI.Testing
     {
         public static object GetId(this object model)
         {
+            if (model is IResource resource)
+                return resource.Id;
+
             var accessor = ReadAccessor.Create(model);
-            Assert.True(accessor.TryGetValue(model, "Id", out var id));
+            Assert.True(accessor.TryGetValue(model, nameof(IResource.Id), out var id));
+            return id;
+        }
+
+        public static object GetField(this object model, string field)
+        {
+            var accessor = ReadAccessor.Create(model);
+            Assert.True(accessor.TryGetValue(model, field, out var id));
             return id;
         }
     }

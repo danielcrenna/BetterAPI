@@ -10,32 +10,16 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using BetterAPI.Reflection;
 
-namespace BetterAPI.DeltaQueries
+namespace BetterAPI.Shaping
 {
-    /// <summary> Serializes a flattened object so that delta annotations can appear on any outgoing model. </summary>
-    public sealed class JsonDeltaConverter<T> : JsonConverter<DeltaAnnotated<T>>
+    /// <summary> Serializes a flattened object so that models are shaped by specific set of included fields. </summary>
+    public sealed class JsonShapedDataConverter<T> : JsonConverter<ShapedData<T>>
     {
-        // ReSharper disable once StaticMemberInGenericType
-        private static readonly string DeltaLinkName;
-
         private readonly AccessorMembers _members;
         private readonly ITypeReadAccessor _reader;
         private readonly ITypeWriteAccessor _writer;
-
-        static JsonDeltaConverter()
-        {
-            var delta = AccessorMembers.Create(typeof(DeltaAnnotated<T>)) ?? throw new InvalidOperationException();
-
-            if (!delta.TryGetValue(nameof(DeltaAnnotated<T>.DeltaLink), out var deltaLink))
-                throw new InvalidOperationException();
-
-            if (!deltaLink.TryGetAttribute<JsonPropertyNameAttribute>(out var attribute))
-                throw new InvalidOperationException();
-
-            DeltaLinkName = attribute.Name;
-        }
-
-        public JsonDeltaConverter()
+        
+        public JsonShapedDataConverter()
         {
             _reader = ReadAccessor.Create(typeof(T), AccessorMemberTypes.Properties, AccessorMemberScope.Public, out _members);
             _writer = WriteAccessor.Create(typeof(T), AccessorMemberTypes.Properties, AccessorMemberScope.Public);
@@ -43,11 +27,11 @@ namespace BetterAPI.DeltaQueries
 
         public override bool CanConvert(Type typeToConvert)
         {
-            return typeToConvert.ImplementsGeneric(typeof(DeltaAnnotated<>));
+            return typeof(IShapedData).IsAssignableFrom(typeToConvert) ||
+                   typeToConvert.ImplementsGeneric(typeof(ShapedData<>));
         }
 
-        public override DeltaAnnotated<T> Read(ref Utf8JsonReader reader, Type typeToConvert,
-            JsonSerializerOptions options)
+        public override ShapedData<T> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
             if (reader.TokenType != JsonTokenType.StartObject) throw new JsonException();
 
@@ -66,26 +50,15 @@ namespace BetterAPI.DeltaQueries
                 data = Instancing.CreateInstance<T>();
             }
 
-            string? link = default;
-
             while (reader.Read())
             {
                 if (reader.TokenType == JsonTokenType.EndObject)
-                    return new DeltaAnnotated<T>(data, link); // success: end of object
+                    return new ShapedData<T>(data); // success: end of object
 
                 if (reader.TokenType != JsonTokenType.PropertyName)
                     throw new JsonException(); // fail: did not pass through previous property value
 
                 var key = reader.GetString();
-
-                if (key != null && key.Equals(DeltaLinkName, StringComparison.OrdinalIgnoreCase))
-                {
-                    if(!reader.Read() || reader.TokenType != JsonTokenType.String)
-                        throw new JsonException();
-                        
-                    link = reader.GetString();
-                    continue;
-                }
 
                 if (string.IsNullOrWhiteSpace(key) || !_members.TryGetValue(key, out var member) || !member.CanWrite)
                     continue;
@@ -100,12 +73,15 @@ namespace BetterAPI.DeltaQueries
             throw new JsonException();
         }
 
-        public override void Write(Utf8JsonWriter writer, DeltaAnnotated<T> value, JsonSerializerOptions options)
+        public override void Write(Utf8JsonWriter writer, ShapedData<T> value, JsonSerializerOptions options)
         {
             writer.WriteStartObject();
             if (value.Data != null)
-                foreach (var member in _members)
+                foreach (var field in value.Fields)
                 {
+                    if (!_members.TryGetValue(field, out var member))
+                        continue;
+
                     if (!member.CanRead)
                         continue;
 
@@ -117,9 +93,6 @@ namespace BetterAPI.DeltaQueries
                     _reader.TryGetValue(value.Data, member.Name, out var item);
                     JsonSerializer.Serialize(writer, item, options);
                 }
-
-            writer.WritePropertyName(DeltaLinkName);
-            writer.WriteStringValue(value.DeltaLink);
             writer.WriteEndObject();
         }
     }

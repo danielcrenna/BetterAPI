@@ -13,11 +13,12 @@ using Xunit.Abstractions;
 
 namespace Demo.Tests
 {
-    public class WeatherControllerSingleItemStoreTests : GivenASingleItemStore<WeatherForecastService, WeatherForecast, Startup>
+    // ReSharper disable once UnusedMember.Global
+    public class WeatherForecastControllerSingleItemStoreTests : GivenASingleItemStore<WeatherForecastService, WeatherForecast, Startup>
     {
         private static readonly Guid StableId = Guid.Parse("0F2F5096-C1D8-457C-A55C-04D3663FAD78");
 
-        public WeatherControllerSingleItemStoreTests(ITestOutputHelper output, WebApplicationFactory<Startup> factory) :
+        public WeatherForecastControllerSingleItemStoreTests(ITestOutputHelper output, WebApplicationFactory<Startup> factory) :
             base("/WeatherForecasts", Populate, output, factory)
         {
             Id = StableId;

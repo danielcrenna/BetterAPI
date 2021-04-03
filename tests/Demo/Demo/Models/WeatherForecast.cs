@@ -6,47 +6,34 @@
 
 using System;
 using System.ComponentModel.DataAnnotations;
+using BetterAPI;
 using BetterAPI.Caching;
 using BetterAPI.DataProtection;
+using BetterAPI.Validation;
 
 namespace Demo.Models
 {
-    public class WeatherForecast
+    public class WeatherForecast : IResource
     {
-        public WeatherForecast()
-        {
-            Id = Guid.NewGuid();
-        }
-
-        /// <summary>
-        ///     The forecast's unique ID
-        /// </summary>
         [Required]
+        [Display(Description = "The forecast's unique ID")]
         public Guid Id { get; set; }
 
-        /// <summary>
-        ///     The date and time of the predicted forecast
-        /// </summary>
         [Required]
         [LastModified]
+        [Display(Description = "The date and time of the predicted forecast")]
         public DateTime Date { get; set; }
 
-        /// <summary>
-        ///     The temperature in degrees Celsius
-        /// </summary>
         [Required]
+        [Display(Description = "The temperature in degrees Celsius")]
         public int TemperatureC { get; set; }
 
-        /// <summary>
-        ///     The temperature in degrees Fahrenheit
-        /// </summary>
+        [Display(Description = "The temperature in degrees Fahrenheit")]
         public int TemperatureF => 32 + (int) (TemperatureC / 0.5556f);
 
-        /// <summary>
-        ///     A human-readable summary of the temperature
-        ///     <example>Chilly</example>
-        /// </summary>
         [Required]
+        [Display(Description = "A human-readable summary of the temperature", Prompt = "Chilly")]
+        [OneOf("Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching")]
         public string? Summary { get; set; }
 
         [ProtectedByPolicy("TopSecret")]

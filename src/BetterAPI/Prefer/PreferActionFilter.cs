@@ -60,7 +60,7 @@ namespace BetterAPI.Prefer
             if (executed.Result is ObjectResult result)
                 if (minimal)
                 {
-                    executed.HttpContext.Items[Constants.ObjectResultValue] = result.Value;
+                    executed.HttpContext.Items[Constants.TerminalObjectResultValue] = result.Value;
                     result.Value = default;
                     executed.HttpContext.Response.StatusCode = (int) HttpStatusCode.NoContent;
                 }

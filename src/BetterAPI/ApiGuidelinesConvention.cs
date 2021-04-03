@@ -27,10 +27,12 @@ namespace BetterAPI
         IActionModelConvention, 
         IParameterModelConvention
     {
+        private readonly TypeRegistry _registry;
         private readonly IOptions<ApiOptions> _options;
 
-        public ApiGuidelinesConvention(IOptions<ApiOptions> options)
+        public ApiGuidelinesConvention(TypeRegistry registry, IOptions<ApiOptions> options)
         {
+            _registry = registry;
             _options = options;
         }
 
@@ -52,9 +54,35 @@ namespace BetterAPI
 
         public void Apply(ActionModel action)
         {
+            Produces(action);
+
             if (action.Is(HttpMethod.Get))
             {
-                Produces(action);
+                if (action.ActionName.Equals("GetById", StringComparison.OrdinalIgnoreCase))
+                {
+                    // invalid id:
+                    action.ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest);
+
+                    // resource not found:
+                    action.ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound);
+
+                    if (_registry.TryGetValue(action.Controller.ControllerName, out var controllerType) && controllerType != default)
+                    {
+                        // get resource by ID with return=representation:
+                        action.ProducesResponseType(controllerType, StatusCodes.Status200OK); 
+                    }
+                }
+
+                if (action.ActionName.Equals(Constants.Get, StringComparison.OrdinalIgnoreCase))
+                {
+                    if (_registry.TryGetValue(action.Controller.ControllerName, out var controllerType) && controllerType != default)
+                    {
+                        var collectionType = typeof(Envelope<>).MakeGenericType(controllerType);
+
+                        // get resource collection with return=representation:
+                        action.ProducesResponseType(collectionType, StatusCodes.Status200OK); 
+                    }
+                }
 
                 if (!action.HasAttribute<DoNotHttpCacheAttribute>())
                     action.ProducesResponseType(StatusCodes.Status304NotModified);
@@ -62,13 +90,58 @@ namespace BetterAPI
 
             if (action.Is(HttpMethod.Post))
             {
-                Produces(action);
                 Consumes(action);
 
-                if (action.ActionName.Equals("Create", StringComparison.OrdinalIgnoreCase))
+                if (action.ActionName.Equals(Constants.Create, StringComparison.OrdinalIgnoreCase))
                 {
+                    // created resource with return=minimal:
                     action.ProducesResponseType(StatusCodes.Status201Created);
+
+                    // invalid body:
                     action.ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest);
+
+                    // server failed to save resource:
+                    action.ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError);
+                }
+
+                if (!action.HasAttribute<DoNotHttpCacheAttribute>())
+                    action.ProducesResponseType(StatusCodes.Status412PreconditionFailed);
+            }
+
+            if (action.Is(HttpMethod.Put))
+            {
+                Consumes(action);
+            }
+
+            if (action.Is(HttpMethod.Patch))
+            {
+                Consumes(action);
+            }
+
+            if (action.Is(HttpMethod.Delete))
+            {
+                if (action.ActionName.Equals("DeleteById", StringComparison.OrdinalIgnoreCase))
+                {
+                    // deleted resource with return=minimal:
+                    action.ProducesResponseType(StatusCodes.Status204NoContent);
+
+                    // invalid id:
+                    action.ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest);
+
+                    // resource not found:
+                    action.ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound);
+
+                    // resource already deleted:
+                    action.ProducesResponseType<ProblemDetails>(StatusCodes.Status410Gone);
+
+                    // server failed to delete resource:
+                    action.ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError);
+
+                    if (_registry.TryGetValue(action.Controller.ControllerName, out var controllerType) && controllerType != default)
+                    {
+                        // deleted resource by ID with return=representation:
+                        action.ProducesResponseType(controllerType, StatusCodes.Status200OK); 
+                    }
                 }
 
                 if (!action.HasAttribute<DoNotHttpCacheAttribute>())
@@ -81,31 +154,58 @@ namespace BetterAPI
 
         public void Apply(ParameterModel parameter)
         {
-            foreach (var attribute in parameter.Attributes)
+            if (parameter.Action.Is(HttpMethod.Post))
             {
-                if (attribute is not FromBodyAttribute)
-                    continue;
+                foreach (var attribute in parameter.Attributes)
+                {
+                    if (attribute is not FromBodyAttribute || !parameter.Action.ActionName.Equals(Constants.Create, StringComparison.OrdinalIgnoreCase))
+                        continue;
 
-                if (!parameter.Action.Is(HttpMethod.Post))
-                    continue;
-
-                if (!parameter.Action.ActionName.Equals("Create", StringComparison.OrdinalIgnoreCase))
-                    continue;
-
-                parameter.Action.ProducesResponseType(parameter.ParameterType, StatusCodes.Status201Created);
+                    // created resource with return=representation:
+                    parameter.Action.ProducesResponseType(parameter.ParameterType, StatusCodes.Status201Created);
+                    break;
+                }
             }
         }
 
         private void Produces(IFilterModel model)
         {
-            if (_options.Value.ApiFormats.HasFlagFast(ApiSupportedMediaTypes.ApplicationJson))
-                model.Produces(MediaTypeNames.Application.Json);
+            switch (_options.Value.ApiFormats)
+            {
+                case ApiSupportedMediaTypes.None:
+                    throw new NotSupportedException("API must support at least one content format");
+                case ApiSupportedMediaTypes.ApplicationJson | ApiSupportedMediaTypes.ApplicationXml:
+                    model.Produces(ApiMediaTypeNames.Application.Json, ApiMediaTypeNames.Application.Xml);
+                    break;
+                case ApiSupportedMediaTypes.ApplicationJson:
+                    model.Produces(ApiMediaTypeNames.Application.Json);
+                    break;
+                case ApiSupportedMediaTypes.ApplicationXml:
+                    model.Produces(ApiMediaTypeNames.Application.Xml);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
 
         private void Consumes(IFilterModel model)
         {
-            if (_options.Value.ApiFormats.HasFlagFast(ApiSupportedMediaTypes.ApplicationJson))
-                model.Consumes(MediaTypeNames.Application.Json);
+            switch (_options.Value.ApiFormats)
+            {
+                case ApiSupportedMediaTypes.None:
+                    throw new NotSupportedException("API must support at least one content format");
+                case ApiSupportedMediaTypes.ApplicationJson | ApiSupportedMediaTypes.ApplicationXml:
+                    model.Consumes(ApiMediaTypeNames.Application.Json, ApiMediaTypeNames.Application.Xml);
+                    break;
+                case ApiSupportedMediaTypes.ApplicationJson:
+                    model.Consumes(ApiMediaTypeNames.Application.Json);
+                    break;
+                case ApiSupportedMediaTypes.ApplicationXml:
+                    model.Consumes(ApiMediaTypeNames.Application.Xml);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
     }
 }

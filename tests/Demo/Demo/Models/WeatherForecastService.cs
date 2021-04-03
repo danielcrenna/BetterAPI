@@ -7,25 +7,25 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Threading;
+using BetterAPI;
 
 namespace Demo.Models
 {
-    public class WeatherForecastService
+    public class WeatherForecastService : IResourceDataService<WeatherForecast>
     {
-        private static readonly string[] Summaries =
-        {
-            "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-        };
-
         private readonly IDictionary<Guid, WeatherForecast> _store =
             new ConcurrentDictionary<Guid, WeatherForecast>();
 
-        public IEnumerable<WeatherForecast> Get()
+        private readonly IDictionary<Guid, WeatherForecast> _deleted =
+            new ConcurrentDictionary<Guid, WeatherForecast>();
+
+        public IEnumerable<WeatherForecast> Get(CancellationToken cancellationToken)
         {
             return _store.Values;
         }
 
-        public bool TryGetById(Guid id, out WeatherForecast model)
+        public bool TryGetById(Guid id, out WeatherForecast? model, CancellationToken cancellationToken)
         {
             if (!_store.TryGetValue(id, out var stored))
             {
@@ -39,7 +39,38 @@ namespace Demo.Models
 
         public bool TryAdd(WeatherForecast model)
         {
-            return _store.TryAdd(model.Id, model);
+            var added = _store.TryAdd(model.Id, model);
+            if (added && _deleted.ContainsKey(model.Id))
+                _deleted.Remove(model.Id);
+            return added;
+        }
+
+        public bool TryDeleteById(Guid id, out WeatherForecast? deleted, out bool error)
+        {
+            if (_deleted.TryGetValue(id, out deleted))
+            {
+                error = false;
+                return false; // Gone
+            }
+
+            if (!_store.TryGetValue(id, out var toDelete))
+            {
+                deleted = default;
+                error = false;
+                return false; // NotFound
+            }
+
+            if (!_store.Remove(id))
+            {
+                deleted = default;
+                error = true;
+                return false; // InternalServerError
+            }
+
+            _deleted.Add(id, toDelete);
+            deleted = toDelete;
+            error = false;
+            return true;
         }
     }
 }

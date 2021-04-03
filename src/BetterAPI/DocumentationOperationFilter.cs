@@ -8,12 +8,13 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using System.Runtime.InteropServices;
+using System.Net.Mime;
 using System.Text;
 using BetterAPI.Caching;
 using BetterAPI.Extensions;
 using BetterAPI.Reflection;
 using Humanizer;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.Extensions.Options;
@@ -31,22 +32,24 @@ namespace BetterAPI
     internal sealed class DocumentationOperationFilter : IOperationFilter
     {
         // FIXME: We need to rebuild the swagger document if the options change
+        private readonly TypeRegistry _registry;
         private readonly IOptionsMonitor<ApiOptions> _options;
 
-        public DocumentationOperationFilter(IOptionsMonitor<ApiOptions> options)
+        public DocumentationOperationFilter(TypeRegistry registry, IOptionsMonitor<ApiOptions> options)
         {
+            _registry = registry;
             _options = options;
         }
 
         public void Apply(OpenApiOperation operation, OperationFilterContext context)
         {
             EnsureOperationsHaveIds(operation, context);
-
             DocumentFeatures(operation, context);
-
             DocumentActions(operation, context);
+            DocumentResponses(operation);
+            DocumentSchemas(context);
         }
-
+        
         private void DocumentFeatures(OpenApiOperation operation, OperationFilterContext context)
         {
             DocumentPrefer(operation);
@@ -55,9 +58,10 @@ namespace BetterAPI
             DocumentSorting(operation, context);
             DocumentFiltering(operation, context);
             DocumentDeltaQueries(operation, context);
+            DocumentShaping(operation);
         }
 
-        private static void DocumentActions(OpenApiOperation operation, OperationFilterContext context)
+        private void DocumentActions(OpenApiOperation operation, OperationFilterContext context)
         {
             if (!(context.ApiDescription.ActionDescriptor is ControllerActionDescriptor descriptor))
                 return;
@@ -81,6 +85,105 @@ namespace BetterAPI
                 if (controllerNameTag != default && operation.Tags.Remove(controllerNameTag))
                     operation.Tags.Add(new OpenApiTag { Name = groupName });
             }
+
+            if (operation.RequestBody != null)
+            {
+                // NOTE: Swashbuckle is not respecting the ConsumesAttribute formats here, so we have to do it manually
+                var content = operation.RequestBody.Content.First().Value;
+                operation.RequestBody.Content.Clear();
+
+                switch (_options.CurrentValue.ApiFormats)
+                {
+                    case ApiSupportedMediaTypes.None:
+                        throw new NotSupportedException("API must support at least one content format");
+                    case ApiSupportedMediaTypes.ApplicationJson | ApiSupportedMediaTypes.ApplicationXml:
+                        operation.RequestBody.Content.Add(MediaTypeNames.Application.Json, new OpenApiMediaType { Schema = content.Schema });
+                        operation.RequestBody.Content.Add(MediaTypeNames.Application.Xml, new OpenApiMediaType { Schema = content.Schema });
+                        break;
+                    case ApiSupportedMediaTypes.ApplicationJson:
+                        operation.RequestBody.Content.Add(MediaTypeNames.Application.Json, new OpenApiMediaType { Schema = content.Schema });
+                        break;
+                    case ApiSupportedMediaTypes.ApplicationXml:
+                        operation.RequestBody.Content.Add(MediaTypeNames.Application.Xml, new OpenApiMediaType { Schema = content.Schema });
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+
+                var prompt = display.GetPrompt();
+                if (prompt != default)
+                {
+                    operation.RequestBody.Description = prompt;
+                }
+            }
+        }
+
+        private void DocumentResponses(OpenApiOperation operation)
+        {
+            foreach (var (statusCode, response) in operation.Responses)
+            {
+                if (statusCode == StatusCodes.Status304NotModified.ToString())
+                {
+                    if (response.Description == null || response.Description == "Not Modified")
+                    {
+                        response.Description = "The resource was not returned, because it was not modified according to the ETag or LastModifiedDate.";
+                    }
+                }
+
+                if (statusCode == StatusCodes.Status201Created.ToString())
+                {
+                    if (response.Description == null || response.Description == "Success")
+                    {
+                        response.Description = "Returns the newly created resource, or an empty body if a minimal return is preferred";
+                    }
+                }
+
+                // FIXME: ProblemDetails should use application/problem+json as the media type.
+                if (statusCode == StatusCodes.Status400BadRequest.ToString())
+                {
+                    if (response.Description == null || response.Description == "Bad Request")
+                    {
+                        response.Description = "There was an error with the request, and further problem details are available";
+                    }
+                }
+
+                // FIXME: ProblemDetails should use application/problem+json as the media type.
+                if (statusCode == StatusCodes.Status412PreconditionFailed.ToString())
+                {
+                    if (response.Description == null || response.Description == "Client Error")
+                    {
+                        response.Description = "The resource was not created, because it has unmet pre-conditions";
+                    }
+                }
+            }
+        }
+
+        private void DocumentSchemas(OperationFilterContext context)
+        {
+            // This will run multiple times, so we store previously discovered types
+            foreach (var (typeName, schema) in context.SchemaRepository.Schemas)
+            {
+                if (!_registry.TryGetValue(typeName, out var type) || type == default)
+                    continue;
+
+                var members = AccessorMembers.Create(type, AccessorMemberTypes.Properties, AccessorMemberScope.Public);
+
+                foreach (var (propertyName, property) in schema.Properties)
+                {
+                    if (!members.TryGetValue(propertyName, out var member))
+                        continue;
+                    if (!member.TryGetAttribute(out DisplayAttribute attribute))
+                        continue;
+
+                    var description = attribute.GetDescription();
+                    if (description != default)
+                        property.Description = description;
+
+                    var prompt = attribute.GetPrompt();
+                    if(prompt != default)
+                        property.Example = new OpenApiString(prompt);
+                }
+            }
         }
 
         private static void EnsureOperationsHaveIds(OpenApiOperation operation, OperationFilterContext context)
@@ -99,14 +202,14 @@ namespace BetterAPI
 
             var sb = new StringBuilder();
 
-            if (method.Name.StartsWith("Get"))
-                sb.Append("Get");
-            if (method.Name.StartsWith("Create"))
-                sb.Append("Create");
-            if (method.Name.StartsWith("Update"))
-                sb.Append("Update");
-            if (method.Name.StartsWith("Delete"))
-                sb.Append("Delete");
+            if (method.Name.StartsWith(Constants.Get))
+                sb.Append(Constants.Get);
+            if (method.Name.StartsWith(Constants.Create))
+                sb.Append(Constants.Create);
+            if (method.Name.StartsWith(Constants.Update))
+                sb.Append(Constants.Update);
+            if (method.Name.StartsWith(Constants.Delete))
+                sb.Append(Constants.Delete);
 
             Type? type = default;
             var plural = false;
@@ -119,7 +222,7 @@ namespace BetterAPI
                 if (producesResponseType.StatusCode <= 199 || producesResponseType.StatusCode >= 299)
                     continue;
 
-                type = producesResponseType.Type.GetModelType(out plural);
+                type = GetModelType(producesResponseType.Type, out plural);
                 break;
             }
 
@@ -134,15 +237,15 @@ namespace BetterAPI
                     {
                         if (!(attribute is FromBodyAttribute))
                             continue;
-                        type = parameter.ParameterType.GetModelType(out plural);
+                        type = GetModelType(parameter.ParameterType, out plural);
                         break;
                     }
                 }
 
-            type ??= method.ReturnType.GetModelType(out plural);
+            type ??= GetModelType(method.ReturnType, out plural);
             sb.Append(plural ? type.Name.Pluralize() : type.Name);
 
-            if (parameters.Any(x => x.Name != null && x.Name.Equals("id", StringComparison.OrdinalIgnoreCase)))
+            if (parameters.Any(x => x.Name != null && x.Name.Equals(nameof(IResource.Id), StringComparison.OrdinalIgnoreCase)))
                 sb.Append("ById");
 
             return sb.ToString();
@@ -167,7 +270,7 @@ namespace BetterAPI
 
             operation.Parameters.Add(new OpenApiParameter
             {
-                Name = "If-None-Match",
+                Name = ApiHeaderNames.IfNoneMatch,
                 In = ParameterLocation.Header,
                 Description = "Only supply a result or perform an action if it does not match the specified entity resource identifier (ETag)",
                 Example = new OpenApiString("")
@@ -175,7 +278,7 @@ namespace BetterAPI
 
             operation.Parameters.Add(new OpenApiParameter
             {
-                Name = "If-Match",
+                Name = ApiHeaderNames.IfMatch,
                 In = ParameterLocation.Header,
                 Description = "Only supply a result or perform an action if it matches the specified entity resource identifier (ETag)",
                 Example = new OpenApiString("")
@@ -183,27 +286,32 @@ namespace BetterAPI
 
             operation.Parameters.Add(new OpenApiParameter
             {
-                Name = "If-Modified-Since",
+                Name = ApiHeaderNames.IfModifiedSince,
                 In = ParameterLocation.Header,
-                Description =
-                    "Only supply a result or perform an action if the resource's logical timestamp has been modified since the given date (Last-Modified)",
+                Description = "Only supply a result or perform an action if the resource's logical timestamp has been modified since the given date (Last-Modified)",
                 Example = new OpenApiString("")
             });
 
             operation.Parameters.Add(new OpenApiParameter
             {
-                Name = "If-Unmodified-Since",
+                Name = ApiHeaderNames.IfUnmodifiedSince,
                 In = ParameterLocation.Header,
                 Description = "Only supply a result or perform an action if the resource's logical timestamp has not been modified since the given date (Last-Modified)",
                 Example = new OpenApiString("")
             });
         }
 
+        private static bool IsQuery(OpenApiOperation operation)
+        {
+            return !IsMutation(operation);
+        }
+
+
         private static bool IsMutation(OpenApiOperation operation)
         {
-            return operation.OperationId.StartsWith("Create", StringComparison.OrdinalIgnoreCase) ||
-                   operation.OperationId.StartsWith("Update", StringComparison.OrdinalIgnoreCase) ||
-                   operation.OperationId.StartsWith("Delete", StringComparison.OrdinalIgnoreCase);
+            return operation.OperationId.StartsWith(Constants.Create, StringComparison.OrdinalIgnoreCase) ||
+                   operation.OperationId.StartsWith(Constants.Update, StringComparison.OrdinalIgnoreCase) ||
+                   operation.OperationId.StartsWith(Constants.Delete, StringComparison.OrdinalIgnoreCase);
         }
 
         private static void DocumentLinks(OpenApiOperation operation)
@@ -233,7 +341,7 @@ namespace BetterAPI
                 # -----------------------------------------------------
              */
 
-            var modelName = operation.OperationId.Replace("Create", string.Empty);
+            var modelName = operation.OperationId.Replace(Constants.Create, string.Empty);
             var operationId = $"Get{modelName}ById";
 
             var getById = new OpenApiLink
@@ -292,6 +400,55 @@ namespace BetterAPI
                 Description = "Add an opaque URL to the end of the collection results for querying deltas since the query was executed.",
                 Example = new OpenApiString(_options.CurrentValue.DeltaQueries.Operator)
             });
+        }
+
+        private void DocumentShaping(OpenApiOperation operation)
+        {
+            if (!IsQuery(operation))
+                return;
+
+            operation.Parameters.Add(new OpenApiParameter
+            {
+                Name = _options.CurrentValue.Include.Operator,
+                In = ParameterLocation.Query,
+                Description = "Only include the specified fields in the response body",
+                Example = new OpenApiString("")
+            });
+
+            operation.Parameters.Add(new OpenApiParameter
+            {
+                Name = _options.CurrentValue.Exclude.Operator,
+                In = ParameterLocation.Query,
+                Description = "Omit the specified fields in the response body",
+                Example = new OpenApiString("")
+            });
+        }
+
+        private static Type GetModelType(Type type, out bool plural)
+        {
+            if (!type.IsGenericType)
+            {
+                plural = false;
+                return type;
+            }
+
+            var definition = type.GetGenericTypeDefinition();
+
+            if (definition == typeof(IEnumerable<>))
+            {
+                plural = true;
+                return type.GetGenericArguments()[0];
+            }
+
+            foreach (var @interface in definition.GetInterfaces())
+                if (@interface.IsGenericType && @interface.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+                {
+                    plural = true;
+                    return type.GetGenericArguments()[0];
+                }
+
+            plural = false;
+            return type;
         }
     }
 }

@@ -4,7 +4,9 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
+using System;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using BetterAPI.Reflection;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.OpenApi.Models;
@@ -36,7 +38,8 @@ namespace BetterAPI
                     tag.Description = summary;
                 }
 
-                swaggerDoc.Tags.Add(tag);
+                if(!swaggerDoc.Tags.Any(x => x.Name.Equals(tag.Name, StringComparison.OrdinalIgnoreCase)))
+                    swaggerDoc.Tags.Add(tag);
             }
         }
     }

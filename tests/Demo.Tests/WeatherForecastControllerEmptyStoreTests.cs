@@ -11,9 +11,10 @@ using Xunit.Abstractions;
 
 namespace Demo.Tests
 {
-    public class WeatherControllerEmptyStoreTests : GivenAnEmptyStore<WeatherForecast, Startup>
+    // ReSharper disable once UnusedMember.Global
+    public class WeatherForecastControllerEmptyStoreTests : GivenAnEmptyStore<WeatherForecast, Startup>
     {
-        public WeatherControllerEmptyStoreTests(ITestOutputHelper output, WebApplicationFactory<Startup> factory) :
+        public WeatherForecastControllerEmptyStoreTests(ITestOutputHelper output, WebApplicationFactory<Startup> factory) :
             base("/WeatherForecasts", output, factory)
         {
         }

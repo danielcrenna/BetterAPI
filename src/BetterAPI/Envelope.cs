@@ -5,16 +5,22 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 using System.Collections.Generic;
+using System.Linq;
 
 namespace BetterAPI
 {
     public class Envelope<T>
     {
-        public Envelope(IEnumerable<T> value)
+        public Envelope()
         {
-            Value = value;
+            Value = Enumerable.Empty<T>().ToList();
         }
 
-        public IEnumerable<T> Value { get; set; }
+        public Envelope(IEnumerable<T> value)
+        {
+            Value = value?.ToList();
+        }
+
+        public List<T>? Value { get; set; }
     }
 }

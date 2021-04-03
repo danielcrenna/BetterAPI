@@ -24,12 +24,18 @@ namespace BetterAPI
 
         public void Configure(ApiBehaviorOptions options)
         {
-            const int statusCode = (int)HttpStatusCode.BadRequest;
-
-            options.ClientErrorMapping[statusCode] = new ClientErrorData
+            // default: https://tools.ietf.org/html/rfc7231#section-6.5.1
+            options.ClientErrorMapping[(int)HttpStatusCode.BadRequest] = new ClientErrorData
             {
                 Title = "Bad Request",
-                Link = $"{_options.Value.BaseUrl}{statusCode}"
+                Link = $"{_options.Value.BaseUrl}{(int)HttpStatusCode.BadRequest}"
+            };
+
+            // default: "https://tools.ietf.org/html/rfc7231#section-6.5.4",
+            options.ClientErrorMapping[(int)HttpStatusCode.NotFound] = new ClientErrorData
+            {
+                Title = "Not Found",
+                Link = $"{_options.Value.BaseUrl}{(int)HttpStatusCode.NotFound}"
             };
         }
     }

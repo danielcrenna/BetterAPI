@@ -82,18 +82,22 @@ namespace BetterAPI.Sorting
                     }
             }
 
-            if (sortMap.Count == 0)
-                foreach (var clause in _options.Value.DefaultSort)
-                    if (members.TryGetValue(clause.Field, out var member))
-                        sortMap.Add((member, clause.Direction));
-
+            // Default sort must always run after any user-specified sorts:
+            // -------------------------------------------------------------------
+            // See: https://github.com/microsoft/api-guidelines/blob/vNext/Guidelines.md#983-additional-considerations
+            // "Stable order prerequisite: Both forms of paging depend on the collection of items having a stable order. The server
+            // MUST supplement any specified order criteria with additional sorts (typically by key) to ensure that items are always
+            // ordered consistently.
+            //
+            foreach (var clause in _options.Value.DefaultSort)
+                if (members.TryGetValue(clause.Field, out var member))
+                    sortMap.Add((member, clause.Direction));
+                
             var executed = await next();
 
             if (executed.Result is OkObjectResult result)
             {
                 var collection = executed.GetResultBody(result, out var settable);
-
-                // FIXME: use call accessor here
                 var method = BuilderMethod.MakeGenericMethod(underlyingType) ?? throw new NullReferenceException();
 
                 // FIXME: support multiple order by expressions 

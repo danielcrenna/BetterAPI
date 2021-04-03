@@ -38,7 +38,7 @@ namespace BetterAPI
                         ? configSelector(context.Configuration)
                         : context.Configuration.GetSection(Constants.DefaultConfigSection);
 
-                    services.AddApiGuidelines(config, typeof(TStartup).Assembly);
+                    services.AddApiServer(config, typeof(TStartup).Assembly);
 
                     //
                     // The default ApplicationPartManager relies on the entryAssemblyName, which is this library.

@@ -6,18 +6,22 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace BetterAPI
 {
     [ApiController]
-    public abstract class ApiController : ControllerBase
+    public abstract class ResourceController : ControllerBase
     {
-        private readonly IOptionsSnapshot<ProblemDetailsOptions> _problemDetails;
+        protected readonly IOptionsSnapshot<ApiOptions> Options;
 
-        protected ApiController(IOptionsSnapshot<ProblemDetailsOptions> problemDetails)
+        protected readonly ILogger<ResourceController> Logger;
+
+        protected ResourceController(IOptionsSnapshot<ApiOptions> options, ILogger<ResourceController> logger)
         {
-            _problemDetails = problemDetails;
+            Options = options;
+            Logger = logger;
         }
 
         protected IActionResult BadRequestWithDetails(string details)
@@ -36,7 +40,7 @@ namespace BetterAPI
             return StatusCode(statusCode, new ProblemDetails
             {
                 Status = statusCode,
-                Type = $"{_problemDetails.Value.BaseUrl}{statusCode}",
+                Type = $"{Options.Value.ProblemDetails.BaseUrl}{statusCode}",
                 Title = statusDescription,
                 Detail = details,
                 Instance = Request.Path

@@ -8,6 +8,9 @@ using System;
 
 namespace BetterAPI.Caching
 {
+    /// <summary>
+    /// See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/ETag
+    /// </summary>
     public readonly struct ETag : IEquatable<ETag>
     {
         public readonly ETagType Type;

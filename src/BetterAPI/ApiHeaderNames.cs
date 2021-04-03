@@ -10,9 +10,8 @@ namespace BetterAPI
 {
     public static class ApiHeaderNames
     {
-        // ReSharper disable once MemberHidesStaticFromOuterClass
-        public const string Prefer = "Prefer";
-        public const string PreferenceApplied = "Preference-Applied";
+        public static readonly string Prefer = "Prefer";
+        public static readonly string PreferenceApplied = "Preference-Applied";
 
         public static readonly string ETag = HeaderNames.ETag;
         public static readonly string LastModified = HeaderNames.LastModified;
@@ -21,6 +20,8 @@ namespace BetterAPI
         public static readonly string IfMatch = HeaderNames.IfMatch;
         public static readonly string IfUnmodifiedSince = HeaderNames.IfUnmodifiedSince;
         public static readonly string IfModifiedSince = HeaderNames.IfModifiedSince;
+
+        public static readonly string Link = nameof(Link);
 
         public static readonly string MockResponse = "X-Mock-Response";
     }

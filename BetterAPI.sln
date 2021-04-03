@@ -17,7 +17,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BetterAPI.Testing", "src\Be
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BetterAPI", "src\BetterAPI\BetterAPI.csproj", "{B23C600F-E447-497F-AC7D-400CE781B5A9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BetterAPI.Tests", "tests\BetterAPI.Tests\BetterAPI.Tests.csproj", "{E6764F6B-4EF6-4B6C-8DD8-AC7411355D09}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BetterAPI.Tests", "tests\BetterAPI.Tests\BetterAPI.Tests.csproj", "{E6764F6B-4EF6-4B6C-8DD8-AC7411355D09}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -19,7 +19,7 @@ namespace BetterAPI.Extensions
     {
         public static bool IsCollection(this ActionDescriptor descriptor, out Type? underlyingType)
         {
-            return descriptor.ReturnsEnumerableType(out underlyingType) || underlyingType == null;
+            return descriptor.ReturnsEnumerableType(out underlyingType);
         }
 
         public static bool IsCollectionQuery(this ActionDescriptor descriptor, out Type? underlyingType)
@@ -39,13 +39,35 @@ namespace BetterAPI.Extensions
 
         public static bool ReturnsEnumerableType(this ActionDescriptor descriptor, out Type? underlyingType)
         {
-            foreach (var producesResponseType in descriptor.EndpointMetadata.OfType<ProducesResponseTypeAttribute>())
+            // NOTE: descriptor.EndpointMetadata does not contain any filters that were added dynamically
+            foreach (var producesResponseType in descriptor.FilterDescriptors.Select(x => x.Filter).OfType<ProducesResponseTypeAttribute>())
             {
-                if (!producesResponseType.Type.ImplementsGeneric(typeof(IEnumerable<>)))
+                if (!producesResponseType.Type.ImplementsGeneric(typeof(IEnumerable<>)) && !producesResponseType.Type.ImplementsGeneric(typeof(Envelope<>)))
                     continue;
 
                 underlyingType = producesResponseType.Type.GetGenericArguments()[0];
                 return true;
+            }
+
+            underlyingType = null;
+            return false;
+        }
+
+        public static bool ReturnsType(this ActionDescriptor descriptor, out Type? underlyingType)
+        {
+            // NOTE: descriptor.EndpointMetadata does not contain any filters that were added dynamically
+            foreach (var producesResponseType in descriptor.FilterDescriptors.Select(x => x.Filter).OfType<ProducesResponseTypeAttribute>())
+            {
+                if (producesResponseType.Type.ImplementsGeneric(typeof(IEnumerable<>)) && !producesResponseType.Type.ImplementsGeneric(typeof(Envelope<>)))
+                {
+                    underlyingType = producesResponseType.Type.GetGenericArguments()[0];
+                    return true;
+                }
+                else if(producesResponseType.Type != typeof(ProblemDetails) && producesResponseType.Type != typeof(void))
+                {
+                    underlyingType = producesResponseType.Type;
+                    return true;
+                }
             }
 
             underlyingType = null;

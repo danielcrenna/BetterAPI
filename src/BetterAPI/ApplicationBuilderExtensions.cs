@@ -10,6 +10,7 @@ using System.Net;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
@@ -36,7 +37,10 @@ namespace BetterAPI
             app.UseHttpsRedirection();
             app.UseRouting();
             app.UseAuthorization();
-            app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints.MapDynamicControllerRoute<ApiRouter>("{**route}");
+            });
 
             return app;
         }
@@ -48,9 +52,22 @@ namespace BetterAPI
                               "You must call AddApiGuidelines in ConfigureServices, before calling UseApiGuidelines in Configure");
 
             app.UseCors();
-            app.UseSwagger();
+            app.UseSwagger(o => { o.RouteTemplate = options.Value.OpenApiSpecRouteTemplate; });
             app.UseSwaggerUI(c =>
-                c.SwaggerEndpoint("/swagger/v1/swagger.json", $"{options.Value.ApiName} {options.Value.ApiVersion}"));
+            {
+                c.EnableDeepLinking();
+                c.RoutePrefix = options.Value.OpenApiUiRoutePrefix?.TrimStart('/');
+
+                var provider = app.ApplicationServices.GetRequiredService<IApiVersionDescriptionProvider>();
+                foreach (var description in provider.ApiVersionDescriptions)
+                {
+                    var url = options.Value.OpenApiSpecRouteTemplate?.Replace("{documentname}", description.GroupName);
+                    if (url != null && !url.StartsWith('/'))
+                        url = url.Insert(0, "/");
+
+                    c.SwaggerEndpoint(url, $"{options.Value.ApiName} {description.GroupName}");
+                }
+            });
 
             return app;
         }
