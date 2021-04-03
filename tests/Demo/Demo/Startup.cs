@@ -4,6 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
+using BetterAPI;
 using Demo.Models;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -16,7 +17,7 @@ namespace Demo
     {
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddSingleton<WeatherForecastService>();
+            services.AddSingleton<IResourceDataService<WeatherForecast>, WeatherForecastService>();
 
             services.AddAuthorization(o =>
             {

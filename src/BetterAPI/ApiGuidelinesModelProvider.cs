@@ -6,6 +6,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using BetterAPI.Extensions;
 using Humanizer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
@@ -58,7 +59,7 @@ namespace BetterAPI
             // Collections must be un-abbreviated and pluralized:
             // https://github.com/microsoft/api-guidelines/blob/vNext/Guidelines.md#93-collection-url-patterns
             //
-            var collectionName = actionModel.Controller.ControllerName.Pluralize();
+            var collectionName = actionModel.Controller.ControllerType.NormalizeResourceControllerName().Pluralize();
             var route = new RouteAttribute(collectionName);
             var selector = new SelectorModel {AttributeRouteModel = new AttributeRouteModel(route)};
             actionModel.Controller.Selectors.Add(selector);

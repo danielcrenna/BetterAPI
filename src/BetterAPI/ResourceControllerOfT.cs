@@ -14,12 +14,12 @@ using Microsoft.Net.Http.Headers;
 namespace BetterAPI
 {
     [FormatFilter]
-    public abstract class ResourceController<T> : ResourceController where T : class, IResource
+    public class ResourceController<T> : ResourceController where T : class, IResource
     {
         private readonly IResourceDataService<T> _service;
         private readonly IEventBroadcaster _events;
 
-        protected ResourceController(IResourceDataService<T> service, IEventBroadcaster events, IOptionsSnapshot<ApiOptions> options,
+        public ResourceController(IResourceDataService<T> service, IEventBroadcaster events, IOptionsSnapshot<ApiOptions> options,
             ILogger<ResourceController> logger) : base(options, logger)
         {
             _service = service;

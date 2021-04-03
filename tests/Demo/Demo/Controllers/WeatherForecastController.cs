@@ -12,10 +12,14 @@ using Microsoft.Extensions.Options;
 
 namespace Demo.Controllers
 {
-    [Display(Description = "Manages operations for weather forecast resources")]
-    public class WeatherForecastController : ResourceController<WeatherForecast>
-    {
-        public WeatherForecastController(WeatherForecastService service, IEventBroadcaster events, IOptionsSnapshot<ApiOptions> options, ILogger<WeatherForecastController> logger) : 
-            base(service, events, options, logger) { }
-    }
+    //[Display(Description = "Manages operations for weather forecast resources")]
+    //public class WeatherForecastController : ResourceController<WeatherForecast>
+    //{
+    //    public WeatherForecastController(IResourceDataService<WeatherForecast> service, IEventBroadcaster events,
+    //        IOptionsSnapshot<ApiOptions> options, ILogger<WeatherForecastController> logger) :
+    //        base(service, events, options, logger)
+    //    {
+
+    //    }
+    //}
 }

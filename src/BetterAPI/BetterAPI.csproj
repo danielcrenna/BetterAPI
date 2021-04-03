@@ -17,9 +17,5 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.1.1" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Versioning\" />
-  </ItemGroup>
-
 
 </Project>

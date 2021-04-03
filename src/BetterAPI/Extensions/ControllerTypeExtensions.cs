@@ -12,6 +12,16 @@ namespace BetterAPI.Extensions
 {
     internal static class ControllerTypeExtensions
     {
+        public static string NormalizeResourceControllerName(this Type controllerType)
+        {
+            if (!controllerType.IsGenericType)
+                return controllerType.NormalizeControllerName();
+
+            return controllerType.ImplementsGeneric(typeof(ResourceController<>))
+                ? controllerType.GetGenericArguments()[0].NormalizeControllerName()
+                : controllerType.NormalizeControllerName();
+        }
+
         public static string NormalizeControllerName(this Type controllerType)
         {
             return controllerType.Name.Contains('`')
