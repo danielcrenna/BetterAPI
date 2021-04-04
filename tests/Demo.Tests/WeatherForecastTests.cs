@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using Demo.Models;
 using Xunit;
 
 namespace Demo.Tests

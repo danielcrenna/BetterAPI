@@ -5,9 +5,9 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 using System;
+using BetterAPI;
 using BetterAPI.Sorting;
 using BetterAPI.Testing;
-using Demo.Models;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
 using Xunit.Abstractions;
@@ -15,7 +15,7 @@ using Xunit.Abstractions;
 namespace Demo.Tests
 {
     // ReSharper disable once UnusedMember.Global
-    public class WeatherForecastControllerCollectionStoreTests : GivenACollectionStore<WeatherForecastService, WeatherForecast, Startup>
+    public class WeatherForecastControllerCollectionStoreTests : GivenACollectionStore<MemoryResourceDataService<WeatherForecast>, WeatherForecast, Startup>
     {
         public WeatherForecastControllerCollectionStoreTests(ITestOutputHelper output, WebApplicationFactory<Startup> factory) :
             base("/WeatherForecasts", output, factory)
@@ -30,7 +30,7 @@ namespace Demo.Tests
             return new SortClause {Field = nameof(WeatherForecast.Summary), Direction = SortDirection.Descending};
         }
 
-        public override void Populate(WeatherForecastService service)
+        public override void Populate(MemoryResourceDataService<WeatherForecast> service)
         {
             Assert.True(service.TryAdd(new WeatherForecast
             {

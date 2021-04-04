@@ -5,8 +5,8 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 using System;
+using BetterAPI;
 using BetterAPI.Testing;
-using Demo.Models;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
 using Xunit.Abstractions;
@@ -14,7 +14,7 @@ using Xunit.Abstractions;
 namespace Demo.Tests
 {
     // ReSharper disable once UnusedMember.Global
-    public class WeatherForecastControllerSingleItemStoreTests : GivenASingleItemStore<WeatherForecastService, WeatherForecast, Startup>
+    public class WeatherForecastControllerSingleItemStoreTests : GivenASingleItemStore<MemoryResourceDataService<WeatherForecast>, WeatherForecast, Startup>
     {
         private static readonly Guid StableId = Guid.Parse("0F2F5096-C1D8-457C-A55C-04D3663FAD78");
 
@@ -24,7 +24,7 @@ namespace Demo.Tests
             Id = StableId;
         }
 
-        private static void Populate(WeatherForecastService service)
+        private static void Populate(MemoryResourceDataService<WeatherForecast> service)
         {
             var model = new WeatherForecast
             {

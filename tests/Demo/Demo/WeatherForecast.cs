@@ -11,7 +11,7 @@ using BetterAPI.Caching;
 using BetterAPI.DataProtection;
 using BetterAPI.Validation;
 
-namespace Demo.Models
+namespace Demo
 {
     public class WeatherForecast : IResource
     {

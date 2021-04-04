@@ -5,7 +5,6 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 using BetterAPI.Testing;
-using Demo.Models;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit.Abstractions;
 

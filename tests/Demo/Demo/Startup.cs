@@ -5,7 +5,6 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 using BetterAPI;
-using Demo.Models;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,7 +16,7 @@ namespace Demo
     {
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddSingleton<IResourceDataService<WeatherForecast>, WeatherForecastService>();
+            services.AddApiResource<WeatherForecast>();
 
             services.AddAuthorization(o =>
             {

@@ -8,24 +8,23 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
-using BetterAPI;
 
-namespace Demo.Models
+namespace BetterAPI
 {
-    public class WeatherForecastService : IResourceDataService<WeatherForecast>
+    public sealed class MemoryResourceDataService<T> : IResourceDataService<T> where T : class, IResource
     {
-        private readonly IDictionary<Guid, WeatherForecast> _store =
-            new ConcurrentDictionary<Guid, WeatherForecast>();
+        private readonly IDictionary<Guid, T> _store =
+            new ConcurrentDictionary<Guid, T>();
 
-        private readonly IDictionary<Guid, WeatherForecast> _deleted =
-            new ConcurrentDictionary<Guid, WeatherForecast>();
+        private readonly IDictionary<Guid, T> _deleted =
+            new ConcurrentDictionary<Guid, T>();
 
-        public IEnumerable<WeatherForecast> Get(CancellationToken cancellationToken)
+        public IEnumerable<T> Get(CancellationToken cancellationToken)
         {
             return _store.Values;
         }
 
-        public bool TryGetById(Guid id, out WeatherForecast? model, CancellationToken cancellationToken)
+        public bool TryGetById(Guid id, out T? model, CancellationToken cancellationToken)
         {
             if (!_store.TryGetValue(id, out var stored))
             {
@@ -37,7 +36,7 @@ namespace Demo.Models
             return true;
         }
 
-        public bool TryAdd(WeatherForecast model)
+        public bool TryAdd(T model)
         {
             var added = _store.TryAdd(model.Id, model);
             if (added && _deleted.ContainsKey(model.Id))
@@ -45,7 +44,7 @@ namespace Demo.Models
             return added;
         }
 
-        public bool TryDeleteById(Guid id, out WeatherForecast? deleted, out bool error)
+        public bool TryDeleteById(Guid id, out T? deleted, out bool error)
         {
             if (_deleted.TryGetValue(id, out deleted))
             {

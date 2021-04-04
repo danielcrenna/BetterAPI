@@ -13,7 +13,6 @@ using System.Xml;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.OpenApi.Models;
 using BetterAPI.Caching;
 using BetterAPI.Cors;
 using BetterAPI.DeltaQueries;
@@ -153,6 +152,12 @@ namespace BetterAPI
         public static IServiceCollection AddEventServices(this IServiceCollection services)
         {
             services.TryAddSingleton<IEventBroadcaster, DefaultEventBroadcaster>();
+            return services;
+        }
+
+        public static IServiceCollection AddApiResource<T>(this IServiceCollection services) where T : class, IResource
+        {
+            services.AddSingleton<IResourceDataService<T>, MemoryResourceDataService<T>>();
             return services;
         }
     }
