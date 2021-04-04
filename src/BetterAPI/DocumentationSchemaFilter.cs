@@ -4,6 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
+using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
@@ -11,6 +12,13 @@ namespace BetterAPI
 {
     internal sealed class DocumentationSchemaFilter : ISchemaFilter
     {
+        private readonly IOptionsMonitor<ApiOptions> _options;
+
+        public DocumentationSchemaFilter(IOptionsMonitor<ApiOptions> options)
+        {
+            _options = options;
+        }
+
         public void Apply(OpenApiSchema schema, SchemaFilterContext context)
         {
             DocumentXmlSchemas(schema, context);

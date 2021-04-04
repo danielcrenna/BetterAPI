@@ -4,13 +4,10 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
-namespace BetterAPI.DeltaQueries
+namespace BetterAPI.Versioning
 {
-    public sealed class DeltaQueryOptions : IQueryOptions
+    public sealed class VersioningOptions
     {
-        public bool EnabledByDefault { get; set; } = false;
-        public bool EmptyClauseIsValid => true;
-
-        public string Operator { get; set; } = "$delta";
+        public bool UseUrl { get; set; } = true;
     }
 }

@@ -118,7 +118,7 @@ namespace BetterAPI
             }
         }
 
-        private void DocumentResponses(OpenApiOperation operation)
+        private static void DocumentResponses(OpenApiOperation operation)
         {
             foreach (var (statusCode, response) in operation.Responses)
             {

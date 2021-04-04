@@ -4,6 +4,8 @@ using System.ComponentModel.DataAnnotations;
 using System.Net;
 using System.Threading;
 using BetterAPI.Caching;
+using BetterAPI.Reflection;
+using BetterAPI.Sorting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -43,9 +45,21 @@ namespace BetterAPI
 
         [Display(Description = "Returns all saved resources, with optional sort, ordering, and filter criteria")]
         [HttpGet]
-        public IActionResult Get(CancellationToken cancellationToken)
+        public IActionResult Get(ApiVersion apiVersion, CancellationToken cancellationToken)
         {
-            return Ok(_service.Get(cancellationToken));
+            IEnumerable<T> results;
+
+            if (_service.SupportsSorting &&
+                HttpContext.Items.TryGetValue(Constants.SortOperationContextKey, out var sortMap) && sortMap != null &&
+                _service is IResourceDataServiceSorting<T> sorting)
+            {
+                results = sorting.Get((List<(AccessorMember, SortDirection)>) sortMap, cancellationToken);
+                HttpContext.Items.Remove(Constants.SortOperationContextKey);
+            }
+            else
+                results = _service.Get(cancellationToken);
+
+            return Ok(results);
         }
 
         [HttpGet("{id}.{format?}")]

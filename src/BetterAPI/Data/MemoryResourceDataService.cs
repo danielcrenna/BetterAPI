@@ -9,7 +9,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 
-namespace BetterAPI
+namespace BetterAPI.Data
 {
     public sealed class MemoryResourceDataService<T> : IResourceDataService<T> where T : class, IResource
     {

@@ -27,6 +27,7 @@ namespace BetterAPI.Sorting
     {
         private static readonly MethodInfo BuilderMethod;
         private readonly IOptionsSnapshot<SortOptions> _options;
+        private readonly ILogger<SortActionFilter> _logger;
 
         static SortActionFilter()
         {
@@ -38,6 +39,7 @@ namespace BetterAPI.Sorting
         public SortActionFilter(IOptionsSnapshot<SortOptions> options, ILogger<SortActionFilter> logger) : base(options, logger)
         {
             _options = options;
+            _logger = logger;
         }
 
         public override async Task OnValidRequestAsync(Type underlyingType, StringValues clauses, ActionExecutingContext context, ActionExecutionDelegate next)
@@ -48,6 +50,7 @@ namespace BetterAPI.Sorting
             // FIXME: add attribute for model ID discriminator, or fail due to missing "Id"
             if (!members.TryGetValue("Id", out _))
             {
+                _logger?.LogWarning("Sorting operation was skipped, because the underlying resource does not have an 'Id' property.");
                 await next.Invoke();
                 return;
             }
@@ -92,8 +95,17 @@ namespace BetterAPI.Sorting
             foreach (var clause in _options.Value.DefaultSort)
                 if (members.TryGetValue(clause.Field, out var member))
                     sortMap.Add((member, clause.Direction));
+
+            context.HttpContext.Items.Add(Constants.SortOperationContextKey, sortMap);
                 
             var executed = await next();
+
+            if (!context.HttpContext.Items.ContainsKey(Constants.SortOperationContextKey))
+                return; // the underlying store handled the sort request
+
+            context.HttpContext.Items.Remove(Constants.SortOperationContextKey);
+
+            _logger?.LogWarning("Sorting operation has fallen back to object-level sorting. This means that sorting was not performed by the underlying data store, and is not likely consistent across an entire collection.");
 
             if (executed.Result is OkObjectResult result)
             {

@@ -13,7 +13,7 @@ using Microsoft.Extensions.Logging;
 
 namespace BetterAPI.Logging
 {
-    internal sealed class LightningLoggingStore : LightningDataStore
+    internal sealed class LightningLoggingStore : LightningDataStore, ILoggingStore
     {
         public void Append<TState>(LogLevel logLevel, in EventId eventId, TState state, Exception exception,
             Func<TState, Exception, string> formatter)

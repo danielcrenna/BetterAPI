@@ -11,6 +11,7 @@ using Humanizer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.Extensions.Options;
 
 namespace BetterAPI
 {
@@ -19,6 +20,13 @@ namespace BetterAPI
     /// </summary>
     internal sealed class ApiGuidelinesModelProvider : IApplicationModelProvider
     {
+        private readonly IOptionsMonitor<ApiOptions> _options;
+
+        public ApiGuidelinesModelProvider(IOptionsMonitor<ApiOptions> options)
+        {
+            _options = options;
+        }
+
         public void OnProvidersExecuting(ApplicationModelProviderContext context)
         {
             foreach (var controller in context.Result.Controllers)
@@ -51,7 +59,7 @@ namespace BetterAPI
             return assemblyAttributes.OfType<IApiBehaviorMetadata>().Any();
         }
 
-        private static void TryAddCollectionRoute(ActionModel actionModel)
+        private void TryAddCollectionRoute(ActionModel actionModel)
         {
             if (IsAttributeRouted(actionModel.Controller.Selectors) || IsAttributeRouted(actionModel.Selectors))
                 return;
@@ -60,9 +68,21 @@ namespace BetterAPI
             // https://github.com/microsoft/api-guidelines/blob/vNext/Guidelines.md#93-collection-url-patterns
             //
             var collectionName = actionModel.Controller.ControllerType.NormalizeResourceControllerName().Pluralize();
-            var route = new RouteAttribute(collectionName);
-            var selector = new SelectorModel {AttributeRouteModel = new AttributeRouteModel(route)};
-            actionModel.Controller.Selectors.Add(selector);
+            
+            if (_options.CurrentValue.Versioning.UseUrl)
+            {
+                // [Route("v{version:apiVersion}/{resourceNamePlural}"]
+                var route = new RouteAttribute($"v{{version:apiVersion}}/{collectionName}");
+                var selector = new SelectorModel {AttributeRouteModel = new AttributeRouteModel(route)};
+                actionModel.Controller.Selectors.Add(selector);
+            }
+            
+            {
+                // [Route("{resourceNamePlural}")]
+                var route = new RouteAttribute(collectionName);
+                var selector = new SelectorModel {AttributeRouteModel = new AttributeRouteModel(route)};
+                actionModel.Controller.Selectors.Add(selector);
+            }
         }
 
         private static bool IsAttributeRouted(IEnumerable<SelectorModel> selectorModel)

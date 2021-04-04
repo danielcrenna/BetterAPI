@@ -9,7 +9,7 @@ namespace BetterAPI.Sorting
     public class SortOptions : IQueryOptions
     {
         public bool EnabledByDefault { get; set; } = true;
-
+        public bool EmptyClauseIsValid => false;
         public string Operator { get; set; } = "$orderBy";
 
         public SortClause[] DefaultSort { get; set; } =

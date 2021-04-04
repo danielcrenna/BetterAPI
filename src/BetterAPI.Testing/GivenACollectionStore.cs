@@ -148,19 +148,19 @@ namespace BetterAPI.Testing
         }
 
         [Fact]
-        public async Task Get_returns_insertion_order_when_sorting_by_default_is_disabled()
+        public async Task Get_returns_insertion_order_when_sorting_by_default_is_enabled()
         {
             var client = _factory
                 .WithWebHostBuilder(x =>
                 {
                     x.ConfigureTestServices(services =>
                     {
-                        services.Configure<SortOptions>(o => o.EnabledByDefault = false);
+                        services.Configure<SortOptions>(o => o.EnabledByDefault = true);
                     });
                 })
                 .CreateClientNoRedirects();
 
-            var response = await client.GetAsync($"{_endpoint}");
+            var response = await client.GetAsync($"{_endpoint}?api-version=1.0");
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
             response.ShouldNotHaveHeader(ApiHeaderNames.PreferenceApplied);

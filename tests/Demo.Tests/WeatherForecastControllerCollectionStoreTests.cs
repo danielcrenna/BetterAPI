@@ -6,6 +6,7 @@
 
 using System;
 using BetterAPI;
+using BetterAPI.Data;
 using BetterAPI.Sorting;
 using BetterAPI.Testing;
 using Microsoft.AspNetCore.Mvc.Testing;

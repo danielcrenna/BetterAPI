@@ -9,6 +9,7 @@ namespace BetterAPI
     public interface IQueryOptions
     {
         bool EnabledByDefault { get; set; }
+        bool EmptyClauseIsValid { get; }
         string Operator { get; set; }
     }
 }

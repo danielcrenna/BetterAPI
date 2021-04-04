@@ -27,6 +27,9 @@ namespace BetterAPI
         /// </summary>
         public const string CanonicalObjectResultValue = nameof(CanonicalObjectResultValue);
 
+
+        public const string SortOperationContextKey = "sort";
+
         public static class Prefer
         {
             public const string ReturnMinimal = "return=minimal";

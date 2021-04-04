@@ -20,5 +20,7 @@ namespace BetterAPI
         bool TryGetById(Guid id, out T? resource, CancellationToken cancellationToken);
         bool TryAdd(T model);
         bool TryDeleteById(Guid id, out T? deleted, out bool error);
+
+        bool SupportsSorting => typeof(IResourceDataService<T>).IsAssignableFrom(GetType());
     }
 }

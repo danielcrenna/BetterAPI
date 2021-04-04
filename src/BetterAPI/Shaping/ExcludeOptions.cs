@@ -8,7 +8,8 @@ namespace BetterAPI.Shaping
 {
     public sealed class ExcludeOptions : IQueryOptions
     {
-        public bool EnabledByDefault { get; set; } = true;
+        public bool EnabledByDefault { get; set; } = false;
+        public bool EmptyClauseIsValid => false;
         public string Operator { get; set; } = "$exclude";
     }
 }

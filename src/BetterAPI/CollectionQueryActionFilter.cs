@@ -50,14 +50,14 @@ namespace BetterAPI
                 return false;
             }
 
-            if (!context.HttpContext.Request.Query.TryGetValue(_options.Value.Operator, out clauses) && ! _options.Value.EnabledByDefault)
+            if (!context.HttpContext.Request.Query.TryGetValue(_options.Value.Operator, out clauses) && !_options.Value.EnabledByDefault)
             {
                 _logger.LogDebug("Skipping {ActionFilter} because this request does not contain a {Operator} query parameter", GetType().Name, _options.Value.Operator);
                 clauses = default;
                 return false;
             }
 
-            if (clauses.Count != 0 || _options.Value.EnabledByDefault)
+            if (clauses.Count != 0 || _options.Value.EmptyClauseIsValid)
                 return true;
 
             _logger.LogDebug("Skipping {ActionFilter} because it does not contain any {Operator} values", GetType().Name, _options.Value.Operator);

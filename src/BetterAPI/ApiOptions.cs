@@ -9,10 +9,12 @@ using BetterAPI.Caching;
 using BetterAPI.Cors;
 using BetterAPI.DeltaQueries;
 using BetterAPI.Filtering;
+using BetterAPI.Paging;
 using BetterAPI.Prefer;
 using BetterAPI.Shaping;
 using BetterAPI.Sorting;
 using BetterAPI.Tokens;
+using BetterAPI.Versioning;
 
 namespace BetterAPI
 {
@@ -32,10 +34,13 @@ namespace BetterAPI
         public string? OpenApiUiRoutePrefix { get; set; } = "openapi"; 
         public string? OpenApiSpecRouteTemplate { get; set; } = "/openapi/{documentname}/openapi.json";
 
+        public VersioningOptions Versioning { get; set; } = new VersioningOptions();
+
         public CacheOptions Cache { get; set; } = new CacheOptions();
         public CorsOptions Cors { get; set; } = new CorsOptions();
         public SortOptions Sort { get; set; } = new SortOptions();
         public FilterOptions Filter { get; set; } = new FilterOptions();
+        public PagingOptions Paging { get; set; } = new PagingOptions();
         public IncludeOptions Include { get; set; } = new IncludeOptions();
         public ExcludeOptions Exclude { get; set; } = new ExcludeOptions();
         public PreferOptions Prefer { get; set; } = new PreferOptions();

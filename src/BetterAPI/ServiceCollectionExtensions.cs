@@ -15,9 +15,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using BetterAPI.Caching;
 using BetterAPI.Cors;
+using BetterAPI.Data;
 using BetterAPI.DeltaQueries;
 using BetterAPI.Enveloping;
 using BetterAPI.Filtering;
+using BetterAPI.Paging;
 using BetterAPI.Prefer;
 using BetterAPI.Shaping;
 using BetterAPI.Sorting;
@@ -65,10 +67,11 @@ namespace BetterAPI
             services.AddHttpCaching(configuration.GetSection(nameof(ApiOptions.Cache)));
             services.AddFieldInclusions(configuration.GetSection(nameof(ApiOptions.Include)));
             services.AddFieldExclusions(configuration.GetSection(nameof(ApiOptions.Exclude)));
-            // services.AddCollectionPaging(configuration.GetSection(nameof(ApiOptions.Paging));
+            services.AddCollectionPaging(configuration.GetSection(nameof(ApiOptions.Paging)));
             services.AddCollectionSorting(configuration.GetSection(nameof(ApiOptions.Sort)));
             services.AddCollectionFiltering(configuration.GetSection(nameof(ApiOptions.Filter)));
-            
+            services.AddVersioning(configuration.GetSection(nameof(ApiOptions.Versioning)));
+
             var mvc = services.AddControllers()
                 .AddApplicationPart(typeof(CacheController).Assembly)
                 .AddXmlSupport();
@@ -93,8 +96,6 @@ namespace BetterAPI
 
             // mvc.AddPolicyProtection();
 
-            services.AddVersioning();
-            
             services.AddSingleton<IConfigureOptions<SwaggerGenOptions>, ConfigureSwaggerGenOptions>();
             services.AddSwaggerGen(o =>
             {
@@ -108,7 +109,8 @@ namespace BetterAPI
                 var assemblyName = assembly?.GetName().Name;
                 var xmlFile = $"{assemblyName}.xml";
                 var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-                o.IncludeXmlComments(xmlPath, true);
+                if(File.Exists(xmlPath))
+                    o.IncludeXmlComments(xmlPath, true);
             });
 
             return services;
@@ -157,7 +159,8 @@ namespace BetterAPI
 
         public static IServiceCollection AddApiResource<T>(this IServiceCollection services) where T : class, IResource
         {
-            services.AddSingleton<IResourceDataService<T>, MemoryResourceDataService<T>>();
+            services.TryAddSingleton<MemoryResourceDataService<T>>();
+            services.TryAddSingleton<IResourceDataService<T>>(r => r.GetRequiredService<MemoryResourceDataService<T>>());
             return services;
         }
     }

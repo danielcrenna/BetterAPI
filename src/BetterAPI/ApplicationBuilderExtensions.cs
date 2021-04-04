@@ -35,6 +35,7 @@ namespace BetterAPI
 
             app.UseApiGuidelines();
             app.UseHttpsRedirection();
+            app.UseStaticFiles();
             app.UseRouting();
             app.UseAuthorization();
             app.UseEndpoints(endpoints =>

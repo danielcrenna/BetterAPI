@@ -18,6 +18,7 @@ namespace BetterAPI.Logging
         {
             builder.AddConfiguration();
             builder.Services.AddSingleton<LightningLoggingStore>();
+            builder.Services.AddSingleton<ILoggingStore>(r => r.GetRequiredService<LightningLoggingStore>());
             builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ILoggerProvider, LightningLoggerProvider>(r =>
                 new LightningLoggerProvider(r.GetRequiredService<LightningLoggingStore>(), getPathFunc)));
             return builder;
