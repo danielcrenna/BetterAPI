@@ -45,7 +45,8 @@ namespace BetterAPI
             if (_options.CurrentValue.Versioning.UseUrl)
             {
                 //
-                // Remove un-versioned routes to OpenAPI if we're using URL versioning
+                // Remove un-versioned routes to OpenAPI if we're using URL versioning:
+                // The routes may still be callable if configuration allows, but clutter up the documentation.
                 foreach (var apiDescription in context.ApiDescriptions)
                 {
                     if (apiDescription.RelativePath.StartsWith("v"))

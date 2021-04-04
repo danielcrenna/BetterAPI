@@ -9,5 +9,6 @@ namespace BetterAPI.Versioning
     public sealed class VersioningOptions
     {
         public bool UseUrl { get; set; } = true;
+        public bool AllowUnspecifiedVersions { get; set; } = true;
     }
 }

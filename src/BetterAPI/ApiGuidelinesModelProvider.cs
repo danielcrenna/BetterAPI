@@ -76,7 +76,7 @@ namespace BetterAPI
                 var selector = new SelectorModel {AttributeRouteModel = new AttributeRouteModel(route)};
                 actionModel.Controller.Selectors.Add(selector);
             }
-            
+
             {
                 // [Route("{resourceNamePlural}")]
                 var route = new RouteAttribute(collectionName);

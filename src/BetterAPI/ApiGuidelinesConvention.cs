@@ -5,10 +5,8 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 using System;
-using System.Net.Mime;
 using BetterAPI.Caching;
 using BetterAPI.Extensions;
-using BetterAPI.Reflection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
