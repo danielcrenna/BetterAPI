@@ -5,6 +5,7 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 using System;
+using BetterAPI.Logging;
 using BetterAPI.Reflection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -19,6 +20,11 @@ namespace BetterAPI
             Func<IConfiguration, IConfiguration>? configSelector = default) where TStartup : class
         {
             TStartup? startup = default;
+
+            builder.ConfigureLogging((context, loggingBuilder) =>
+            {
+                loggingBuilder.AddLightingDb(() => "logging");
+            });
 
             builder.ConfigureAppConfiguration((context, configBuilder) => { });
 

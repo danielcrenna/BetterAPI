@@ -354,3 +354,6 @@ MigrationBackup/
 
 # Ignore libman assets that are restored from a CDN
 **/wwwroot/lib/**
+
+# lmdb logging 
+**/logging/*.mdb

@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <PackageReference Include="Humanizer.Core" Version="2.8.26" />
+    <PackageReference Include="LightningDB" Version="0.13.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="5.0.4" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Versioning.ApiExplorer" Version="5.0.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.1.1" />
