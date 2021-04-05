@@ -21,10 +21,17 @@ namespace BetterAPI.Logging
             return Ok(new Envelope<LoggingEntry>(entries));
         }
 
-        [HttpGet("{level}")]
+        [HttpGet("level/{level}")]
         public IActionResult GetByLogLevel(LogLevel level, CancellationToken cancellationToken)
         {
             var entries = _store.GetByLevel(level, cancellationToken);
+            return Ok(new Envelope<LoggingEntry>(entries));
+        }
+
+        [HttpGet("data/{key}")]
+        public IActionResult GetByData(string key, CancellationToken cancellationToken)
+        {
+            var entries = _store.GetByData(key, cancellationToken);
             return Ok(new Envelope<LoggingEntry>(entries));
         }
     }

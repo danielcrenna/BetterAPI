@@ -8,5 +8,6 @@ namespace BetterAPI.Logging
     {
         IEnumerable<LoggingEntry> Get(CancellationToken cancellationToken = default);
         IEnumerable<LoggingEntry> GetByLevel(LogLevel logLevel, CancellationToken cancellationToken = default);
+        IEnumerable<LoggingEntry> GetByData(string key, CancellationToken cancellationToken = default);
     }
 }

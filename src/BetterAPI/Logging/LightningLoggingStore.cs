@@ -21,6 +21,7 @@ namespace BetterAPI.Logging
             cancellationToken.ThrowIfCancellationRequested();
 
             var id = Guid.NewGuid();
+
             var entry = new LoggingEntry(id, exception)
             {
                 LogLevel = logLevel,
@@ -41,14 +42,23 @@ namespace BetterAPI.Logging
 
                 var idBytes = id.ToByteArray();
 
-                // master
+                // master (one)
                 tx.Put(db, idBytes, value, PutOptions.NoOverwrite);
 
-                // entry-by-id => master
+                // entry-by-id => master (one)
                 tx.Put(db, KeyBuilder.BuildLogByIdKey(entry), idBytes, PutOptions.NoOverwrite);
 
-                // entry-by-level => master
-                tx.Put(db, KeyBuilder.BuildLogByLevelKey(entry.LogLevel), idBytes, PutOptions.NoOverwrite);
+                // entry-by-level => master (many)
+                tx.Put(db, KeyBuilder.BuildLogByLevelKey(entry.LogLevel), idBytes, PutOptions.NoDuplicateData);
+
+                // index structured-logging pairs
+                if (state is IReadOnlyList<KeyValuePair<string, object>> values)
+                {
+                    foreach (var (k, v) in values)
+                    {
+                        tx.Put(db, KeyBuilder.BuildLogByDataKey(k, v), idBytes, PutOptions.NoDuplicateData);
+                    }
+                }
 
                 return tx.Commit() == MDBResultCode.Success;
             });
@@ -62,6 +72,11 @@ namespace BetterAPI.Logging
         public IEnumerable<LoggingEntry> GetByLevel(LogLevel logLevel, CancellationToken cancellationToken = default)
         {
             return GetByChildKey(KeyBuilder.BuildLogByLevelKey(logLevel), cancellationToken);
+        }
+
+        public IEnumerable<LoggingEntry> GetByData(string key, CancellationToken cancellationToken = default)
+        {
+            return GetByChildKey(KeyBuilder.BuildLogByDataKey(key), cancellationToken);
         }
 
         private IEnumerable<LoggingEntry> GetByChildKey(byte[] key, CancellationToken cancellationToken)
