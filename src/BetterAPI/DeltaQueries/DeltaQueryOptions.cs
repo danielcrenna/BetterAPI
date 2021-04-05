@@ -8,9 +8,8 @@ namespace BetterAPI.DeltaQueries
 {
     public sealed class DeltaQueryOptions : IQueryOptions
     {
-        public bool EnabledByDefault { get; set; } = false;
+        public bool HasDefaultBehaviorWhenMissing => false;
         public bool EmptyClauseIsValid => true;
-
         public string Operator { get; set; } = "$delta";
     }
 }

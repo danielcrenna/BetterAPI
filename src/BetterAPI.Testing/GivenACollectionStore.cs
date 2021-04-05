@@ -102,7 +102,6 @@ namespace BetterAPI.Testing
                     {
                         services.Configure<SortOptions>(o =>
                         {
-                            o.EnabledByDefault = true;
                             o.DefaultSort = new[] {AlternateSort()};
                         });
                     });
@@ -131,36 +130,6 @@ namespace BetterAPI.Testing
         {
             var client = _factory.CreateClientNoRedirects();
             var response = await client.GetAsync($"{_endpoint}/?$orderBy=id desc");
-            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-
-            response.ShouldNotHaveHeader(ApiHeaderNames.PreferenceApplied);
-            response.ShouldHaveHeader(HeaderNames.ETag);
-            response.ShouldHaveContentHeader(HeaderNames.LastModified);
-
-            var model = await response.Content.ReadFromJsonAsync<Envelope<TModel>>();
-            Assert.NotNull(model ?? throw new NullReferenceException());
-
-            var ordered = model.Value.ToList();
-            Assert.Equal(2, ordered.Count);
-
-            Assert.Equal(ordered[0]?.GetId(), IdGreaterThanInsertedFirst);
-            Assert.Equal(ordered[1]?.GetId(), IdLessThanInsertedSecond);
-        }
-
-        [Fact]
-        public async Task Get_returns_insertion_order_when_sorting_by_default_is_enabled()
-        {
-            var client = _factory
-                .WithWebHostBuilder(x =>
-                {
-                    x.ConfigureTestServices(services =>
-                    {
-                        services.Configure<SortOptions>(o => o.EnabledByDefault = true);
-                    });
-                })
-                .CreateClientNoRedirects();
-
-            var response = await client.GetAsync($"{_endpoint}?api-version=1.0");
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
             response.ShouldNotHaveHeader(ApiHeaderNames.PreferenceApplied);

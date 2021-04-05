@@ -21,7 +21,7 @@ namespace BetterAPI.Paging
             {
                 var paging = new PagingOptions();
                 configureAction?.Invoke(paging);
-                options.EnabledByDefault = paging.Top.EnabledByDefault;
+                options.HasDefaultBehaviorWhenMissing = paging.Top.HasDefaultBehaviorWhenMissing;
                 options.Operator = paging.Top.Operator;
             });
 
@@ -29,7 +29,7 @@ namespace BetterAPI.Paging
             {
                 var paging = new PagingOptions();
                 configureAction?.Invoke(paging);
-                options.EnabledByDefault = paging.Skip.EnabledByDefault;
+                options.HasDefaultBehaviorWhenMissing = paging.Skip.HasDefaultBehaviorWhenMissing;
                 options.Operator = paging.Skip.Operator;
             });
 
