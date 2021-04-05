@@ -4,7 +4,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
-using System.IO;
 using Microsoft.AspNetCore.Http;
 
 namespace BetterAPI
@@ -27,8 +26,8 @@ namespace BetterAPI
         /// </summary>
         public const string CanonicalObjectResultValue = nameof(CanonicalObjectResultValue);
 
-
         public const string SortOperationContextKey = "sort";
+        public const string FilterOperationContextKey = "filter";
 
         public static class Prefer
         {
@@ -42,5 +41,6 @@ namespace BetterAPI
         internal static readonly string Create = nameof(Create);
         internal static readonly string Update = nameof(Update);
         internal static readonly string Delete = nameof(Delete);
+        
     }
 }

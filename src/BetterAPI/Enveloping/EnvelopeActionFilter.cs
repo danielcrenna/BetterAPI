@@ -4,6 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
+using System;
 using System.Threading.Tasks;
 using BetterAPI.Extensions;
 using BetterAPI.Reflection;
@@ -25,7 +26,7 @@ namespace BetterAPI.Enveloping
                     if (settable)
                     {
                         var type = typeof(Envelope<>).MakeGenericType(collectionType!);
-                        var envelope = Instancing.CreateInstance(type, body);
+                        var envelope = Activator.CreateInstance(type, body);
                         result.Value = envelope;
                     }
                 }

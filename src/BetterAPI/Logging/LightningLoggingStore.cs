@@ -7,6 +7,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using LightningDB;
 using Microsoft.Extensions.Logging;
@@ -29,6 +30,11 @@ namespace BetterAPI.Logging
                 Message = formatter(state, exception)
             };
 
+            if (state is IReadOnlyList<KeyValuePair<string, object>> values)
+            {
+                entry.Data = values.Select(x => new KeyValuePair<string, string?>(x.Key, x.Value?.ToString())).ToList();
+            }
+
             using var ms = new MemoryStream();
             using var bw = new BinaryWriter(ms);
             var context = new LoggingSerializeContext(bw);
@@ -40,46 +46,59 @@ namespace BetterAPI.Logging
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var idBytes = id.ToByteArray();
+                var key = id.ToByteArray();
 
-                // master (one)
-                tx.Put(db, idBytes, value, PutOptions.NoOverwrite);
+                tx.Put(db, key, value, PutOptions.NoOverwrite);
+                tx.Put(db, KeyBuilder.BuildLogByEntryKey(key), key, PutOptions.NoOverwrite);
+                tx.Put(db, KeyBuilder.BuildLogByDataKey("LOGLEVEL", GetLogLevelString(entry.LogLevel)), key, PutOptions.NoDuplicateData);
 
-                // entry-by-id => master (one)
-                tx.Put(db, KeyBuilder.BuildLogByIdKey(entry), idBytes, PutOptions.NoOverwrite);
-
-                // entry-by-level => master (many)
-                tx.Put(db, KeyBuilder.BuildLogByLevelKey(entry.LogLevel), idBytes, PutOptions.NoDuplicateData);
-
-                // index structured-logging pairs
-                if (state is IReadOnlyList<KeyValuePair<string, object>> values)
-                {
-                    foreach (var (k, v) in values)
-                    {
-                        tx.Put(db, KeyBuilder.BuildLogByDataKey(k, v), idBytes, PutOptions.NoDuplicateData);
-                    }
-                }
+                if (entry.Data != null)
+                    foreach (var (k, v) in entry.Data)
+                        tx.Put(db, KeyBuilder.BuildLogByDataKey(k.ToUpperInvariant(), v?.ToUpperInvariant()), key, PutOptions.NoDuplicateData);
 
                 return tx.Commit() == MDBResultCode.Success;
             });
         }
 
+        private static string GetLogLevelString(LogLevel level)
+        {
+            switch (level)
+            {
+                case LogLevel.Trace:
+                    return "TRACE";
+                case LogLevel.Debug:
+                    return "DEBUG";
+                case LogLevel.Information:
+                    return "INFORMATION";
+                case LogLevel.Warning:
+                    return "WARNING";
+                case LogLevel.Error:
+                    return "ERROR";
+                case LogLevel.Critical:
+                    return "CRITICAL";
+                case LogLevel.None:
+                    return "NONE";
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(level));
+            }
+        }
+
         public IEnumerable<LoggingEntry> Get(CancellationToken cancellationToken = default)
         {
-            return GetByChildKey(KeyBuilder.GetAllLogEntriesKey(), cancellationToken);
+            return GetByKey(KeyBuilder.GetAllLogEntriesKey(), cancellationToken);
         }
-
-        public IEnumerable<LoggingEntry> GetByLevel(LogLevel logLevel, CancellationToken cancellationToken = default)
-        {
-            return GetByChildKey(KeyBuilder.BuildLogByLevelKey(logLevel), cancellationToken);
-        }
-
+        
         public IEnumerable<LoggingEntry> GetByData(string key, CancellationToken cancellationToken = default)
         {
-            return GetByChildKey(KeyBuilder.BuildLogByDataKey(key), cancellationToken);
+            return GetByKey(KeyBuilder.BuildLogByDataKey(key), cancellationToken);
         }
 
-        private IEnumerable<LoggingEntry> GetByChildKey(byte[] key, CancellationToken cancellationToken)
+        public IEnumerable<LoggingEntry> GetByData(string key, string? value, CancellationToken cancellationToken = default)
+        {
+            return GetByKey(KeyBuilder.BuildLogByDataKey(key, value), cancellationToken);
+        }
+
+        private IEnumerable<LoggingEntry> GetByKey(byte[] key, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
 

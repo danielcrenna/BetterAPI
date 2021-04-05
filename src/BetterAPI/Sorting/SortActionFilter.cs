@@ -60,8 +60,7 @@ namespace BetterAPI.Sorting
 
             foreach (var value in clauses)
             {
-                var tokens = value.Split(new[] {' '},
-                    StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                var tokens = value.Split(new[] {' '}, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                 if (tokens.Length == 0)
                     continue; // (FIXME: add a validation error?)
 
