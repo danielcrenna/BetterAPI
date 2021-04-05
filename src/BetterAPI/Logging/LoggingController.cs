@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Threading;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 
 namespace BetterAPI.Logging
 {
@@ -13,9 +15,16 @@ namespace BetterAPI.Logging
         }
 
         [HttpGet]
-        public IActionResult Get()
+        public IActionResult Get(CancellationToken cancellationToken)
         {
-            var entries = _store.Get();
+            var entries = _store.Get(cancellationToken);
+            return Ok(new Envelope<LoggingEntry>(entries));
+        }
+
+        [HttpGet("{level}")]
+        public IActionResult GetByLogLevel(LogLevel level, CancellationToken cancellationToken)
+        {
+            var entries = _store.GetByLevel(level, cancellationToken);
             return Ok(new Envelope<LoggingEntry>(entries));
         }
     }

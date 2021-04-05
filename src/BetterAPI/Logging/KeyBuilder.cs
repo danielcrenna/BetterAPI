@@ -4,6 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
+using System;
 using System.Text;
 using Microsoft.Extensions.Logging;
 
@@ -11,24 +12,19 @@ namespace BetterAPI.Logging
 {
     internal static class KeyBuilder
     {
-        public static byte[] BuildLogLevelKey(LoggingEntry entry)
-        {
-            return Encoding.UTF8.GetBytes($"{GetAllLogsByLevelKey(entry.LogLevel)}:{entry.Id}");
-        }
+        private static readonly byte[] LogLevelPrefix = Encoding.UTF8.GetBytes("L:");
+        private static readonly byte[] LogEntryPrefix = Encoding.UTF8.GetBytes("E:");
 
-        public static byte[] GetAllLogsByLevelKey(LogLevel level)
-        {
-            return Encoding.UTF8.GetBytes($"L:{level}");
-        }
+        public static byte[] BuildLogByLevelKey(LogLevel level) => LogLevelPrefix.Concat(Encoding.UTF8.GetBytes(level.ToString()));
+        public static byte[] BuildLogByIdKey(LoggingEntry entry) => LogEntryPrefix.Concat(entry.Id.ToByteArray());
+        public static byte[] GetAllLogEntriesKey() => LogEntryPrefix;
 
-        public static byte[] BuildLogByIdKey(LoggingEntry entry)
+        private static byte[] Concat(this byte[] left, byte[] right)
         {
-            return Encoding.UTF8.GetBytes($"E:{entry.Id}");
-        }
-
-        public static byte[] GetAllLogsKey()
-        {
-            return Encoding.UTF8.GetBytes("E:");
+            var buffer = new byte[left.Length + right.Length];
+            Buffer.BlockCopy(left, 0, buffer, 0, left.Length);
+            Buffer.BlockCopy(right, 0, buffer, left.Length, right.Length);
+            return buffer;
         }
     }
 }

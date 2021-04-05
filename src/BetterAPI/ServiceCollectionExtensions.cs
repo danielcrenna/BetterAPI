@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Xml;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -65,16 +66,23 @@ namespace BetterAPI
             services.AddEnveloping();
             services.AddPrefer(configuration.GetSection(nameof(ApiOptions.Prefer)));
             services.AddHttpCaching(configuration.GetSection(nameof(ApiOptions.Cache)));
+            
+            // 
+            // Ensure proper order for outside-in filters:
+            // See: https://github.com/microsoft/api-guidelines/blob/vNext/Guidelines.md#99-compound-collection-operations
             services.AddFieldInclusions(configuration.GetSection(nameof(ApiOptions.Include)));
             services.AddFieldExclusions(configuration.GetSection(nameof(ApiOptions.Exclude)));
             services.AddCollectionPaging(configuration.GetSection(nameof(ApiOptions.Paging)));
             services.AddCollectionSorting(configuration.GetSection(nameof(ApiOptions.Sort)));
             services.AddCollectionFiltering(configuration.GetSection(nameof(ApiOptions.Filter)));
+
             services.AddVersioning(configuration.GetSection(nameof(ApiOptions.Versioning)));
 
             var mvc = services.AddControllers()
                 .AddApplicationPart(typeof(CacheController).Assembly)
                 .AddXmlSupport();
+
+            // mvc.AddPolicyProtection();
 
             // MVC configuration with dependencies:
             services.AddSingleton<ApiGuidelinesConvention>();
@@ -92,9 +100,13 @@ namespace BetterAPI
             {
                 o.JsonSerializerOptions.Converters.Add(new JsonDeltaConverterFactory());
                 o.JsonSerializerOptions.Converters.Add(new JsonShapedDataConverterFactory());
-            });
 
-            // mvc.AddPolicyProtection();
+                // 
+                // Currently, we're setting the enum to camelCase because it's indicated in the guidelines
+                // (though it's shown once as PascalCase, so it's not entirely clear):
+                // https://github.com/microsoft/api-guidelines/blob/vNext/Guidelines.md#1323-post-hybrid-model
+                o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+            });
 
             services.AddSingleton<IConfigureOptions<SwaggerGenOptions>, ConfigureSwaggerGenOptions>();
             services.AddSwaggerGen(o =>
