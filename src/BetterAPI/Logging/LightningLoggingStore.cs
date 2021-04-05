@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using LightningDB;
 using Microsoft.Extensions.Logging;
@@ -30,7 +31,7 @@ namespace BetterAPI.Logging
                 Message = formatter(state, exception)
             };
 
-            if (state is IReadOnlyList<KeyValuePair<string, object>> values)
+            if (state is IReadOnlyList<KeyValuePair<string, object?>> values)
             {
                 entry.Data = values.Select(x => new KeyValuePair<string, string?>(x.Key, x.Value?.ToString())).ToList();
             }
@@ -48,16 +49,39 @@ namespace BetterAPI.Logging
 
                 var key = id.ToByteArray();
 
-                tx.Put(db, key, value, PutOptions.NoOverwrite);
-                tx.Put(db, KeyBuilder.BuildLogByEntryKey(key), key, PutOptions.NoOverwrite);
-                tx.Put(db, KeyBuilder.BuildLogByDataKey("LOGLEVEL", GetLogLevelString(entry.LogLevel)), key, PutOptions.NoDuplicateData);
+                Index(db, tx, key, value);
+                Index(db, tx, KeyBuilder.BuildLogByEntryKey(key), key);
+
+                Index(db, tx,KeyBuilder.BuildLogByDataKey("ID", entry.Id.ToString(), key), key);
+                Index(db, tx,KeyBuilder.BuildLogByDataKey("LOGLEVEL", GetLogLevelString(entry.LogLevel), key), key);
+                Index(db, tx,KeyBuilder.BuildLogByDataKey("EVENTID.ID", entry.EventId.Id.ToString(), key), key);
+                Index(db, tx,KeyBuilder.BuildLogByDataKey("EVENTID.NAME", entry.EventId.Name ?? "?"), key);
+                Index(db, tx,KeyBuilder.BuildLogByDataKey("MESSAGE", entry.Message, key), key);
+
+                if (entry.Exception != null)
+                {
+                    Index(db, tx,KeyBuilder.BuildLogByDataKey("EXCEPTION.MESSAGE", entry.Exception.Message ?? "?", key), key);
+                    Index(db, tx,KeyBuilder.BuildLogByDataKey("EXCEPTION.HELPLINK", entry.Exception.HelpLink ?? "?", key), key);
+                    Index(db, tx,KeyBuilder.BuildLogByDataKey("EXCEPTION.SOURCE", entry.Exception.Source ?? "?", key), key);
+                    
+                    // FIXME: need to properly append the value rather than use the value in the key, as it breaks the key size constraint
+                    // Index(db, tx,KeyBuilder.BuildLogByDataKey("EXCEPTION.STACKTRACE", entry.Exception.StackTrace ?? "?", key), key);
+                }
 
                 if (entry.Data != null)
                     foreach (var (k, v) in entry.Data)
-                        tx.Put(db, KeyBuilder.BuildLogByDataKey(k.ToUpperInvariant(), v?.ToUpperInvariant()), key, PutOptions.NoDuplicateData);
+                        Index(db, tx, KeyBuilder.BuildLogByDataKey(k.ToUpperInvariant(), v?.ToUpperInvariant(), key), key);
 
                 return tx.Commit() == MDBResultCode.Success;
             });
+        }
+
+        private static void Index(LightningDatabase db, LightningTransaction tx, byte[] key, byte[] value)
+        {
+            if(key.Length > MaxKeySizeBytes)
+                throw new InvalidOperationException("index key length is " + key.Length + " but the maximum key size is " + MaxKeySizeBytes);
+
+            tx.Put(db, key, value, PutOptions.NoOverwrite);
         }
 
         private static string GetLogLevelString(LogLevel level)

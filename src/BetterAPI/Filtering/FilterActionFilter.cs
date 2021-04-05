@@ -31,8 +31,7 @@ namespace BetterAPI.Filtering
         {
             // FIXME: support nested clauses
 
-            var members = AccessorMembers.Create(underlyingType, AccessorMemberTypes.Fields | AccessorMemberTypes.Properties, AccessorMemberScope.Public);
-            var filterMap = new List<(AccessorMember, FilterOperator, object)>(clauses.Count);
+            var filterMap = new List<(string, FilterOperator, string?)>(clauses.Count);
 
             foreach (var clause in clauses)
             {
@@ -44,19 +43,15 @@ namespace BetterAPI.Filtering
 
                 if (tokens.Length == 3)
                 {
-                    var name = tokens[0];
+                    var name = tokens[0].ToUpperInvariant();
+                    var @operator = tokens[1].ToUpperInvariant();
                     var value = tokens[2].Trim('\'').ToUpperInvariant();
 
-                    if (members.TryGetValue(name, out var member))
+                    switch (@operator)
                     {
-                        var @operator = tokens[1].ToUpperInvariant();
-
-                        switch (@operator)
-                        {
-                            case "EQ":
-                                filterMap.Add((member, FilterOperator.Equal, value));
-                                break;
-                        }
+                        case "EQ":
+                            filterMap.Add((name, FilterOperator.Equal, value));
+                            break;
                     }
                 }
             }

@@ -25,17 +25,15 @@ namespace BetterAPI.Logging
             // FIXME: audit use of ToUpperInvariant and remove all possible usages (or get from a cache)
             // FIXME: query is only returning one result when multiple should exist!
 
-            if (HttpContext.Items.TryGetValue(Constants.FilterOperationContextKey, out var filter) && filter != null && filter is List<(AccessorMember, FilterOperator, object?)> filterMap)
+            if (HttpContext.Items.TryGetValue(Constants.FilterOperationContextKey, out var filter) && filter != null && filter is List<(string, FilterOperator, string?)> filterMap)
             {
                 HttpContext.Items.Remove(Constants.FilterOperationContextKey);
 
-                foreach (var (member, @operator, value) in filterMap)
+                foreach (var (name, @operator, value) in filterMap)
                 {
                     if (@operator == FilterOperator.Equal)
                     {
-                        return Ok(_store.GetByData(
-                            member.Name.ToUpperInvariant(), 
-                            value?.ToString()?.ToUpperInvariant(), cancellationToken));
+                        return Ok(_store.GetByData(name, value, cancellationToken));
                     }
                 }
             }
