@@ -189,7 +189,7 @@ namespace BetterAPI.Reflection
             {
                 public Stopwatch Create()
                 {
-                    return Stopwatch.StartNew();
+                    return new Stopwatch();
                 }
 
                 public bool Return(Stopwatch obj)

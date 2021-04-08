@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
+using BetterAPI.Metrics;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
@@ -21,6 +22,8 @@ namespace BetterAPI
     {
         public static IApplicationBuilder UseApiServer(this IApplicationBuilder app)
         {
+            app.UseServerTiming();
+
             app.Map("/ping", HandlePing);
 
             app.Use(async (context, next) =>
@@ -32,9 +35,9 @@ namespace BetterAPI
 
                 await next.Invoke();
             });
-
-            app.UseApiGuidelines();
+            
             app.UseHttpsRedirection();
+            app.UseApiGuidelines();
             app.UseStaticFiles();
             app.UseRouting();
             app.UseAuthorization();

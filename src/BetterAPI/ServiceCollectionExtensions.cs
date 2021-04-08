@@ -20,8 +20,10 @@ using BetterAPI.Data;
 using BetterAPI.DeltaQueries;
 using BetterAPI.Enveloping;
 using BetterAPI.Filtering;
+using BetterAPI.Metrics;
 using BetterAPI.Paging;
 using BetterAPI.Prefer;
+using BetterAPI.RateLimiting;
 using BetterAPI.Shaping;
 using BetterAPI.Sorting;
 using BetterAPI.Tokens;
@@ -57,10 +59,15 @@ namespace BetterAPI
             services.AddEventServices();
             services.TryAddSingleton<TypeRegistry>();
             services.TryAddSingleton<ApiRouter>();
-
+            services.AddMetrics(o =>
+            {
+                o.AddServerTiming();
+            });
+            
             // Each feature is available bespoke or bundled here by convention, and order matters:
             //
             services.AddCors(configuration.GetSection(nameof(ApiOptions.Cors)));
+            services.AddRateLimiting(configuration.GetSection(nameof(ApiOptions.RateLimiting)));
             services.AddTokens(configuration.GetSection(nameof(ApiOptions.Tokens)));
             services.AddDeltaQueries(configuration.GetSection(nameof(ApiOptions.DeltaQueries)));
             services.AddEnveloping();
@@ -169,11 +176,12 @@ namespace BetterAPI
             return services;
         }
 
-        public static IServiceCollection AddApiResource<T>(this IServiceCollection services) where T : class, IResource
+        public static ResourceBuilder AddApiResource<T>(this IServiceCollection services, Action<ResourceBuilder>? builderAction = default) where T : class, IResource
         {
             services.TryAddSingleton<MemoryResourceDataService<T>>();
             services.TryAddSingleton<IResourceDataService<T>>(r => r.GetRequiredService<MemoryResourceDataService<T>>());
-            return services;
+            var builder = new ResourceBuilder(services);
+            return builder;
         }
     }
 }

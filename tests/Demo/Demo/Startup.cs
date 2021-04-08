@@ -16,7 +16,8 @@ namespace Demo
     {
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddApiResource<WeatherForecast>();
+            services.AddApiResource<WeatherForecast>()
+                ;
 
             services.AddAuthorization(o =>
             {

@@ -60,8 +60,8 @@ namespace Demo.Tests
             var httpClient = httpFactory.CreateClient("github");
             
             var response = await httpClient.GetAsync("/");
-            response.ShouldBeMock();
             response.EnsureSuccessStatusCode();
+            response.ShouldBeMock();
         }
     }
 }

@@ -11,6 +11,7 @@ using BetterAPI.DeltaQueries;
 using BetterAPI.Filtering;
 using BetterAPI.Paging;
 using BetterAPI.Prefer;
+using BetterAPI.RateLimiting;
 using BetterAPI.Shaping;
 using BetterAPI.Sorting;
 using BetterAPI.Tokens;
@@ -38,6 +39,7 @@ namespace BetterAPI
 
         public CacheOptions Cache { get; set; } = new CacheOptions();
         public CorsOptions Cors { get; set; } = new CorsOptions();
+        public RateLimitingOptions RateLimiting { get; set; } = new RateLimitingOptions();
         public SortOptions Sort { get; set; } = new SortOptions();
         public FilterOptions Filter { get; set; } = new FilterOptions();
         public PagingOptions Paging { get; set; } = new PagingOptions();

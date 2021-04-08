@@ -50,7 +50,7 @@ namespace BetterAPI.Sorting
             // FIXME: add attribute for model ID discriminator, or fail due to missing "Id"
             if (!members.TryGetValue("Id", out _))
             {
-                _logger?.LogWarning("Sorting operation was skipped, because the underlying resource does not have an 'Id' property.");
+                _logger.LogWarning("Sorting operation was skipped, because the underlying resource does not have an 'Id' property.");
                 await next.Invoke();
                 return;
             }
@@ -104,7 +104,9 @@ namespace BetterAPI.Sorting
 
             context.HttpContext.Items.Remove(Constants.SortOperationContextKey);
 
-            _logger?.LogWarning("Sorting operation has fallen back to object-level sorting. This means that sorting was not performed by the underlying data store, and is not likely consistent across an entire collection.");
+            _logger.LogWarning("Sorting operation has fallen back to object-level sorting. " +
+                                "This means that sorting was not performed by the underlying data store, and is not " +
+                                "likely consistent across an entire collection.");
 
             if (executed.Result is OkObjectResult result)
             {

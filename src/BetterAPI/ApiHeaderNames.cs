@@ -23,6 +23,9 @@ namespace BetterAPI
 
         public static readonly string Link = nameof(Link);
 
+        public static readonly string ServerTiming = "Server-Timing";
+        public static readonly string TimingAllowOrigin = "Timing-Allow-Origin";
+        
         public static readonly string MockResponse = "X-Mock-Response";
     }
 }

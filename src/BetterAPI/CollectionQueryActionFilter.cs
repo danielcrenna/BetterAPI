@@ -35,17 +35,17 @@ namespace BetterAPI
             }
 
             var filterType = GetType();
-            _logger?.LogDebug("Executing {ActionFilter}", filterType.Name);
+            _logger.LogDebug("Executing {ActionFilter}", filterType.Name);
             await OnValidRequestAsync(underlyingType, clauses, context, next);
         }
 
-        public abstract Task OnValidRequestAsync(Type underlyingType, StringValues clauses, ActionExecutingContext context, ActionExecutionDelegate next);
+        public abstract Task          OnValidRequestAsync(Type underlyingType, StringValues clauses, ActionExecutingContext context, ActionExecutionDelegate next);
 
         protected bool IsValidForRequest(ActionContext context, out StringValues clauses, out Type? underlyingType)
         {
             if (!context.IsCollectionQuery(out underlyingType))
             {
-                _logger?.LogDebug("Skipping {ActionFilter} because this request is not a collection query", GetType().Name);
+                _logger.LogDebug("Skipping {ActionFilter} because this request is not a collection query", GetType().Name);
                 clauses = default;
                 return false;
             }
