@@ -5,7 +5,6 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 using System;
-using BetterAPI;
 using BetterAPI.Data;
 using BetterAPI.Sorting;
 using BetterAPI.Testing;
@@ -46,7 +45,7 @@ namespace Demo.Tests
                 Id = IdLessThanInsertedSecond,
                 Date = DateTime.Now,
                 Summary = "Scorching",
-                TemperatureC = 0
+                TemperatureC = 100
             }));
         }
     }

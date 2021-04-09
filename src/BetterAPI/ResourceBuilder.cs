@@ -4,17 +4,49 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
+using System;
+using System.Collections.Generic;
+using BetterAPI.Data;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace BetterAPI
 {
-    public sealed class ResourceBuilder
+    public sealed class ChangeLogBuilder
     {
+        private readonly string _resourceName;
+
         public IServiceCollection Services { get; }
 
-        public ResourceBuilder(IServiceCollection services)
+        private readonly IDictionary<ApiVersion, List<Type>> _versions;
+
+        public ChangeLogBuilder(string resourceName, IServiceCollection services)
         {
+            _resourceName = resourceName;
+            _versions = new Dictionary<ApiVersion, List<Type>>();
             Services = services;
+        }
+
+        public ChangeLogBuilder Add<T>() where T : class, IResource
+        {
+            Services.TryAddSingleton<MemoryResourceDataService<T>>();
+            Services.TryAddSingleton<IResourceDataService<T>>(r => r.GetRequiredService<MemoryResourceDataService<T>>());
+            return this;
+        }
+
+        public ChangeLogBuilder ShipVersion(ApiVersion version)
+        {
+            if(!_versions.TryGetValue(version, out var list))
+                _versions.Add(version, list = new List<Type>());
+
+            return this;
+        }
+
+        public void Build()
+        {
+            if (_versions.Count == 0)
+                ShipVersion(ApiVersion.Default);
         }
     }
 }

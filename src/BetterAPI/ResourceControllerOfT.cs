@@ -8,6 +8,7 @@ using BetterAPI.Reflection;
 using BetterAPI.Sorting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
@@ -18,12 +19,14 @@ namespace BetterAPI
     [FormatFilter]
     public class ResourceController<T> : ResourceController where T : class, IResource
     {
+        private readonly IStringLocalizer<ResourceController<T>> _localizer;
         private readonly IResourceDataService<T> _service;
         private readonly IEventBroadcaster _events;
 
-        public ResourceController(IResourceDataService<T> service, IEventBroadcaster events, IOptionsSnapshot<ApiOptions> options,
-            ILogger<ResourceController> logger) : base(options, logger)
+        public ResourceController(IStringLocalizer<ResourceController<T>> localizer, IResourceDataService<T> service, IEventBroadcaster events, IOptionsSnapshot<ApiOptions> options,
+            ILogger<ResourceController> logger) : base(localizer, options, logger)
         {
+            _localizer = localizer;
             _service = service;
             _events = events;
         }
@@ -92,7 +95,7 @@ namespace BetterAPI
 
             if (!_service.TryAdd(model))
             {
-                Logger.LogError(ErrorEvents.ErrorSavingResource, "Adding resource {Model} failed to save to the underlying data store.", model);
+                Logger.LogError(ErrorEvents.ErrorSavingResource, _localizer["Adding resource {Model} failed to save to the underlying data store."], model);
                 return InternalServerErrorWithDetails("An unexpected error occurred saving this resource. An error was logged. Please try again later.");
             }
 
@@ -116,7 +119,7 @@ namespace BetterAPI
 
             if (error)
             {
-                Logger.LogError(ErrorEvents.ErrorSavingResource, "Deleting resource with ID {Id} failed to delete from the underlying data store.", id);
+                Logger.LogError(ErrorEvents.ErrorSavingResource, _localizer["Deleting resource with ID {Id} failed to delete from the underlying data store."], id);
                 return InternalServerErrorWithDetails("An unexpected error occurred saving this resource. An error was logged. Please try again later.");
             }
 

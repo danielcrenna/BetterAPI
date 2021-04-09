@@ -6,6 +6,7 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -14,12 +15,14 @@ namespace BetterAPI
     [ApiController]
     public abstract class ResourceController : ControllerBase
     {
-        protected readonly IOptionsSnapshot<ApiOptions> Options;
+        private readonly IStringLocalizer<ResourceController> _localizer;
 
+        protected readonly IOptionsSnapshot<ApiOptions> Options;
         protected readonly ILogger<ResourceController> Logger;
 
-        protected ResourceController(IOptionsSnapshot<ApiOptions> options, ILogger<ResourceController> logger)
+        protected ResourceController(IStringLocalizer<ResourceController> localizer, IOptionsSnapshot<ApiOptions> options, ILogger<ResourceController> logger)
         {
+            _localizer = localizer;
             Options = options;
             Logger = logger;
         }
@@ -41,8 +44,8 @@ namespace BetterAPI
             {
                 Status = statusCode,
                 Type = $"{Options.Value.ProblemDetails.BaseUrl}{statusCode}",
-                Title = statusDescription,
-                Detail = details,
+                Title = _localizer[statusDescription],
+                Detail = _localizer[details],
                 Instance = Request.Path
             });
         }

@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
+using BetterAPI.Localization;
 using BetterAPI.Metrics;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -38,6 +39,7 @@ namespace BetterAPI
             
             app.UseHttpsRedirection();
             app.UseApiGuidelines();
+            app.UseLocalization();
             app.UseStaticFiles();
             app.UseRouting();
             app.UseAuthorization();

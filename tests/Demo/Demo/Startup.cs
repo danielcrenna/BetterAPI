@@ -7,6 +7,7 @@
 using BetterAPI;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -16,8 +17,11 @@ namespace Demo
     {
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddApiResource<WeatherForecast>()
-                ;
+            services.AddApiResource(nameof(WeatherForecast), changeLog =>
+            {
+                changeLog.Add<WeatherForecast>();
+                changeLog.ShipVersion(ApiVersion.Default);
+            });
 
             services.AddAuthorization(o =>
             {

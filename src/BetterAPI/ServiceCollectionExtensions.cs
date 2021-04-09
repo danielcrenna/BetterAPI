@@ -23,6 +23,7 @@ using BetterAPI.Filtering;
 using BetterAPI.Metrics;
 using BetterAPI.Paging;
 using BetterAPI.Prefer;
+using BetterAPI.Localization;
 using BetterAPI.RateLimiting;
 using BetterAPI.Shaping;
 using BetterAPI.Sorting;
@@ -67,6 +68,7 @@ namespace BetterAPI
             // Each feature is available bespoke or bundled here by convention, and order matters:
             //
             services.AddCors(configuration.GetSection(nameof(ApiOptions.Cors)));
+            services.AddLocalization(configuration.GetSection(nameof(ApiOptions.Localization)));
             services.AddRateLimiting(configuration.GetSection(nameof(ApiOptions.RateLimiting)));
             services.AddTokens(configuration.GetSection(nameof(ApiOptions.Tokens)));
             services.AddDeltaQueries(configuration.GetSection(nameof(ApiOptions.DeltaQueries)));
@@ -176,11 +178,10 @@ namespace BetterAPI
             return services;
         }
 
-        public static ResourceBuilder AddApiResource<T>(this IServiceCollection services, Action<ResourceBuilder>? builderAction = default) where T : class, IResource
+        public static ChangeLogBuilder AddApiResource(this IServiceCollection services, string resourceName, Action<ChangeLogBuilder>? builderAction = default)
         {
-            services.TryAddSingleton<MemoryResourceDataService<T>>();
-            services.TryAddSingleton<IResourceDataService<T>>(r => r.GetRequiredService<MemoryResourceDataService<T>>());
-            var builder = new ResourceBuilder(services);
+            var builder = new ChangeLogBuilder(resourceName, services);
+            builderAction?.Invoke(builder);
             return builder;
         }
     }

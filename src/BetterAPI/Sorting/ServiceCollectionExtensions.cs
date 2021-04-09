@@ -28,7 +28,7 @@ namespace BetterAPI.Sorting
             }
 
             services.AddScoped<SortActionFilter>();
-            services.AddMvc(o => { o.Filters.AddService<SortActionFilter>(int.MinValue); });
+            services.AddMvcCore(o => { o.Filters.AddService<SortActionFilter>(int.MinValue); });
             return services;
         }
     }
