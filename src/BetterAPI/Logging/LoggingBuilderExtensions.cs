@@ -14,13 +14,13 @@ namespace BetterAPI.Logging
 {
     public static class LoggingBuilderExtensions
     {
-        public static ILoggingBuilder AddLightingDb(this ILoggingBuilder builder, Func<string> getPathFunc)
+        public static ILoggingBuilder AddLightingDb(this ILoggingBuilder builder, string path)
         {
             builder.AddConfiguration();
-            builder.Services.AddSingleton<LightningLoggingStore>();
+            builder.Services.AddSingleton<LightningLoggingStore>(r => new LightningLoggingStore(path));
             builder.Services.AddSingleton<ILoggingStore>(r => r.GetRequiredService<LightningLoggingStore>());
             builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ILoggerProvider, LightningLoggerProvider>(r =>
-                new LightningLoggerProvider(r.GetRequiredService<LightningLoggingStore>(), getPathFunc)));
+                new LightningLoggerProvider(r.GetRequiredService<LightningLoggingStore>())));
             return builder;
         }
     }

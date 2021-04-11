@@ -16,7 +16,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using BetterAPI.Caching;
 using BetterAPI.Cors;
-using BetterAPI.Data;
 using BetterAPI.DeltaQueries;
 using BetterAPI.Enveloping;
 using BetterAPI.Filtering;
@@ -68,7 +67,7 @@ namespace BetterAPI
             // Each feature is available bespoke or bundled here by convention, and order matters:
             //
             services.AddCors(configuration.GetSection(nameof(ApiOptions.Cors)));
-            services.AddLocalization(configuration.GetSection(nameof(ApiOptions.Localization)));
+            services.AddApiLocalization();
             services.AddRateLimiting(configuration.GetSection(nameof(ApiOptions.RateLimiting)));
             services.AddTokens(configuration.GetSection(nameof(ApiOptions.Tokens)));
             services.AddDeltaQueries(configuration.GetSection(nameof(ApiOptions.DeltaQueries)));

@@ -39,10 +39,10 @@ namespace BetterAPI
             
             app.UseHttpsRedirection();
             app.UseApiGuidelines();
-            app.UseLocalization();
             app.UseStaticFiles();
             app.UseRouting();
             app.UseAuthorization();
+            app.UseApiLocalization();
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapDynamicControllerRoute<ApiRouter>("{**route}");

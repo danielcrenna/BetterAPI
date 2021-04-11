@@ -10,10 +10,14 @@ namespace BetterAPI.Localization
 {
     public static class ApplicationBuilderExtensions
     {
-        public static IApplicationBuilder UseLocalization(this IApplicationBuilder app)
+        public static IApplicationBuilder UseApiLocalization(this IApplicationBuilder app)
         {
             // see: https://docs.microsoft.com/en-us/aspnet/core/fundamentals/localization-extensibility?view=aspnetcore-5.0
             app.UseRequestLocalization();
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints.MapDynamicControllerRoute<ApiRouter>("{culture}/{**route}");
+            });
             return app;
         }
     }

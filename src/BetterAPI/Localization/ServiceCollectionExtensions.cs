@@ -1,21 +1,17 @@
-﻿using System;
+﻿using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Localization.Routing;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Localization;
 
 namespace BetterAPI.Localization
 {
     public static class ServiceCollectionExtensions
     {
-        public static IServiceCollection AddLocalization(this IServiceCollection services, IConfiguration configuration)
-        {
-            return services.AddLocalization(configuration.Bind);
-        }
-
-        public static IServiceCollection AddLocalization(this IServiceCollection services, Action<LocalizationOptions> configureActions)
+        public static IServiceCollection AddApiLocalization(this IServiceCollection services)
         {
             // need to localize OpenAPI: https://github.com/OAI/OpenAPI-Specification/issues/274
             // see: https://docs.microsoft.com/en-us/aspnet/core/fundamentals/localization?view=aspnetcore-5.0
@@ -40,10 +36,19 @@ namespace BetterAPI.Localization
                 o.RequestCultureProviders.Add(new AcceptLanguageHeaderRequestCultureProvider {Options = o});
             });
 
-            services.TryAddSingleton<ILocalizationStore, MemoryLocalizationStore>();
+            services.TryAddEnumerable(ServiceDescriptor.Singleton(typeof(IHostedService), typeof(LocalizationStartupService)));
+            services.TryAddSingleton<ILocalizationStore>(r => new LightningLocalizationStore("locales"));
             services.TryAddSingleton<IStringLocalizerFactory, StringLocalizerFactory>();
             services.TryAddTransient(typeof(IStringLocalizer<>), typeof(StringLocalizer<>));
             return services;
+        }
+    }
+
+    public sealed class RouteCultureProvider : RequestCultureProvider
+    {
+        public override async Task<ProviderCultureResult> DetermineProviderCultureResult(HttpContext httpContext)
+        {
+            throw new System.NotImplementedException();
         }
     }
 }

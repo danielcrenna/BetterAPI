@@ -7,7 +7,7 @@
 using System;
 using System.IO;
 
-namespace BetterAPI.Logging
+namespace BetterAPI.Data
 {
     internal static class BufferExtensions
     {
@@ -84,6 +84,18 @@ namespace BetterAPI.Logging
         public static Guid ReadGuid(this BinaryReader br)
         {
             return new Guid(br.ReadBytes(16));
+        }
+
+        #endregion
+
+        #region Concat
+
+        public static byte[] Concat(this byte[] left, byte[] right)
+        {
+            var buffer = new byte[left.Length + right.Length];
+            Buffer.BlockCopy(left, 0, buffer, 0, left.Length);
+            Buffer.BlockCopy(right, 0, buffer, left.Length, right.Length);
+            return buffer;
         }
 
         #endregion

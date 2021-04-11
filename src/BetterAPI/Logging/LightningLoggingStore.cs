@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using BetterAPI.Data;
 using LightningDB;
 using Microsoft.Extensions.Logging;
 
@@ -16,6 +17,8 @@ namespace BetterAPI.Logging
 {
     internal sealed class LightningLoggingStore : LightningDataStore, ILoggingStore
     {
+        public LightningLoggingStore(string path) : base(path) { }
+
         public bool Append<TState>(LogLevel logLevel, in EventId eventId, TState state, Exception exception,
             Func<TState, Exception, string> formatter, CancellationToken cancellationToken = default)
         {
@@ -40,7 +43,7 @@ namespace BetterAPI.Logging
             var context = new LoggingSerializeContext(bw);
             entry.Serialize(context);
 
-            var value = ms.ToArray();
+            var buffer = ms.ToArray();
 
             return WithWritableTransaction((db, tx) =>
             {
@@ -48,7 +51,7 @@ namespace BetterAPI.Logging
 
                 var key = id.ToByteArray();
 
-                Index(db, tx, key, value);
+                Index(db, tx, key, buffer);
                 Index(db, tx, KeyBuilder.BuildLogByEntryKey(key), key);
 
                 Index(db, tx, KeyBuilder.BuildLogByDataKey("ID", entry.Id.ToString(), key), key);
@@ -73,14 +76,6 @@ namespace BetterAPI.Logging
 
                 return tx.Commit() == MDBResultCode.Success;
             });
-        }
-
-        private static void Index(LightningDatabase db, LightningTransaction tx, byte[] key, byte[] value)
-        {
-            if(key.Length > MaxKeySizeBytes)
-                throw new InvalidOperationException("index key length is " + key.Length + " but the maximum key size is " + MaxKeySizeBytes);
-
-            tx.Put(db, key, value, PutOptions.NoOverwrite);
         }
 
         private static string GetLogLevelString(LogLevel level)
@@ -128,6 +123,7 @@ namespace BetterAPI.Logging
             return WithReadOnlyCursor((cursor, tx) =>
             {
                 var entries = new List<LoggingEntry>();
+
                 var sr = cursor.SetRange(key);
                 if (sr != MDBResultCode.Success)
                     return entries;
@@ -160,7 +156,7 @@ namespace BetterAPI.Logging
             cancellationToken.ThrowIfCancellationRequested();
 
             using var tx =
-                Env.Value.BeginTransaction(parent == null
+                Env.BeginTransaction(parent == null
                     ? TransactionBeginFlags.ReadOnly
                     : TransactionBeginFlags.None);
 
@@ -187,23 +183,6 @@ namespace BetterAPI.Logging
                 var entry = new LoggingEntry(uuid, context);
                 return entry;
             }
-        }
-
-        private T WithReadOnlyCursor<T>(Func<LightningCursor, LightningTransaction, T> func)
-        {
-            using var tx = Env.Value.BeginTransaction(TransactionBeginFlags.ReadOnly);
-            using var db = tx.OpenDatabase(configuration: Config);
-            using var cursor = tx.CreateCursor(db);
-            var result = func.Invoke(cursor, tx);
-            return result;
-        }
-
-        private T WithWritableTransaction<T>(Func<LightningDatabase, LightningTransaction, T> func)
-        {
-            using var tx = Env.Value.BeginTransaction(TransactionBeginFlags.None);
-            using var db = tx.OpenDatabase(configuration: Config);
-            var result = func.Invoke(db, tx);
-            return result;
         }
     }
 }

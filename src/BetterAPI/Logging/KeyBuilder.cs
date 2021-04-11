@@ -6,6 +6,7 @@
 
 using System;
 using System.Text;
+using BetterAPI.Data;
 
 namespace BetterAPI.Logging
 {
@@ -34,13 +35,5 @@ namespace BetterAPI.Logging
         ;
 
         public static byte[] GetAllLogEntriesKey() => LogEntryPrefix;
-
-        private static byte[] Concat(this byte[] left, byte[] right)
-        {
-            var buffer = new byte[left.Length + right.Length];
-            Buffer.BlockCopy(left, 0, buffer, 0, left.Length);
-            Buffer.BlockCopy(right, 0, buffer, left.Length, right.Length);
-            return buffer;
-        }
     }
 }

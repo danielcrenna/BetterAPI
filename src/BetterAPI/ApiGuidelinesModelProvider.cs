@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using BetterAPI.Extensions;
 using Humanizer;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
@@ -21,10 +22,12 @@ namespace BetterAPI
     internal sealed class ApiGuidelinesModelProvider : IApplicationModelProvider
     {
         private readonly IOptionsMonitor<ApiOptions> _options;
+        private readonly IOptionsMonitor<RequestLocalizationOptions> _localization;
 
-        public ApiGuidelinesModelProvider(IOptionsMonitor<ApiOptions> options)
+        public ApiGuidelinesModelProvider(IOptionsMonitor<ApiOptions> options, IOptionsMonitor<RequestLocalizationOptions> localization)
         {
             _options = options;
+            _localization = localization;
         }
 
         public void OnProvidersExecuting(ApplicationModelProviderContext context)
@@ -71,10 +74,21 @@ namespace BetterAPI
             
             if (_options.CurrentValue.Versioning.UseUrl)
             {
-                // [Route("v{version:apiVersion}/{resourceNamePlural}"]
-                var route = new RouteAttribute($"v{{version:apiVersion}}/{collectionName}");
-                var selector = new SelectorModel {AttributeRouteModel = new AttributeRouteModel(route)};
-                actionModel.Controller.Selectors.Add(selector);
+
+                if (_localization.CurrentValue.SupportedCultures.Count > 1)
+                {
+                    // [Route("v{version:apiVersion}/{resourceNamePlural}"]
+                    var route = new RouteAttribute($"{{culture}}/v{{version:apiVersion}}/{collectionName}");
+                    var selector = new SelectorModel {AttributeRouteModel = new AttributeRouteModel(route)};
+                    actionModel.Controller.Selectors.Add(selector);
+                }
+
+                {
+                    // [Route("v{version:apiVersion}/{resourceNamePlural}"]
+                    var route = new RouteAttribute($"v{{version:apiVersion}}/{collectionName}");
+                    var selector = new SelectorModel {AttributeRouteModel = new AttributeRouteModel(route)};
+                    actionModel.Controller.Selectors.Add(selector);
+                }
             }
 
             {

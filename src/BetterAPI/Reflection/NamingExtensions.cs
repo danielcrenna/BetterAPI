@@ -35,7 +35,7 @@ namespace BetterAPI.Reflection
 
         private static Value128 TypeHash(Type type, string entropy = "", Value128 seed = default)
         {
-            var hash = Hashing.MurmurHash3(type.AssemblyQualifiedName) ^
+            var hash = Hashing.MurmurHash3(type.AssemblyQualifiedName ?? "?") ^
                        Hashing.MurmurHash3(entropy) ^
                        seed;
 

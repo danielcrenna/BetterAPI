@@ -9,7 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using LightningDB;
 
-namespace BetterAPI.Logging
+namespace BetterAPI.Data
 {
     internal abstract class LightningDataStore : IDisposable
     {
@@ -23,29 +23,25 @@ namespace BetterAPI.Logging
         protected static readonly DatabaseConfiguration Config = new DatabaseConfiguration
             {Flags = DatabaseOpenFlags.None};
 
-        protected Lazy<LightningEnvironment> Env;
+        protected LightningEnvironment Env;
+
+        protected LightningDataStore(string path)
+        {
+            var config = new EnvironmentConfiguration
+            {
+                MaxDatabases = DefaultMaxDatabases,
+                MaxReaders = DefaultMaxReaders,
+                MapSize = DefaultMapSize
+            };
+            Env = new LightningEnvironment(path, config);
+            Env.Open();
+            CreateIfNotExists(Env);
+        }
         
         public void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
-        }
-
-        public void Init(string path)
-        {
-            Env = new Lazy<LightningEnvironment>(() =>
-            {
-                var config = new EnvironmentConfiguration
-                {
-                    MaxDatabases = DefaultMaxDatabases,
-                    MaxReaders = DefaultMaxReaders,
-                    MapSize = DefaultMapSize
-                };
-                var environment = new LightningEnvironment(path, config);
-                environment.Open();
-                CreateIfNotExists(environment);
-                return environment;
-            });
         }
 
         private static void CreateIfNotExists(LightningEnvironment environment)
@@ -71,7 +67,7 @@ namespace BetterAPI.Logging
         {
             if (cancellationToken.IsCancellationRequested)
                 return Task.FromResult(0L);
-            using var tx = Env.Value.BeginTransaction(TransactionBeginFlags.ReadOnly);
+            using var tx = Env.BeginTransaction(TransactionBeginFlags.ReadOnly);
             using var db = tx.OpenDatabase(configuration: Config);
             var count = tx.GetEntriesCount(db); // entries also contains handles to databases
             return Task.FromResult(count);
@@ -81,8 +77,41 @@ namespace BetterAPI.Logging
         {
             if (!disposing)
                 return;
-            if (Env.IsValueCreated)
-                Env.Value.Dispose();
+            Env.Dispose();
+        }
+
+        public static void Index(LightningDatabase db, LightningTransaction tx, byte[] key, byte[] value)
+        {
+            // IMPORTANT:
+            // lmdb DUP_SORT still imposes the MaxKeySizeBytes on the length of the key + value,
+            // so it's less ambiguous if we handle "multiple values for a single key" semantics ourselves
+            //
+
+            if (key.Length > MaxKeySizeBytes)
+            {
+                // FIXME: localize this
+                var message = $"Index key length is {key.Length} but the maximum key size is {MaxKeySizeBytes}";
+                throw new InvalidOperationException(message);
+            }
+
+            tx.Put(db, key, value, PutOptions.NoOverwrite);
+        }
+
+        protected T WithReadOnlyCursor<T>(Func<LightningCursor, LightningTransaction, T> func)
+        {
+            using var tx = Env.BeginTransaction(TransactionBeginFlags.ReadOnly);
+            using var db = tx.OpenDatabase(configuration: Config);
+            using var cursor = tx.CreateCursor(db);
+            var result = func.Invoke(cursor, tx);
+            return result;
+        }
+
+        protected T WithWritableTransaction<T>(Func<LightningDatabase, LightningTransaction, T> func)
+        {
+            using var tx = Env.BeginTransaction(TransactionBeginFlags.None);
+            using var db = tx.OpenDatabase(configuration: Config);
+            var result = func.Invoke(db, tx);
+            return result;
         }
     }
 }

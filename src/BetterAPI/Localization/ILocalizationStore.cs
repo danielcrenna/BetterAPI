@@ -5,6 +5,7 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 using System.Collections.Generic;
+using System.Threading;
 using Microsoft.Extensions.Localization;
 
 namespace BetterAPI.Localization
@@ -14,6 +15,6 @@ namespace BetterAPI.Localization
         LocalizedString GetText(string name, params object[] args);
         IEnumerable<LocalizedString> GetAllTranslations(in bool includeParentCultures);
         IEnumerable<LocalizedString> GetAllMissingTranslations(in bool includeParentCultures);
-        bool TryAddMissingTranslation(LocalizedString value);
+        bool TryAddMissingTranslation(string cultureName, LocalizedString value, CancellationToken cancellationToken);
     }
 }

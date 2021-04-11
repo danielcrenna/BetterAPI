@@ -95,7 +95,7 @@ namespace BetterAPI
 
             if (!_service.TryAdd(model))
             {
-                Logger.LogError(ErrorEvents.ErrorSavingResource, _localizer["Adding resource {Model} failed to save to the underlying data store."], model);
+                Logger.LogError(ErrorEvents.ErrorSavingResource, _localizer.GetString("Adding resource {Model} failed to save to the underlying data store."), model);
                 return InternalServerErrorWithDetails("An unexpected error occurred saving this resource. An error was logged. Please try again later.");
             }
 
@@ -119,7 +119,7 @@ namespace BetterAPI
 
             if (error)
             {
-                Logger.LogError(ErrorEvents.ErrorSavingResource, _localizer["Deleting resource with ID {Id} failed to delete from the underlying data store."], id);
+                Logger.LogError(ErrorEvents.ErrorSavingResource, _localizer.GetString("Deleting resource with ID {Id} failed to delete from the underlying data store."), id);
                 return InternalServerErrorWithDetails("An unexpected error occurred saving this resource. An error was logged. Please try again later.");
             }
 

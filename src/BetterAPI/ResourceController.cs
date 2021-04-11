@@ -44,8 +44,8 @@ namespace BetterAPI
             {
                 Status = statusCode,
                 Type = $"{Options.Value.ProblemDetails.BaseUrl}{statusCode}",
-                Title = _localizer[statusDescription],
-                Detail = _localizer[details],
+                Title = _localizer.GetString(statusDescription),
+                Detail = _localizer.GetString(details),
                 Instance = Request.Path
             });
         }

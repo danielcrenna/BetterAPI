@@ -13,10 +13,9 @@ namespace BetterAPI.Logging
     {
         private readonly LightningLoggingStore _store;
 
-        public LightningLogger(LightningLoggingStore store, Func<string> getStorePath)
+        public LightningLogger(LightningLoggingStore store)
         {
             _store = store;
-            _store.Init(getStorePath());
         }
 
         public IDisposable? BeginScope<TState>(TState state)

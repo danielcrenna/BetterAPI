@@ -8,17 +8,18 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Threading;
 using Microsoft.Extensions.Localization;
 
 namespace BetterAPI.Localization
 {
     public class MemoryLocalizationStore : ILocalizationStore
     {
-        private readonly IList<LocalizationKey> _resources;
+        private readonly IList<LocalizationEntry> _resources;
 
         public MemoryLocalizationStore()
         {
-            _resources = new List<LocalizationKey>();
+            _resources = new List<LocalizationEntry>();
         }
 
         public LocalizedString GetText(string name, params object[] args)
@@ -29,16 +30,12 @@ namespace BetterAPI.Localization
             {
                 var value = _resources.SingleOrDefault(r => r.Culture == culture.Name && r.Key == name).Value;
                 var result = new LocalizedString(name, string.Format(value ?? name, args), value == null);
-                if (result.ResourceNotFound)
-                    TryAddMissingTranslation(result);
                 return result;
             }
             else
             {
                 var value = _resources.SingleOrDefault(r => r.Culture == culture.Name && r.Key == name).Value;
                 var result = new LocalizedString(name, value ?? name, value == null);
-                if (result.ResourceNotFound)
-                    TryAddMissingTranslation(result);
                 return result;
             }
         }
@@ -53,17 +50,23 @@ namespace BetterAPI.Localization
             return _resources.Where(x => x.IsMissing).Select(r => new LocalizedString(r.Key, r.Value ?? r.Key, true));
         }
 
-        public bool TryAddMissingTranslation(LocalizedString value)
+        public bool TryAddMissingTranslation(string cultureName, LocalizedString value, CancellationToken cancellationToken)
         {
-            // FIXME: this exception message is technically not being translated due to a circular dependency
-            if(!value.ResourceNotFound)
-                throw new InvalidOperationException("Expecting a missing value, and this value was previously found.");
+            cancellationToken.ThrowIfCancellationRequested();
+            
+            if (!value.ResourceNotFound)
+            {
+                var message = GetText("Expecting a missing value, and this value was previously found.");
+                if (message.ResourceNotFound)
+                    TryAddMissingTranslation(cultureName, message, cancellationToken);
+                throw new InvalidOperationException(message);
+            }
 
             var culture = CultureInfo.CurrentUICulture;
             if (_resources.Any(r => r.Culture == culture.Name && r.Key == value.Name))
                 return false;
 
-            _resources.Add(new LocalizationKey(culture.Name, value.Name, value.Value, true));
+            _resources.Add(new LocalizationEntry(Guid.NewGuid(), culture.Name, value.Name, value.Value, true));
             return true;
         }
     }

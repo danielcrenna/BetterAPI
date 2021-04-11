@@ -17,6 +17,7 @@ using Humanizer;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Controllers;
+using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi;
 using Microsoft.OpenApi.Any;
@@ -33,11 +34,13 @@ namespace BetterAPI
     {
         // FIXME: We need to rebuild the swagger document if the options change
         private readonly TypeRegistry _registry;
+        private readonly IStringLocalizer<DocumentationOperationFilter> _localizer;
         private readonly IOptionsMonitor<ApiOptions> _options;
 
-        public DocumentationOperationFilter(TypeRegistry registry, IOptionsMonitor<ApiOptions> options)
+        public DocumentationOperationFilter(TypeRegistry registry, IStringLocalizer<DocumentationOperationFilter> localizer, IOptionsMonitor<ApiOptions> options)
         {
             _registry = registry;
+            _localizer = localizer;
             _options = options;
         }
 
@@ -70,20 +73,22 @@ namespace BetterAPI
                 return;
 
             var description = display.GetDescription();
-            if(description != default)
-                operation.Description = display.GetDescription();
-            
-            operation.Summary = display.GetName() ?? operation.Description;
+            if (!string.IsNullOrWhiteSpace(description))
+                operation.Description = _localizer.GetString(description);
+
+            var summary = display.GetName() ?? operation.Description;
+            if (!string.IsNullOrWhiteSpace(summary))
+                operation.Summary = _localizer.GetString(summary);
 
             var groupName = display.GetGroupName();
 
-            if (groupName != default)
+            if (!string.IsNullOrWhiteSpace(groupName))
             {
                 var controllerNameTag = operation.Tags.SingleOrDefault(x =>
                     x.Name.Equals(descriptor.ControllerName, StringComparison.OrdinalIgnoreCase));
 
                 if (controllerNameTag != default && operation.Tags.Remove(controllerNameTag))
-                    operation.Tags.Add(new OpenApiTag { Name = groupName });
+                    operation.Tags.Add(new OpenApiTag { Name = _localizer.GetString(groupName) });
             }
 
             if (operation.RequestBody != null)
@@ -95,7 +100,7 @@ namespace BetterAPI
                 switch (_options.CurrentValue.ApiFormats)
                 {
                     case ApiSupportedMediaTypes.None:
-                        throw new NotSupportedException("API must support at least one content format");
+                        throw new NotSupportedException(_localizer.GetString("API must support at least one content format"));
                     case ApiSupportedMediaTypes.ApplicationJson | ApiSupportedMediaTypes.ApplicationXml:
                         operation.RequestBody.Content.Add(MediaTypeNames.Application.Json, new OpenApiMediaType { Schema = content.Schema });
                         operation.RequestBody.Content.Add(MediaTypeNames.Application.Xml, new OpenApiMediaType { Schema = content.Schema });
@@ -111,48 +116,48 @@ namespace BetterAPI
                 }
 
                 var prompt = display.GetPrompt();
-                if (prompt != default)
+                if (!string.IsNullOrWhiteSpace(prompt))
                 {
-                    operation.RequestBody.Description = prompt;
+                    operation.RequestBody.Description = _localizer.GetString(prompt);
                 }
             }
         }
 
-        private static void DocumentResponses(OpenApiOperation operation)
+        private void DocumentResponses(OpenApiOperation operation)
         {
             foreach (var (statusCode, response) in operation.Responses)
             {
                 if (statusCode == StatusCodes.Status304NotModified.ToString())
                 {
-                    if (response.Description == null || response.Description == "Not Modified")
+                    if (response.Description == null || response.Description == _localizer.GetString("Not Modified"))
                     {
-                        response.Description = "The resource was not returned, because it was not modified according to the ETag or LastModifiedDate.";
+                        response.Description = _localizer.GetString("The resource was not returned, because it was not modified according to the ETag or LastModifiedDate.");
                     }
                 }
 
                 if (statusCode == StatusCodes.Status201Created.ToString())
                 {
-                    if (response.Description == null || response.Description == "Success")
+                    if (response.Description == null || response.Description == _localizer.GetString("Success"))
                     {
-                        response.Description = "Returns the newly created resource, or an empty body if a minimal return is preferred";
+                        response.Description = _localizer.GetString("Returns the newly created resource, or an empty body if a minimal return is preferred");
                     }
                 }
 
                 // FIXME: ProblemDetails should use application/problem+json as the media type.
                 if (statusCode == StatusCodes.Status400BadRequest.ToString())
                 {
-                    if (response.Description == null || response.Description == "Bad Request")
+                    if (response.Description == null || response.Description == _localizer.GetString("Bad Request"))
                     {
-                        response.Description = "There was an error with the request, and further problem details are available";
+                        response.Description = _localizer.GetString("There was an error with the request, and further problem details are available");
                     }
                 }
 
                 // FIXME: ProblemDetails should use application/problem+json as the media type.
                 if (statusCode == StatusCodes.Status412PreconditionFailed.ToString())
                 {
-                    if (response.Description == null || response.Description == "Client Error")
+                    if (response.Description == null || response.Description == _localizer.GetString("Client Error"))
                     {
-                        response.Description = "The resource was not created, because it has unmet pre-conditions";
+                        response.Description = _localizer.GetString("The resource was not created, because it has unmet pre-conditions");
                     }
                 }
             }
@@ -176,12 +181,12 @@ namespace BetterAPI
                         continue;
 
                     var description = attribute.GetDescription();
-                    if (description != default)
-                        property.Description = description;
+                    if (!string.IsNullOrWhiteSpace(description))
+                        property.Description = _localizer.GetString(description);
 
                     var prompt = attribute.GetPrompt();
-                    if(prompt != default)
-                        property.Example = new OpenApiString(prompt);
+                    if(!string.IsNullOrWhiteSpace(prompt))
+                        property.Example = new OpenApiString(_localizer.GetString(prompt));
                 }
             }
         }
@@ -251,19 +256,19 @@ namespace BetterAPI
             return sb.ToString();
         }
 
-        private static void DocumentPrefer(OpenApiOperation operation)
+        private void DocumentPrefer(OpenApiOperation operation)
         {
             if (IsMutation(operation))
                 operation.Parameters.Add(new OpenApiParameter
                 {
                     Name = ApiHeaderNames.Prefer,
                     In = ParameterLocation.Header,
-                    Description = "Apply a preference for the response (return=minimal|representation)",
+                    Description = _localizer.GetString("Apply a preference for the response (return=minimal|representation)"),
                     Example = new OpenApiString(Constants.Prefer.ReturnRepresentation)
                 });
         }
 
-        private static void DocumentHttpCaching(OpenApiOperation operation, OperationFilterContext context)
+        private void DocumentHttpCaching(OpenApiOperation operation, OperationFilterContext context)
         {
             if (context.ApiDescription.ActionDescriptor.EndpointMetadata.Any(x => x is DoNotHttpCacheAttribute))
                 return; // explicit opt-out
@@ -272,7 +277,7 @@ namespace BetterAPI
             {
                 Name = ApiHeaderNames.IfNoneMatch,
                 In = ParameterLocation.Header,
-                Description = "Only supply a result or perform an action if it does not match the specified entity resource identifier (ETag)",
+                Description = _localizer.GetString("Only supply a result or perform an action if it does not match the specified entity resource identifier (ETag)"),
                 Example = new OpenApiString("")
             });
 
@@ -280,7 +285,7 @@ namespace BetterAPI
             {
                 Name = ApiHeaderNames.IfMatch,
                 In = ParameterLocation.Header,
-                Description = "Only supply a result or perform an action if it matches the specified entity resource identifier (ETag)",
+                Description = _localizer.GetString("Only supply a result or perform an action if it matches the specified entity resource identifier (ETag)"),
                 Example = new OpenApiString("")
             });
 
@@ -288,7 +293,7 @@ namespace BetterAPI
             {
                 Name = ApiHeaderNames.IfModifiedSince,
                 In = ParameterLocation.Header,
-                Description = "Only supply a result or perform an action if the resource's logical timestamp has been modified since the given date (Last-Modified)",
+                Description = _localizer.GetString("Only supply a result or perform an action if the resource's logical timestamp has been modified since the given date (Last-Modified)"),
                 Example = new OpenApiString("")
             });
 
@@ -296,7 +301,7 @@ namespace BetterAPI
             {
                 Name = ApiHeaderNames.IfUnmodifiedSince,
                 In = ParameterLocation.Header,
-                Description = "Only supply a result or perform an action if the resource's logical timestamp has not been modified since the given date (Last-Modified)",
+                Description = _localizer.GetString("Only supply a result or perform an action if the resource's logical timestamp has not been modified since the given date (Last-Modified)"),
                 Example = new OpenApiString("")
             });
         }
@@ -314,14 +319,14 @@ namespace BetterAPI
                    operation.OperationId.StartsWith(Constants.Delete, StringComparison.OrdinalIgnoreCase);
         }
 
-        private static void DocumentLinks(OpenApiOperation operation)
+        private void DocumentLinks(OpenApiOperation operation)
         {
             foreach (var response in operation.Responses.Where(
                 response => response.Key == Constants.Status201CreatedString))
                 AddGetByIdLink(operation, response);
         }
 
-        private static void AddGetByIdLink(OpenApiOperation operation, KeyValuePair<string, OpenApiResponse> response)
+        private void AddGetByIdLink(OpenApiOperation operation, KeyValuePair<string, OpenApiResponse> response)
         {
             /*
                 # See: https://swagger.io/docs/specification/links/
@@ -342,13 +347,12 @@ namespace BetterAPI
              */
 
             var modelName = operation.OperationId.Replace(Constants.Create, string.Empty);
-            var operationId = $"Get{modelName}ById";
+            var operationId = _localizer.GetString($"Get{modelName}ById");
 
             var getById = new OpenApiLink
             {
                 OperationId = operationId,
-                Description =
-                    $"The `id` value returned in the response can be used as the `id` parameter in `GET /{modelName}/{{id}}`",
+                Description = _localizer.GetString($"The `id` value returned in the response can be used as the `id` parameter in `GET /{modelName}/{{id}}`"),
             };
 
             // parameters:
@@ -369,7 +373,7 @@ namespace BetterAPI
             {
                 Name = _options.CurrentValue.Sort.Operator,
                 In = ParameterLocation.Query,
-                Description = "Apply a property-level sort to the collection query",
+                Description = _localizer.GetString("Apply a property-level sort to the collection query"),
                 Example = new OpenApiString($"{_options.CurrentValue.Sort.Operator}=id asc")
             });
         }
@@ -383,7 +387,7 @@ namespace BetterAPI
             {
                 Name = _options.CurrentValue.Filter.Operator,
                 In = ParameterLocation.Query,
-                Description = "Apply a property-level filter to the collection query",
+                Description = _localizer.GetString("Apply a property-level filter to the collection query"),
                 Example = new OpenApiString("")
             });
         }
@@ -397,7 +401,7 @@ namespace BetterAPI
             {
                 Name = _options.CurrentValue.DeltaQueries.Operator,
                 In = ParameterLocation.Query,
-                Description = "Add an opaque URL to the end of the collection results for querying deltas since the query was executed.",
+                Description = _localizer.GetString("Add an opaque URL to the end of the collection results for querying deltas since the query was executed."),
                 Example = new OpenApiString(_options.CurrentValue.DeltaQueries.Operator)
             });
         }
@@ -411,7 +415,7 @@ namespace BetterAPI
             {
                 Name = _options.CurrentValue.Include.Operator,
                 In = ParameterLocation.Query,
-                Description = "Only include the specified fields in the response body",
+                Description = _localizer.GetString("Only include the specified fields in the response body"),
                 Example = new OpenApiString("")
             });
 
@@ -419,7 +423,7 @@ namespace BetterAPI
             {
                 Name = _options.CurrentValue.Exclude.Operator,
                 In = ParameterLocation.Query,
-                Description = "Omit the specified fields in the response body",
+                Description = _localizer.GetString("Omit the specified fields in the response body"),
                 Example = new OpenApiString("")
             });
         }

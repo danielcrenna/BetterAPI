@@ -6,6 +6,7 @@
 
 using System;
 using System.Collections.Generic;
+using BetterAPI.Data;
 using Microsoft.Extensions.Logging;
 
 namespace BetterAPI.Logging

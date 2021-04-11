@@ -40,7 +40,6 @@ namespace BetterAPI
 
         public CacheOptions Cache { get; set; } = new CacheOptions();
         public CorsOptions Cors { get; set; } = new CorsOptions();
-        public LocalizationOptions Localization { get; set; } = new LocalizationOptions();
         public RateLimitingOptions RateLimiting { get; set; } = new RateLimitingOptions();
         public SortOptions Sort { get; set; } = new SortOptions();
         public FilterOptions Filter { get; set; } = new FilterOptions();

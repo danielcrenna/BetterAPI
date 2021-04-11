@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http;
+using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
 
 namespace BetterAPI
@@ -27,11 +28,13 @@ namespace BetterAPI
         IParameterModelConvention
     {
         private readonly TypeRegistry _registry;
+        private readonly IStringLocalizer<ApiGuidelinesConvention> _localizer;
         private readonly IOptions<ApiOptions> _options;
 
-        public ApiGuidelinesConvention(TypeRegistry registry, IOptions<ApiOptions> options)
+        public ApiGuidelinesConvention(TypeRegistry registry, IStringLocalizer<ApiGuidelinesConvention> localizer, IOptions<ApiOptions> options)
         {
             _registry = registry;
+            _localizer = localizer;
             _options = options;
         }
 
@@ -173,7 +176,7 @@ namespace BetterAPI
             switch (_options.Value.ApiFormats)
             {
                 case ApiSupportedMediaTypes.None:
-                    throw new NotSupportedException("API must support at least one content format");
+                    throw new NotSupportedException(_localizer.GetString("API must support at least one content format"));
                 case ApiSupportedMediaTypes.ApplicationJson | ApiSupportedMediaTypes.ApplicationXml:
                     model.Produces(ApiMediaTypeNames.Application.Json, ApiMediaTypeNames.Application.Xml);
                     break;
@@ -193,7 +196,7 @@ namespace BetterAPI
             switch (_options.Value.ApiFormats)
             {
                 case ApiSupportedMediaTypes.None:
-                    throw new NotSupportedException("API must support at least one content format");
+                    throw new NotSupportedException(_localizer.GetString("API must support at least one content format"));
                 case ApiSupportedMediaTypes.ApplicationJson | ApiSupportedMediaTypes.ApplicationXml:
                     model.Consumes(ApiMediaTypeNames.Application.Json, ApiMediaTypeNames.Application.Xml);
                     break;

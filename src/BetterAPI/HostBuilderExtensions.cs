@@ -23,7 +23,7 @@ namespace BetterAPI
 
             builder.ConfigureLogging((context, loggingBuilder) =>
             {
-                loggingBuilder.AddLightingDb(() => "logging");
+                loggingBuilder.AddLightingDb("logging");
             });
 
             builder.ConfigureAppConfiguration((context, configBuilder) => { });
