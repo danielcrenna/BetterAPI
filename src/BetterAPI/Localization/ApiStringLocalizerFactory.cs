@@ -5,23 +5,26 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 using System;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Localization;
 
 namespace BetterAPI.Localization
 {
-    public class StringLocalizerFactory : IStringLocalizerFactory
+    internal sealed class ApiStringLocalizerFactory : IStringLocalizerFactory
     {
         private readonly ILocalizationStore _store;
+        private readonly IHttpContextAccessor _accessor;
 
-        public StringLocalizerFactory(ILocalizationStore store)
+        public ApiStringLocalizerFactory(ILocalizationStore store, IHttpContextAccessor accessor)
         {
             _store = store;
+            _accessor = accessor;
         }
 
         public IStringLocalizer Create(Type resourceSource)
-            => new StringLocalizer(_store);
+            => Create(resourceSource.Namespace ?? string.Empty, resourceSource.Name);
 
         public IStringLocalizer Create(string baseName, string location)
-            => new StringLocalizer(_store);
+            => new ApiStringLocalizer(_store, _accessor, location);
     }
 }

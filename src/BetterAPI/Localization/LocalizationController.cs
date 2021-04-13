@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -38,19 +39,30 @@ namespace BetterAPI.Localization
         }
         
         [HttpGet]
-        public IActionResult Get()
+        [ProducesResponseType(typeof(IEnumerable<LocalizationViewModel>), StatusCodes.Status200OK)]
+        public IActionResult Get(CancellationToken cancellationToken)
         {
-            var all = _store.GetAllTranslations(true);
-            var models = all.Select(x => new LocalizationViewModel(x.Name, x.Value));
-            return Ok(new Envelope<LocalizationViewModel>(models));
+            var all = _store.GetAllTranslations(true, cancellationToken);
+            var models = all.Select(x => new LocalizationViewModel(x.Culture, x.Scope, x.Key, x.Value));
+            return Ok(models);
         }
 
         [HttpGet("missing")]
-        public IActionResult GetMissing()
+        [ProducesResponseType(typeof(IEnumerable<LocalizationViewModel>), StatusCodes.Status200OK)]
+        public IActionResult GetMissing(CancellationToken cancellationToken)
         {
-            var all = _store.GetAllMissingTranslations(true);
-            var models = all.Select(x => new LocalizationViewModel(x.Name, x.Value));
-            return Ok(new Envelope<LocalizationViewModel>(models));
+            var all = _store.GetAllMissingTranslations(true, cancellationToken);
+            var models = all.Select(x => new LocalizationViewModel(x.Culture, x.Scope, x.Key, x.Value));
+            return Ok(models);
+        }
+
+        [HttpGet("missing/{scope}")]
+        [ProducesResponseType(typeof(IEnumerable<ScopedLocalizationViewModel>), StatusCodes.Status200OK)]
+        public IActionResult GetMissing(string scope, CancellationToken cancellationToken)
+        {
+            var all = _store.GetAllMissingTranslations(scope, true, cancellationToken);
+            var models = all.Select(x => new ScopedLocalizationViewModel(x.Culture, x.Key, x.Value));
+            return Ok(models);
         }
 
         //text/x-gettext-translation

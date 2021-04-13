@@ -12,9 +12,10 @@ namespace BetterAPI.Localization
 {
     public interface ILocalizationStore
     {
-        LocalizedString GetText(string name, params object[] args);
-        IEnumerable<LocalizedString> GetAllTranslations(in bool includeParentCultures);
-        IEnumerable<LocalizedString> GetAllMissingTranslations(in bool includeParentCultures);
+        LocalizedString GetText(string scope, string name, CancellationToken cancellationToken, params object[] args);
+        IEnumerable<LocalizationEntry> GetAllTranslations(in bool includeParentCultures, CancellationToken cancellationToken);
+        IEnumerable<LocalizationEntry> GetAllMissingTranslations(in bool includeParentCultures, CancellationToken cancellationToken);
+        IEnumerable<LocalizationEntry> GetAllMissingTranslations(string scope, in bool includeParentCultures, CancellationToken cancellationToken);
         bool TryAddMissingTranslation(string cultureName, LocalizedString value, CancellationToken cancellationToken);
     }
 }

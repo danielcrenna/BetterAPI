@@ -6,15 +6,27 @@
 
 namespace BetterAPI.Localization
 {
-    public sealed class LocalizationViewModel
+    public class LocalizationViewModel : ScopedLocalizationViewModel
     {
-        public string? Name { get; set; }
-        public string? Value { get; set; }
+        public string? Scope { get; set; }
 
-        public LocalizationViewModel(string name, string? value)
+        // ReSharper disable once UnusedMember.Global (Serialization)
+        public LocalizationViewModel() { }
+
+        public LocalizationViewModel(string scope, ScopedLocalizationViewModel model)
         {
-            Name = name;
-            Value = value ?? name;
+            Scope = scope;
+            Key = model.Key;
+            Value = model.Value ?? model.Key;
+            Culture = model.Culture;
+        }
+
+        public LocalizationViewModel(string culture, string scope, string key, string? value)
+        {
+            Key = key;
+            Scope = scope;
+            Value = value ?? key;
+            Culture = culture;
         }
     }
 }

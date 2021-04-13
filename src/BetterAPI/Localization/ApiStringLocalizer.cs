@@ -5,25 +5,31 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Localization;
 
 namespace BetterAPI.Localization
 {
-    public class StringLocalizer : IStringLocalizer
+    internal sealed class ApiStringLocalizer : IStringLocalizer
     {
         private readonly ILocalizationStore _store;
-
-        public StringLocalizer(ILocalizationStore store)
+        private readonly IHttpContextAccessor _accessor;
+        private readonly string _scope;
+        
+        public ApiStringLocalizer(ILocalizationStore store, IHttpContextAccessor accessor, string scope)
         {
             _store = store;
+            _accessor = accessor;
+            _scope = scope;
         }
         
         public LocalizedString this[string name]
         {
             get
             {
-                var text = _store.GetText(name);
+                var text = _store.GetText(_scope, name, _accessor.HttpContext?.RequestAborted ?? CancellationToken.None);
                 return text;
             }
         }
@@ -32,14 +38,15 @@ namespace BetterAPI.Localization
         {
             get
             {
-                var text = _store.GetText(name, args);
+                var text = _store.GetText(_scope, name, _accessor.HttpContext?.RequestAborted ?? CancellationToken.None, args);
                 return text;
             }
         }
 
         public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures)
         {
-            return _store.GetAllTranslations(includeParentCultures);
+            return _store.GetAllTranslations(includeParentCultures, _accessor.HttpContext?.RequestAborted ?? CancellationToken.None)
+                .Select(x => x.AsLocalizedString);
         }
     }
 }

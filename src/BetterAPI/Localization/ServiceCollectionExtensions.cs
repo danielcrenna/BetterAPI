@@ -38,8 +38,11 @@ namespace BetterAPI.Localization
 
             services.TryAddEnumerable(ServiceDescriptor.Singleton(typeof(IHostedService), typeof(LocalizationStartupService)));
             services.TryAddSingleton<ILocalizationStore>(r => new LightningLocalizationStore("locales"));
-            services.TryAddSingleton<IStringLocalizerFactory, StringLocalizerFactory>();
+
+            services.AddHttpContextAccessor(); // this is needed to pass the cancellation token to localization components
+            services.TryAddSingleton<IStringLocalizerFactory, ApiStringLocalizerFactory>();
             services.TryAddTransient(typeof(IStringLocalizer<>), typeof(StringLocalizer<>));
+            
             return services;
         }
     }

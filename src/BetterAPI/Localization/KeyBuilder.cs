@@ -14,6 +14,7 @@ namespace BetterAPI.Localization
         private static readonly byte[] LocalizationKeyPrefix = Encoding.UTF8.GetBytes("L:");
         private static readonly byte[] LocalizationCulturePrefix = Encoding.UTF8.GetBytes("C:");
         private static readonly byte[] LocalizationNamePrefix = Encoding.UTF8.GetBytes("N:");
+        private static readonly byte[] LocalizationScopePrefix = Encoding.UTF8.GetBytes("S:");
 
         public static byte[] LookupById(byte[] id) => LocalizationKeyPrefix.Concat(id);
 
@@ -29,6 +30,10 @@ namespace BetterAPI.Localization
 
         public static byte[] IndexByName(string name, byte[] id) => LocalizationNamePrefix
             .Concat(Encoding.UTF8.GetBytes(name))
+            .Concat(LookupById(id));
+
+        public static byte[] IndexByScope(string scope, byte[] id) => LocalizationScopePrefix
+            .Concat(Encoding.UTF8.GetBytes(scope))
             .Concat(LookupById(id));
 
         public static byte[] GetAllEntriesKey() => LocalizationKeyPrefix;

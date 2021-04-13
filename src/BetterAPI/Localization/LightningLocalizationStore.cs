@@ -14,12 +14,12 @@ namespace BetterAPI.Localization
     {
         public LightningLocalizationStore(string path) : base(path) { }
 
-        public LocalizedString GetText(string name, params object[] args)
+        public LocalizedString GetText(string scope, string name, CancellationToken cancellationToken, params object[] args)
         {
             // FIXME: pass cancellation token
             // FIXME: support partitions
 
-            var entries = GetByKey(KeyBuilder.LookupByName(name.ToUpperInvariant()), CancellationToken.None);
+            var entries = GetByKey(KeyBuilder.LookupByName(name.ToUpperInvariant()), cancellationToken);
 
             var result = entries
                 .Select(x => new LocalizedString(x.Key, x.Value ?? x.Key, x.IsMissing, searchedLocation: null))
@@ -28,56 +28,70 @@ namespace BetterAPI.Localization
             return result ?? new LocalizedString(name, name, true, null);
         }
 
-        public IEnumerable<LocalizedString> GetAllTranslations(in bool includeParentCultures)
+        public IEnumerable<LocalizationEntry> GetAllTranslations(in bool includeParentCultures, CancellationToken cancellationToken)
         {
             // FIXME: index IsMissing
-            // FIXME: pass cancellation token
             // FIXME: support partitions
             // FIXME: use includeParentCultures
 
             var cultureName = CultureInfo.CurrentUICulture.Name.ToUpperInvariant();
-            var entries = GetByKey(KeyBuilder.LookupByCultureName(cultureName), CancellationToken.None)
+            var entries = GetByKey(KeyBuilder.LookupByCultureName(cultureName), cancellationToken)
                 .Where(x => !x.IsMissing);
 
-            return entries.Select(x => new LocalizedString(x.Key, x.Value ?? x.Key, x.IsMissing, searchedLocation: null));
+            return entries;
         }
 
-        public IEnumerable<LocalizedString> GetAllMissingTranslations(in bool includeParentCultures)
+        public IEnumerable<LocalizationEntry> GetAllMissingTranslations(in bool includeParentCultures, CancellationToken cancellationToken)
         {
             // FIXME: index IsMissing
-            // FIXME: pass cancellation token
             // FIXME: support partitions
             // FIXME: use includeParentCultures
 
             var cultureName = CultureInfo.CurrentUICulture.Name.ToUpperInvariant();
-            var entries = GetByKey(KeyBuilder.LookupByCultureName(cultureName), CancellationToken.None)
+            var entries = GetByKey(KeyBuilder.LookupByCultureName(cultureName), cancellationToken)
                 .Where(x => x.IsMissing);
 
-            return entries.Select(x => new LocalizedString(x.Key, x.Value ?? x.Key, x.IsMissing, searchedLocation: null));
+            return entries;
+        }
+
+        public IEnumerable<LocalizationEntry> GetAllMissingTranslations(string scope, in bool includeParentCultures, CancellationToken cancellationToken)
+        {
+            // FIXME: index IsMissing
+            // FIXME: index Scope
+            // FIXME: use includeParentCultures
+
+            var cultureName = CultureInfo.CurrentUICulture.Name.ToUpperInvariant();
+            var entries = GetByKey(KeyBuilder.LookupByCultureName(cultureName), cancellationToken)
+                .Where(x => x.IsMissing && x.Scope.Equals(scope, StringComparison.OrdinalIgnoreCase));
+
+            return entries;
         }
 
         public bool TryAddMissingTranslation(string cultureName, LocalizedString value, CancellationToken cancellationToken)
         {
             // FIXME: index a compound key
 
+            var scope = value.SearchedLocation ?? string.Empty;
+
             if (!value.ResourceNotFound)
             {
-                var message = GetText("Expecting a missing value, and this value was previously found.");
+                var message = GetText(scope, "Expecting a missing value, and this value was previously found.", cancellationToken);
                 if (message.ResourceNotFound)
                     TryAddMissingTranslation(cultureName, message, cancellationToken);
                 throw new InvalidOperationException(message);
             }
 
             var entries = GetByKey(KeyBuilder.LookupByCultureName(cultureName.ToUpperInvariant()), cancellationToken);
-            if (entries.Any(x => x.Culture.Equals(cultureName, StringComparison.OrdinalIgnoreCase) && x.Key.Equals(value.Name, StringComparison.OrdinalIgnoreCase)))
+            if (entries.Any(x => x.Culture.Equals(cultureName, StringComparison.OrdinalIgnoreCase) && 
+                                 x.Key.Equals(value.Name, StringComparison.OrdinalIgnoreCase)))
                 return false; // already have a key for this culture
             
-            return TryAppendEntry(value, cultureName, cancellationToken);
+            return TryAppendEntry(cultureName, value, cancellationToken);
         }
 
-        private bool TryAppendEntry(LocalizedString value, string cultureName, CancellationToken cancellationToken)
+        private bool TryAppendEntry(string cultureName, LocalizedString value, CancellationToken cancellationToken)
         {
-            var entry = new LocalizationEntry(Guid.NewGuid(), cultureName, value.Name, value.Value, true);
+            var entry = new LocalizationEntry(Guid.NewGuid(), cultureName, value);
 
             using var ms = new MemoryStream();
             using var bw = new BinaryWriter(ms);
@@ -96,6 +110,7 @@ namespace BetterAPI.Localization
                 Index(db, tx, KeyBuilder.LookupById(key), key);
                 Index(db, tx, KeyBuilder.IndexByName(entry.Key.ToUpperInvariant(), key), key);
                 Index(db, tx, KeyBuilder.IndexByCultureName(cultureName.ToUpperInvariant(), key), key);
+                Index(db, tx, KeyBuilder.IndexByScope((value.SearchedLocation ?? "".ToUpperInvariant()), key), key);
 
                 return tx.Commit() == MDBResultCode.Success;
             });

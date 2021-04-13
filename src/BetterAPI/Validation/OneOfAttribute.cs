@@ -8,9 +8,12 @@ namespace BetterAPI.Validation
     {
         private readonly object[] _oneOf;
 
+        public string[] OneOfStrings { get; }
+
         public OneOfAttribute(params object[] oneOf)
         {
             _oneOf = oneOf.OrderBy(x => x).ToArray();
+            OneOfStrings = oneOf.Select(x => x.ToString() ?? string.Empty).ToArray();
             ErrorMessage = "{0} is not one of: {1}";
         }
 

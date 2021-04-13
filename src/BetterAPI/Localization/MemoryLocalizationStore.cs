@@ -22,7 +22,7 @@ namespace BetterAPI.Localization
             _resources = new List<LocalizationEntry>();
         }
 
-        public LocalizedString GetText(string name, params object[] args)
+        public LocalizedString GetText(string scope, string name, CancellationToken cancellationToken, params object[] args)
         {
             var culture = CultureInfo.CurrentUICulture;
 
@@ -40,23 +40,30 @@ namespace BetterAPI.Localization
             }
         }
 
-        public IEnumerable<LocalizedString> GetAllTranslations(in bool includeParentCultures)
+        public IEnumerable<LocalizationEntry> GetAllTranslations(in bool includeParentCultures, CancellationToken cancellationToken)
         {
-            return _resources.Where(x => !x.IsMissing).Select(r => new LocalizedString(r.Key, r.Value ?? r.Key, false));
+            return _resources.Where(x => !x.IsMissing);
         }
 
-        public IEnumerable<LocalizedString> GetAllMissingTranslations(in bool includeParentCultures)
+        public IEnumerable<LocalizationEntry> GetAllMissingTranslations(in bool includeParentCultures, CancellationToken cancellationToken)
         {
-            return _resources.Where(x => x.IsMissing).Select(r => new LocalizedString(r.Key, r.Value ?? r.Key, true));
+            return _resources.Where(x => x.IsMissing);
+        }
+
+        public IEnumerable<LocalizationEntry> GetAllMissingTranslations(string scope, in bool includeParentCultures, CancellationToken cancellationToken)
+        {
+            return _resources.Where(x => x.IsMissing && x.Scope.Equals(scope, StringComparison.OrdinalIgnoreCase));
         }
 
         public bool TryAddMissingTranslation(string cultureName, LocalizedString value, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
+
+            var scope = value.SearchedLocation ?? string.Empty;
             
             if (!value.ResourceNotFound)
             {
-                var message = GetText("Expecting a missing value, and this value was previously found.");
+                var message = GetText(scope, "Expecting a missing value, and this value was previously found.", cancellationToken);
                 if (message.ResourceNotFound)
                     TryAddMissingTranslation(cultureName, message, cancellationToken);
                 throw new InvalidOperationException(message);
@@ -66,7 +73,7 @@ namespace BetterAPI.Localization
             if (_resources.Any(r => r.Culture == culture.Name && r.Key == value.Name))
                 return false;
 
-            _resources.Add(new LocalizationEntry(Guid.NewGuid(), culture.Name, value.Name, value.Value, true));
+            _resources.Add(new LocalizationEntry(Guid.NewGuid(), culture.Name, value));
             return true;
         }
     }
