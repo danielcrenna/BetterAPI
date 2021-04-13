@@ -33,7 +33,9 @@ namespace BetterAPI.Testing
             WebApplicationFactory<TStartup> factory)
         {
             _endpoint = endpoint;
-            _factory = factory.WithTestLogging(output).WithWebHostBuilder(builder =>
+            _factory = factory.WithTestLogging(output)
+                .WithoutLocalizationStartupService()
+                .WithWebHostBuilder(builder =>
             {
                 builder.ConfigureTestServices(services =>
                 {

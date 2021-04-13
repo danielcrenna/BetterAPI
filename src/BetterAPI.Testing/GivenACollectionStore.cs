@@ -21,8 +21,7 @@ using Xunit.Abstractions;
 
 namespace BetterAPI.Testing
 {
-    public abstract class
-        GivenACollectionStore<TService, TModel, TStartup> : IClassFixture<WebApplicationFactory<TStartup>>
+    public abstract class GivenACollectionStore<TService, TModel, TStartup> : IClassFixture<WebApplicationFactory<TStartup>>
         where TService : class where TStartup : class
     {
         private readonly string _endpoint;
@@ -32,19 +31,21 @@ namespace BetterAPI.Testing
             WebApplicationFactory<TStartup> factory)
         {
             _endpoint = endpoint;
-            _factory = factory.WithTestLogging(output).WithWebHostBuilder(builder =>
-            {
-                builder.ConfigureTestServices(services =>
+            _factory = factory.WithTestLogging(output)
+                .WithoutLocalizationStartupService()
+                .WithWebHostBuilder(builder =>
                 {
-                    services.RemoveAll<TService>();
-                    services.AddSingleton(r =>
+                    builder.ConfigureTestServices(services =>
                     {
-                        var service = Instancing.CreateInstance<TService>(services.BuildServiceProvider());
-                        Populate(service);
-                        return service;
+                        services.RemoveAll<TService>();
+                        services.AddSingleton(r =>
+                        {
+                            var service = Instancing.CreateInstance<TService>(services.BuildServiceProvider());
+                            Populate(service);
+                            return service;
+                        });
                     });
                 });
-            });
         }
 
         /// <summary>

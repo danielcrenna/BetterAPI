@@ -9,7 +9,6 @@ using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using BetterAPI.Testing;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -33,6 +32,7 @@ namespace Demo.Tests
         public async Task Can_call_external_service_with_raw_file_isolation()
         {
             var factory = _factory
+                .WithoutLocalizationStartupService()
                 .WithWebHostBuilder(builder =>
                 {
                     builder.ConfigureTestServices(services =>

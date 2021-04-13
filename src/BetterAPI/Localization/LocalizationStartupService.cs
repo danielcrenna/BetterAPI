@@ -26,13 +26,15 @@ namespace BetterAPI.Localization
     /// <summary>
     /// For each non-default supported culture, find all calls to _localizer.GetString(name) / _localizer[name], and fill in any missing entries.
     /// </summary>
-    internal sealed class LocalizationStartupService : IHostedService
+    public sealed class LocalizationStartupService : IHostedService
     {
         private readonly IStringLocalizer<LocalizationStartupService> _localizer;
         private readonly ILocalizationStore _store;
         private readonly IOptionsMonitor<RequestLocalizationOptions> _options;
         private readonly ILogger<LocalizationStartupService> _logger;
         private readonly Dictionary<string, List<string>> _translations;
+
+        private readonly SemaphoreSlim _semaphore;
         private readonly IDisposable _disposable;
 
         public LocalizationStartupService(IStringLocalizer<LocalizationStartupService> localizer, ILocalizationStore store, IOptionsMonitor<RequestLocalizationOptions> options, ILogger<LocalizationStartupService> logger)
@@ -41,12 +43,14 @@ namespace BetterAPI.Localization
             _store = store;
             _options = options;
             _logger = logger;
-            _translations = ScanAssembliesForTranslations();
 
+            _semaphore = new SemaphoreSlim(1);
             _disposable = _options.OnChange(o =>
             {
                 AddMissingTranslations(CancellationToken.None);
             });
+
+            _translations = ScanAssembliesForTranslations();
         }
 
         private static readonly HashSet<MethodBase> GetStringMethods;
@@ -79,40 +83,58 @@ namespace BetterAPI.Localization
 
         private void AddMissingTranslations(CancellationToken cancellationToken)
         {
-            foreach (var culture in _options.CurrentValue.SupportedUICultures.Where(x => !_options.CurrentValue.DefaultRequestCulture.UICulture.Name.Equals(x.Name, StringComparison.OrdinalIgnoreCase)))
+            _semaphore.Wait(cancellationToken);
+
+            try
             {
-                foreach (var (scope, names) in _translations)
+                foreach (var culture in _options.CurrentValue.SupportedUICultures.Where(x => !_options.CurrentValue.DefaultRequestCulture.UICulture.Name.Equals(x.Name, StringComparison.OrdinalIgnoreCase)))
                 {
-                    using (_logger.BeginScope(scope))
+                    foreach (var (scope, names) in _translations)
                     {
-                        foreach (var name in names)
+                        using (_logger.BeginScope(scope))
                         {
-                            if(_store.TryAddMissingTranslation(culture.Name, new LocalizedString(name, name, true, scope), cancellationToken))
-                                _logger.LogDebug(_localizer.GetString("Added missing translation for {CultureName}: '{Name}'"), name, culture.Name);
+                            foreach (var name in names)
+                            {
+                                if(_store.TryAddMissingTranslation(culture.Name, new LocalizedString(name, name, true, scope), cancellationToken))
+                                    _logger.LogDebug(_localizer.GetString("Added missing translation for {CultureName}: '{Name}'"), name, culture.Name);
+                            }
                         }
                     }
                 }
             }
+            finally
+            {
+                _semaphore.Release();
+            }
         }
 
-        private static Dictionary<string, List<string>> ScanAssembliesForTranslations()
+        private Dictionary<string, List<string>> ScanAssembliesForTranslations()
         {
-            var translations = new Dictionary<string, List<string>>();
+            _semaphore.Wait();
 
-            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            try
             {
-                if (assembly.GetName().Name == "Microsoft.Extensions.Localization.Abstractions")
-                    continue; // skip internal calls to self
+                var translations = new Dictionary<string, List<string>>();
 
-                foreach (var callerType in assembly.GetTypes())
+                foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
                 {
-                    ScanMethodsForLocalizerInvocations(callerType, translations);
+                    if (assembly.GetName().Name == "Microsoft.Extensions.Localization.Abstractions")
+                        continue; // skip internal calls to self
 
-                    ScanMembersForAttributes(callerType, translations);
+                    foreach (var callerType in assembly.GetTypes())
+                    {
+                        ScanMethodsForLocalizerInvocations(callerType, translations);
+
+                        ScanMembersForAttributes(callerType, translations);
+                    }
                 }
-            }
 
-            return translations;
+                return translations;
+            }
+            finally
+            {
+                _semaphore.Release();
+            }
         }
 
         private static void ScanMembersForAttributes(Type callerType, IDictionary<string, List<string>> translations)

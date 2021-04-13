@@ -7,10 +7,7 @@
 using System;
 using System.Net;
 using System.Net.Http.Json;
-using System.Text.Json;
 using System.Threading.Tasks;
-using BetterAPI.Caching;
-using BetterAPI.DeltaQueries;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
@@ -33,7 +30,9 @@ namespace BetterAPI.Testing
         protected GivenAnEmptyStore(string endpoint, ITestOutputHelper output, WebApplicationFactory<TStartup> factory)
         {
             _endpoint = endpoint;
-            _factory = factory.WithTestLogging(output);
+            _factory = factory
+                .WithoutLocalizationStartupService()
+                .WithTestLogging(output);
         }
 
         [Fact]

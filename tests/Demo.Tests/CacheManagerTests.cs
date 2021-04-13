@@ -21,7 +21,9 @@ namespace Demo.Tests
 
         public CacheControllerTests(ITestOutputHelper output, WebApplicationFactory<Startup> factory)
         {
-            _factory = factory.WithTestLogging(output);
+            _factory = factory
+                .WithoutLocalizationStartupService()
+                .WithTestLogging(output);
         }
 
         [Fact]

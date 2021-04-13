@@ -7,10 +7,13 @@
 using System;
 using System.Net.Http;
 using System.Text;
+using BetterAPI.Localization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
 using Xunit.Abstractions;
@@ -25,6 +28,26 @@ namespace BetterAPI.Testing
             where TStartup : class
         {
             return factory.CreateClient(new WebApplicationFactoryClientOptions {AllowAutoRedirect = false});
+        }
+
+        #endregion
+
+        #region Service Helpers
+
+        public static WebApplicationFactory<TStartup> WithoutLocalizationStartupService<TStartup>(this WebApplicationFactory<TStartup> factory) where TStartup : class
+        {
+            return factory.Without<TStartup, IHostedService, LocalizationStartupService>();
+        }
+
+        public static WebApplicationFactory<TStartup> Without<TStartup, TService, TImplementation>(this WebApplicationFactory<TStartup> factory) where TStartup : class
+        {
+            return factory.WithWebHostBuilder(builder =>
+            {
+                builder.ConfigureTestServices(services =>
+                {
+                    services.TryRemoveEnumerable<TService, TImplementation>();
+                });
+            });
         }
 
         #endregion

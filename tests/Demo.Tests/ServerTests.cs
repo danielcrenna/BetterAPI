@@ -24,7 +24,9 @@ namespace Demo.Tests
 
         public ServerTests(ITestOutputHelper output, WebApplicationFactory<Startup> factory)
         {
-            _factory = factory.WithTestLogging(output);
+            _factory = factory
+                .WithoutLocalizationStartupService()
+                .WithTestLogging(output);
         }
 
         [Fact]
