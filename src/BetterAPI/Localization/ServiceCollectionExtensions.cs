@@ -46,12 +46,4 @@ namespace BetterAPI.Localization
             return services;
         }
     }
-
-    public sealed class RouteCultureProvider : RequestCultureProvider
-    {
-        public override async Task<ProviderCultureResult> DetermineProviderCultureResult(HttpContext httpContext)
-        {
-            throw new System.NotImplementedException();
-        }
-    }
 }
