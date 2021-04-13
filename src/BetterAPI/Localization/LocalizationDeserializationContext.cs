@@ -6,7 +6,6 @@
 
 using System;
 using System.IO;
-using BetterAPI.Data;
 
 namespace BetterAPI.Localization
 {

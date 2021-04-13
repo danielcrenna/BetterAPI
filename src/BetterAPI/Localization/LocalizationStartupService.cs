@@ -163,7 +163,7 @@ namespace BetterAPI.Localization
             }
         }
 
-        private static void ScanMethodsForLocalizerInvocations(Type callerType, Dictionary<string, List<string>> translations)
+        private static void ScanMethodsForLocalizerInvocations(IReflect callerType, IDictionary<string, List<string>> translations)
         {
             foreach (var callerMethod in callerType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic |
                                                                BindingFlags.Static | BindingFlags.Instance |

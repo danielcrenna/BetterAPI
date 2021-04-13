@@ -4,8 +4,10 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
+using System;
 using System.Text;
 using BetterAPI.Data;
+using WyHash;
 
 namespace BetterAPI.Localization
 {
@@ -16,26 +18,25 @@ namespace BetterAPI.Localization
         private static readonly byte[] LocalizationNamePrefix = Encoding.UTF8.GetBytes("N:");
         private static readonly byte[] LocalizationScopePrefix = Encoding.UTF8.GetBytes("S:");
 
-        public static byte[] LookupById(byte[] id) => LocalizationKeyPrefix.Concat(id);
-
-        public static byte[] LookupByCultureName(string culture) => LocalizationCulturePrefix
-            .Concat(Encoding.UTF8.GetBytes(culture));
+        public static byte[] IndexOrLookupById(byte[] id) => LocalizationKeyPrefix.Concat(id);
 
         public static byte[] IndexByCultureName(string culture, byte[] id) => LocalizationCulturePrefix
-            .Concat(Encoding.UTF8.GetBytes(culture))
-            .Concat(LookupById(id));
-
-        public static byte[] LookupByName(string name) => LocalizationNamePrefix
-            .Concat(Encoding.UTF8.GetBytes(name));
+            .Concat(LightningKeyBuilder.Key(culture))
+            .Concat(IndexOrLookupById(id));
 
         public static byte[] IndexByName(string name, byte[] id) => LocalizationNamePrefix
-            .Concat(Encoding.UTF8.GetBytes(name))
-            .Concat(LookupById(id));
+            .Concat(LightningKeyBuilder.Key(name))
+            .Concat(IndexOrLookupById(id));
 
         public static byte[] IndexByScope(string scope, byte[] id) => LocalizationScopePrefix
-            .Concat(Encoding.UTF8.GetBytes(scope))
-            .Concat(LookupById(id));
+            .Concat(LightningKeyBuilder.Key(scope))
+            .Concat(IndexOrLookupById(id));
 
-        public static byte[] GetAllEntriesKey() => LocalizationKeyPrefix;
+        public static byte[] LookupByName(string name) => LocalizationNamePrefix
+            .Concat(LightningKeyBuilder.Key(name));
+
+        public static byte[] LookupByCultureName(string culture) => LocalizationCulturePrefix
+            .Concat(LightningKeyBuilder.Key(culture));
+
     }
 }

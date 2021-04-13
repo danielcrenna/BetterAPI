@@ -83,7 +83,7 @@ namespace BetterAPI.Data
         public static void Index(LightningDatabase db, LightningTransaction tx, byte[] key, byte[] value)
         {
             // IMPORTANT:
-            // lmdb DUP_SORT still imposes the MaxKeySizeBytes on the length of the key + value,
+            // lmdb's DUP_SORT still imposes the MaxKeySizeBytes on the length of the key + value,
             // so it's less ambiguous if we handle "multiple values for a single key" semantics ourselves
             //
 

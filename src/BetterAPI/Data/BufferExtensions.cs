@@ -6,6 +6,7 @@
 
 using System;
 using System.IO;
+using System.Runtime.CompilerServices;
 
 namespace BetterAPI.Data
 {
@@ -90,12 +91,25 @@ namespace BetterAPI.Data
 
         #region Concat
 
-        public static byte[] Concat(this byte[] left, byte[] right)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static byte[] Concat(this byte[] left, byte[] right) => Concat(left.AsSpan(), right);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static byte[] Concat(this byte[] left, ReadOnlySpan<byte> right) => Concat(left.AsSpan(), right);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static byte[] Concat(this ReadOnlySpan<byte> left, ReadOnlySpan<byte> right) => left.Concat<byte>(right);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static char[] Concat(this ReadOnlySpan<char> left, ReadOnlySpan<char> right) => left.Concat<char>(right);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static T[] Concat<T>(this ReadOnlySpan<T> left, ReadOnlySpan<T> right)
         {
-            var buffer = new byte[left.Length + right.Length];
-            Buffer.BlockCopy(left, 0, buffer, 0, left.Length);
-            Buffer.BlockCopy(right, 0, buffer, left.Length, right.Length);
-            return buffer;
+            var result = new T[left.Length + right.Length];
+            left.CopyTo(result);
+            right.CopyTo(result.AsSpan().Slice(left.Length));
+            return result;
         }
 
         #endregion
