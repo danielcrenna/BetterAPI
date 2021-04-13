@@ -5,8 +5,12 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 using System;
+using System.Collections.Generic;
+using System.Reflection.Metadata.Ecma335;
+using System.Runtime.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
+using BetterAPI.Reflection;
 using LightningDB;
 
 namespace BetterAPI.Data
@@ -112,6 +116,144 @@ namespace BetterAPI.Data
             using var db = tx.OpenDatabase(configuration: Config);
             var result = func.Invoke(db, tx);
             return result;
+        }
+
+        protected IEnumerable<T?> GetByKey<T>(byte[] key, CancellationToken cancellationToken) where T : class
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            return WithReadOnlyCursor((cursor, tx) =>
+            {
+                var entries = new List<T>();
+                var sr = cursor.SetRange(key);
+                if (sr != MDBResultCode.Success)
+                    return entries;
+
+                var (r, k, v) = cursor.GetCurrent();
+
+                while (r == MDBResultCode.Success && !cancellationToken.IsCancellationRequested)
+                {
+                    if (!k.AsSpan().StartsWith(key))
+                        break;
+
+                    var index = v.AsSpan();
+                    var entry = GetByIndex<T>(index, tx, cancellationToken);
+                    if (entry == null)
+                        break;
+
+                    entries.Add(entry);
+
+                    r = cursor.Next();
+                    if(r == MDBResultCode.Success)
+                        (r, k, v) = cursor.GetCurrent();
+                }
+
+                return entries;
+            });
+        }
+
+        protected IEnumerable<T> GetByKeyStruct<T>(byte[] key, CancellationToken cancellationToken) where T : struct
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            return WithReadOnlyCursor((cursor, tx) =>
+            {
+                var entries = new List<T>();
+                var sr = cursor.SetRange(key);
+                if (sr != MDBResultCode.Success)
+                    return entries;
+
+                var (r, k, v) = cursor.GetCurrent();
+
+                while (r == MDBResultCode.Success && !cancellationToken.IsCancellationRequested)
+                {
+                    if (!k.AsSpan().StartsWith(key))
+                        break;
+
+                    var index = v.AsSpan();
+                    var entry = GetByIndexStruct<T>(index, tx, cancellationToken);
+                    if (entry == null)
+                        break;
+
+                    entries.Add(entry.Value);
+
+                    r = cursor.Next();
+                    if(r == MDBResultCode.Success)
+                        (r, k, v) = cursor.GetCurrent();
+                }
+
+                return entries;
+            });
+        }
+
+        protected T? GetByIndex<T>(ReadOnlySpan<byte> index, LightningTransaction? parent, CancellationToken cancellationToken) where T : class
+        {
+            return (T?) GetByIndexImpl(typeof(T), index, parent, cancellationToken);
+        }
+
+        protected T? GetByIndexStruct<T>(ReadOnlySpan<byte> index, LightningTransaction? parent, CancellationToken cancellationToken) where T : struct
+        {
+            return (T?) GetByIndexImpl(typeof(T), index, parent, cancellationToken);
+        }
+
+        private object? GetByIndexImpl(Type type, ReadOnlySpan<byte> index, LightningTransaction? parent, CancellationToken cancellationToken)
+        {
+            // FIXME: localize this
+            if(!LightningSerializeContext.KnownTypes.TryGetValue(type, out var functions))
+                throw new SerializationException($"No serialization functions registered for '{type.Name}'");
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            using var tx =
+                Env.BeginTransaction(parent == null
+                    ? TransactionBeginFlags.ReadOnly
+                    : TransactionBeginFlags.None);
+
+            using var db = tx.OpenDatabase(configuration: Config);
+            using var cursor = tx.CreateCursor(db);
+
+            var (sr, _, _) = cursor.SetKey(index);
+            if (sr != MDBResultCode.Success)
+                return default;
+
+            var (gr, _, value) = cursor.GetCurrent();
+            if (gr != MDBResultCode.Success)
+                return default;
+            
+            return functions.deserialize(value);
+        }
+
+        protected bool TryAppend<T>(T value, CancellationToken cancellationToken)
+        {
+            if (cancellationToken.IsCancellationRequested || value == null)
+                return false;
+
+            // FIXME: localize this
+            if(!LightningSerializeContext.KnownTypes.TryGetValue(typeof(T), out var functions))
+                throw new SerializationException($"No serialization functions registered for '{typeof(T).Name}'");
+
+            var accessor = ReadAccessor.Create(typeof(T), AccessorMemberTypes.Properties, AccessorMemberScope.Public, out var members);
+            if(!members.TryGetValue(nameof(IResource.Id), out var id) || id.Type != typeof(Guid))
+                throw new NotSupportedException("Currently, the data store only accepts entries that have a Guid 'Id' property");
+
+            var key = ((Guid) accessor[value, nameof(IResource.Id)]).ToByteArray();
+            var buffer = functions.serialize(value);
+            
+            return WithWritableTransaction((db, tx) =>
+            {
+                Index(db, tx, key, buffer);
+
+                foreach (var member in members)
+                {
+                    var index = LightningSerializeContext.TryIndexMember[typeof(T)](member, accessor, value, key);
+                    if (index.Length == 0)
+                        continue;
+
+                    Index(db, tx, index, key);
+                }
+
+                return tx.Commit() == MDBResultCode.Success;
+            });
         }
     }
 }

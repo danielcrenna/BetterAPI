@@ -93,10 +93,10 @@ namespace BetterAPI.Testing
 
             private readonly string _categoryName;
             private readonly ITestOutputHelper _output;
-            private readonly IExternalScopeProvider _scopes;
+            private readonly IExternalScopeProvider? _scopes;
             private readonly bool _useScopes;
 
-            public XunitLogger(ITestOutputHelper output, IExternalScopeProvider scopes, string categoryName,
+            public XunitLogger(ITestOutputHelper output, IExternalScopeProvider? scopes, string categoryName,
                 bool useScopes)
             {
                 _output = output;
@@ -110,13 +110,13 @@ namespace BetterAPI.Testing
                 return logLevel != LogLevel.None;
             }
 
-            public IDisposable BeginScope<TState>(TState state)
+            public IDisposable? BeginScope<TState>(TState state)
             {
-                return _scopes.Push(state);
+                return _scopes?.Push(state);
             }
 
-            public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception,
-                Func<TState, Exception, string> formatter)
+            public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
+                Func<TState, Exception?, string> formatter)
             {
                 var sb = new StringBuilder();
 
@@ -168,7 +168,7 @@ namespace BetterAPI.Testing
             private bool TryAppendScopes(StringBuilder sb)
             {
                 var scopes = false;
-                _scopes.ForEachScope((callback, state) =>
+                _scopes?.ForEachScope((callback, state) =>
                 {
                     if (!scopes)
                     {
@@ -188,7 +188,7 @@ namespace BetterAPI.Testing
             private readonly ITestOutputHelper _output;
             private readonly bool _useScopes;
 
-            private IExternalScopeProvider _scopes;
+            private IExternalScopeProvider? _scopes;
 
             public XunitLoggerProvider(ITestOutputHelper output, bool useScopes)
             {
@@ -232,12 +232,12 @@ namespace BetterAPI.Testing
             if (logging == default)
                 return false;
 
-            var includeScopes = logging?.GetValue("Console:IncludeScopes", false);
+            var includeScopes = logging.GetValue("Console:IncludeScopes", false);
 
-            if (includeScopes != null && !includeScopes.Value)
-                includeScopes = logging?.GetValue("IncludeScopes", false);
+            if (!includeScopes)
+                includeScopes = logging.GetValue("IncludeScopes", false);
 
-            return includeScopes.GetValueOrDefault(false);
+            return includeScopes;
         }
 
         #endregion

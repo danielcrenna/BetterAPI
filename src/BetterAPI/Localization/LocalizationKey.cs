@@ -5,7 +5,6 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 using System;
-using System.Reflection.Metadata.Ecma335;
 using BetterAPI.Data;
 using Microsoft.Extensions.Localization;
 

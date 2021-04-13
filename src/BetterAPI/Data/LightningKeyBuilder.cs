@@ -13,9 +13,15 @@ namespace BetterAPI.Data
     {
         public static ReadOnlySpan<byte> Key(ReadOnlySpan<char> value)
         {
-            char[] buffer = new char[value.Length];
+            var buffer = new char[value.Length];
+            var result = new byte[sizeof(ulong)];
+
             value.ToUpperInvariant(buffer);
-            return BitConverter.GetBytes(WyHash64.ComputeHash64(buffer));
+
+            if(!BitConverter.TryWriteBytes(result, WyHash64.ComputeHash64(buffer)))
+                throw new InvalidOperationException();
+
+            return result;
         }
     }
 }
