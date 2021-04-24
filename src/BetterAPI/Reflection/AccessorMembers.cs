@@ -17,7 +17,7 @@ using System.Reflection;
 namespace BetterAPI.Reflection
 {
     [DebuggerDisplay("{DeclaringType}: Types={Types}, Scope={Scope}")]
-    public sealed class AccessorMembers : IEnumerable<AccessorMember>
+    public sealed class AccessorMembers : IReadOnlyList<AccessorMember>
     {
         private static readonly ConcurrentDictionary<AccessorMembersKey, AccessorMembers> Cache =
             new ConcurrentDictionary<AccessorMembersKey, AccessorMembers>();

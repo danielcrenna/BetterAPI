@@ -47,11 +47,11 @@ namespace BetterAPI.Reflection
         public bool IsComputedProperty =>
             MemberInfo is PropertyInfo p && p.GetSetMethod(true) == null && BackingField == null;
 
-        public FieldInfo BackingField =>
-            DeclaringType.GetField($"<{Name}>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance);
+        public FieldInfo? BackingField =>
+            DeclaringType?.GetField($"<{Name}>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance);
 
         public string Name { get; }
-        public Type DeclaringType { get; }
+        public Type? DeclaringType { get; }
         public Type Type { get; }
 
         public bool CanRead { get; }

@@ -75,7 +75,7 @@ namespace BetterAPI.Logging
                         Index(db, tx, KeyBuilder.BuildLogByDataKey(k.ToUpperInvariant(), v?.ToUpperInvariant(), key), key);
 
                 return tx.Commit() == MDBResultCode.Success;
-            });
+            }, logger: null /* important: would cause a terminal write loop */);
         }
 
         private static string GetLogLevelString(LogLevel level)

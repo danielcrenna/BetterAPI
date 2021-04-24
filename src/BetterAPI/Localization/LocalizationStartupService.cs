@@ -7,6 +7,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -85,6 +86,11 @@ namespace BetterAPI.Localization
         {
             _semaphore.Wait(cancellationToken);
 
+            _logger.LogDebug(_localizer.GetString("Adding missing translations"));
+
+            var sw = Stopwatch.StartNew();
+            var count = 0;
+
             try
             {
                 foreach (var culture in _options.CurrentValue.SupportedUICultures.Where(x => !_options.CurrentValue.DefaultRequestCulture.UICulture.Name.Equals(x.Name, StringComparison.OrdinalIgnoreCase)))
@@ -95,8 +101,9 @@ namespace BetterAPI.Localization
                         {
                             foreach (var name in names)
                             {
-                                if(_store.TryAddMissingTranslation(culture.Name, new LocalizedString(name, name, true, scope), cancellationToken))
-                                    _logger.LogDebug(_localizer.GetString("Added missing translation for {CultureName}: '{Name}'"), name, culture.Name);
+                                if (_store.TryAddMissingTranslation(culture.Name,
+                                    new LocalizedString(name, name, true, scope), cancellationToken))
+                                    count++;
                             }
                         }
                     }
@@ -105,6 +112,7 @@ namespace BetterAPI.Localization
             finally
             {
                 _semaphore.Release();
+                _logger.LogDebug(_localizer.GetString("Finished adding {Count} missing translations, took {Elapsed}"), count, sw.Elapsed);
             }
         }
 
@@ -112,14 +120,19 @@ namespace BetterAPI.Localization
         {
             _semaphore.Wait();
 
+            _logger.LogDebug(_localizer.GetString("Scanning assemblies for translations"));
+
+            var sw = Stopwatch.StartNew();
+            var translations = new Dictionary<string, List<string>>();
+
             try
             {
-                var translations = new Dictionary<string, List<string>>();
-
                 foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
                 {
                     if (assembly.GetName().Name == "Microsoft.Extensions.Localization.Abstractions")
                         continue; // skip internal calls to self
+
+                    // FIXME: only run on an assembly if it has changed since the previous run?
 
                     foreach (var callerType in assembly.GetTypes())
                     {
@@ -134,6 +147,9 @@ namespace BetterAPI.Localization
             finally
             {
                 _semaphore.Release();
+
+                _logger.LogDebug(()=> _localizer.GetString("Finished adding {Count} discovered translations, took {Elapsed}")!, 
+                    ()=> translations.Values.Sum(x => x.Count), ()=> sw.Elapsed);
             }
         }
 

@@ -8,40 +8,19 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using BetterAPI.Localization;
-using BetterAPI.Reflection;
 using LightningDB;
 
 namespace BetterAPI.Data
 {
     internal static class LightningSerializeContext
     {
-        internal static readonly Dictionary<Type, (Func<object, byte[]> serialize, Func<MDBValue, object> deserialize)> KnownTypes;
-
-        internal static readonly Dictionary<Type, Func<AccessorMember, ITypeReadAccessor, object, byte[], byte[]>> TryIndexMember;
+        internal static readonly Dictionary<Type, (Func<object, byte[]> serialize, Func<MDBValue, object> deserialize)> Serializers;
 
         static LightningSerializeContext()
         {
-            KnownTypes = new Dictionary<Type, (Func<object, byte[]> serialize, Func<MDBValue, object> deserialize)>
+            Serializers = new Dictionary<Type, (Func<object, byte[]> serialize, Func<MDBValue, object> deserialize)>
             {
                 {typeof(LocalizationEntry), (SerializeLocalizationEntry, DeserializeLocalizationEntry)}
-            };
-
-            TryIndexMember = new Dictionary<Type, Func<AccessorMember, ITypeReadAccessor, object, byte[], byte[]>>
-            {
-                {typeof(LocalizationEntry), (member, accessor, target, id) =>
-                {
-                    if (!member.CanRead || !accessor.TryGetValue(target, member.Name, out var value))
-                        return Array.Empty<byte>();
-
-                    return member.Name switch
-                    {
-                        nameof(LocalizationEntry.Id) => LocalizationKeyBuilder.IndexOrLookupById(id),
-                        nameof(LocalizationEntry.Key) => LocalizationKeyBuilder.IndexByKey((string) value, id),
-                        nameof(LocalizationEntry.Culture) => LocalizationKeyBuilder.IndexByCultureName((string) value, id),
-                        nameof(LocalizationEntry.Scope) => LocalizationKeyBuilder.IndexByScope((string) value, id),
-                        _ => Array.Empty<byte>()
-                    };
-                }}
             };
         }
 

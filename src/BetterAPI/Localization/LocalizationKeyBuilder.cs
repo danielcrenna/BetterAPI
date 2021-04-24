@@ -9,32 +9,20 @@ using BetterAPI.Data;
 
 namespace BetterAPI.Localization
 {
-    internal sealed class LocalizationKeyBuilder
+    public sealed class LocalizationKeyBuilder
     {
-        private static readonly byte[] LocalizationValuePrefix = Encoding.UTF8.GetBytes("L:");
-        private static readonly byte[] LocalizationCulturePrefix = Encoding.UTF8.GetBytes("C:");
-        private static readonly byte[] LocalizationKeyPrefix = Encoding.UTF8.GetBytes("N:");
-        private static readonly byte[] LocalizationScopePrefix = Encoding.UTF8.GetBytes("S:");
+        public static readonly byte[] LocalizationCulturePrefix = Encoding.UTF8.GetBytes("L:C:");
+        public static readonly byte[] LocalizationKeyPrefix = Encoding.UTF8.GetBytes("L:N:");
+        public static readonly byte[] LocalizationScopePrefix = Encoding.UTF8.GetBytes("L:S:");
 
-        public static byte[] IndexOrLookupById(byte[] id) => LocalizationValuePrefix.Concat(id);
+        public static byte[] LookupByKey(string name) => LocalizationKeyPrefix
+            .Concat(KeyBuilder.PrepareValue(name));
 
-        public static byte[] IndexByCultureName(string culture, byte[] id) => LocalizationCulturePrefix
-            .Concat(LightningKeyBuilder.Key(culture))
-            .Concat(IndexOrLookupById(id));
+        public static byte[] LookupByCulture(string culture) => LocalizationCulturePrefix
+            .Concat(KeyBuilder.PrepareValue(culture));
 
-        public static byte[] IndexByKey(string key, byte[] id) => LocalizationKeyPrefix
-            .Concat(LightningKeyBuilder.Key(key))
-            .Concat(IndexOrLookupById(id));
-
-        public static byte[] IndexByScope(string scope, byte[] id) => LocalizationScopePrefix
-            .Concat(LightningKeyBuilder.Key(scope))
-            .Concat(IndexOrLookupById(id));
-
-        public static byte[] LookupByName(string name) => LocalizationKeyPrefix
-            .Concat(LightningKeyBuilder.Key(name));
-
-        public static byte[] LookupByCultureName(string culture) => LocalizationCulturePrefix
-            .Concat(LightningKeyBuilder.Key(culture));
+        public static byte[] LookupByScope(string scope) => LocalizationScopePrefix
+            .Concat(KeyBuilder.PrepareValue(scope));
 
     }
 }

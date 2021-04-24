@@ -1,11 +1,10 @@
-﻿using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Localization;
+﻿using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Localization.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Logging;
 
 namespace BetterAPI.Localization
 {
@@ -37,7 +36,7 @@ namespace BetterAPI.Localization
             });
 
             services.TryAddEnumerable(ServiceDescriptor.Singleton(typeof(IHostedService), typeof(LocalizationStartupService)));
-            services.TryAddSingleton<ILocalizationStore>(r => new LightningLocalizationStore("locales"));
+            services.TryAddSingleton<ILocalizationStore>(r => new LightningLocalizationStore("locales", r.GetRequiredService<ILogger<LightningLocalizationStore>>()));
 
             services.AddHttpContextAccessor(); // this is needed to pass the cancellation token to localization components
             services.TryAddSingleton<IStringLocalizerFactory, ApiStringLocalizerFactory>();

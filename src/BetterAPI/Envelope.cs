@@ -22,5 +22,7 @@ namespace BetterAPI
         }
 
         public List<T>? Value { get; set; }
+
+        public int Count => Value?.Count ?? 0;
     }
 }

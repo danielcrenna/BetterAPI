@@ -4,7 +4,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
-using System;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
@@ -17,10 +16,9 @@ namespace BetterAPI.Logging
         public static ILoggingBuilder AddLightingDb(this ILoggingBuilder builder, string path)
         {
             builder.AddConfiguration();
-            builder.Services.AddSingleton<LightningLoggingStore>(r => new LightningLoggingStore(path));
-            builder.Services.AddSingleton<ILoggingStore>(r => r.GetRequiredService<LightningLoggingStore>());
-            builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ILoggerProvider, LightningLoggerProvider>(r =>
-                new LightningLoggerProvider(r.GetRequiredService<LightningLoggingStore>())));
+            builder.Services.TryAddSingleton(r => new LightningLoggingStore(path));
+            builder.Services.TryAddTransient<ILoggingStore>(r => r.GetRequiredService<LightningLoggingStore>());
+            builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ILoggerProvider, LightningLoggerProvider>(r => new LightningLoggerProvider(r.GetRequiredService<LightningLoggingStore>())));
             return builder;
         }
     }

@@ -12,24 +12,24 @@ namespace BetterAPI.Localization
 {
     public readonly struct LocalizationEntry
     {
+        [Index]
         public Guid Id { get; }
+
+        [Index]
         public string Culture { get; }
+
+        [Index]
         public string Scope { get; }
+
+        [Index]
         public string Key { get; }
+
         public string? Value { get; }
+
+        [Index]
         public bool IsMissing { get; }
 
         public LocalizedString AsLocalizedString => new LocalizedString(Key, Value ?? Key, IsMissing, Scope);
-
-        public LocalizationEntry(Guid id, string culture, string scope, string key, string? value, bool missing)
-        {
-            Id = id;
-            Culture = culture;
-            Scope = scope;
-            Key = key;
-            Value = value;
-            IsMissing = missing;
-        }
 
         public LocalizationEntry(Guid id, string culture, LocalizedString value)
         {
