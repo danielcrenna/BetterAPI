@@ -9,6 +9,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
+using BetterAPI.Enveloping;
 using BetterAPI.Reflection;
 using BetterAPI.Sorting;
 using Microsoft.AspNetCore.Mvc.Testing;

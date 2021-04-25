@@ -28,6 +28,7 @@ namespace BetterAPI
 
         public const string SortOperationContextKey = "sort";
         public const string FilterOperationContextKey = "filter";
+        public const string MaxPageSizeContextKey = "maxpagesize";
 
         public static class Prefer
         {
@@ -41,6 +42,5 @@ namespace BetterAPI
         internal static readonly string Create = nameof(Create);
         internal static readonly string Update = nameof(Update);
         internal static readonly string Delete = nameof(Delete);
-        
     }
 }

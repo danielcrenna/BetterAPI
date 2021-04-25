@@ -7,7 +7,6 @@
 using System;
 using System.Threading.Tasks;
 using BetterAPI.Extensions;
-using BetterAPI.Reflection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 

@@ -33,6 +33,15 @@ namespace BetterAPI.Paging
                 options.Operator = paging.Skip.Operator;
             });
 
+            services.AddMaxPageSize(options =>
+            {
+                var paging = new PagingOptions();
+                configureAction?.Invoke(paging);
+                options.HasDefaultBehaviorWhenMissing = paging.MaxPageSize.HasDefaultBehaviorWhenMissing;
+                options.Operator = paging.MaxPageSize.Operator;
+                options.DefaultPageSize = paging.MaxPageSize.DefaultPageSize;
+            });
+
             return services;
         }
 
@@ -63,6 +72,21 @@ namespace BetterAPI.Paging
             
             services.TryAddScoped<SkipActionFilter>();
             services.AddMvc(o => { o.Filters.AddService<SkipActionFilter>(int.MinValue); });
+            return services;
+        }
+
+        public static IServiceCollection AddMaxPageSize(this IServiceCollection services, IConfiguration configuration) => services.AddMaxPageSize(configuration.Bind);
+
+        public static IServiceCollection AddMaxPageSize(this IServiceCollection services, Action<MaxPageSizeOptions>? configureAction = default)
+        {
+            if (configureAction != default)
+            {
+                services.AddOptions();
+                services.Configure(configureAction);
+            }
+
+            services.TryAddScoped<MaxPageSizeActionFilter>();
+            services.AddMvc(o => { o.Filters.AddService<MaxPageSizeActionFilter>(int.MinValue); });
             return services;
         }
     }

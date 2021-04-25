@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
@@ -11,8 +12,8 @@ namespace BetterAPI.Paging
     {
         private readonly IOptionsSnapshot<SkipOptions> _options;
 
-        public SkipActionFilter(IOptionsSnapshot<SkipOptions> options, ILogger<SkipActionFilter> logger) : 
-            base(options, logger)
+        public SkipActionFilter(IStringLocalizer<SkipActionFilter> localizer, IOptionsSnapshot<SkipOptions> options, ILogger<SkipActionFilter> logger) : 
+            base(localizer, options, logger)
         {
             _options = options;
         }

@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Options;
 using System;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 
@@ -20,8 +21,8 @@ namespace BetterAPI.DeltaQueries
         private readonly IDeltaQueryStore _store;
         private readonly IOptionsSnapshot<DeltaQueryOptions> _options;
 
-        public DeltaQueryActionFilter(IDeltaQueryStore store, IOptionsSnapshot<DeltaQueryOptions> options, ILogger<DeltaQueryActionFilter> logger) : 
-            base(options, logger)
+        public DeltaQueryActionFilter(IStringLocalizer<DeltaQueryActionFilter> localizer, IDeltaQueryStore store, IOptionsSnapshot<DeltaQueryOptions> options, ILogger<DeltaQueryActionFilter> logger) : 
+            base(localizer, options, logger)
         {
             _store = store;
             _options = options;

@@ -14,6 +14,7 @@ using BetterAPI.Extensions;
 using BetterAPI.Reflection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
@@ -26,6 +27,7 @@ namespace BetterAPI.Sorting
     public sealed class SortActionFilter : CollectionQueryActionFilter<SortOptions>
     {
         private static readonly MethodInfo BuilderMethod;
+        private readonly IStringLocalizer<SortActionFilter> _localizer;
         private readonly IOptionsSnapshot<SortOptions> _options;
         private readonly ILogger<SortActionFilter> _logger;
 
@@ -36,8 +38,10 @@ namespace BetterAPI.Sorting
                             ?? throw new InvalidOperationException();
         }
 
-        public SortActionFilter(IOptionsSnapshot<SortOptions> options, ILogger<SortActionFilter> logger) : base(options, logger)
+        public SortActionFilter(IStringLocalizer<SortActionFilter> localizer, IOptionsSnapshot<SortOptions> options, ILogger<SortActionFilter> logger) : 
+            base(localizer, options, logger)
         {
+            _localizer = localizer;
             _options = options;
             _logger = logger;
         }
@@ -50,7 +54,7 @@ namespace BetterAPI.Sorting
             // FIXME: add attribute for model ID discriminator, or fail due to missing "Id"
             if (!members.TryGetValue("Id", out _))
             {
-                _logger.LogWarning("Sorting operation was skipped, because the underlying resource does not have an 'Id' property.");
+                _logger.LogWarning(_localizer.GetString("Sorting operation was skipped, because the underlying resource does not have an 'Id' property."));
                 await next.Invoke();
                 return;
             }
@@ -99,14 +103,14 @@ namespace BetterAPI.Sorting
                 
             var executed = await next();
 
-            if (!context.HttpContext.Items.ContainsKey(Constants.SortOperationContextKey))
+            if (!executed.HttpContext.Items.ContainsKey(Constants.SortOperationContextKey))
                 return; // the underlying store handled the sort request
 
-            context.HttpContext.Items.Remove(Constants.SortOperationContextKey);
+            executed.HttpContext.Items.Remove(Constants.SortOperationContextKey);
 
-            _logger.LogWarning("Sorting operation has fallen back to object-level sorting. " +
+            _logger.LogWarning(_localizer.GetString("Sorting operation has fallen back to object-level sorting. " +
                                 "This means that sorting was not performed by the underlying data store, and is not " +
-                                "likely consistent across an entire collection.");
+                                "likely consistent across an entire collection."));
 
             if (executed.Result is OkObjectResult result)
             {

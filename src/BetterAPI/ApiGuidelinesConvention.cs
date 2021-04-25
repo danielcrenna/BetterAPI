@@ -6,6 +6,7 @@
 
 using System;
 using BetterAPI.Caching;
+using BetterAPI.Enveloping;
 using BetterAPI.Extensions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;

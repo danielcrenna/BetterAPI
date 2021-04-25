@@ -7,7 +7,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace BetterAPI
+namespace BetterAPI.Enveloping
 {
     public class Envelope<T>
     {
@@ -23,6 +23,6 @@ namespace BetterAPI
 
         public List<T>? Value { get; set; }
 
-        public int Count => Value?.Count ?? 0;
+        public int PageCount => Value?.Count ?? 0;
     }
 }

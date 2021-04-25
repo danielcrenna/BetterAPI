@@ -7,8 +7,8 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using BetterAPI.Reflection;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
@@ -17,12 +17,14 @@ namespace BetterAPI.Filtering
 {
     public sealed class FilterQueryActionFilter : CollectionQueryActionFilter<FilterOptions>
     {
+        private readonly IStringLocalizer<FilterQueryActionFilter> _localizer;
         private readonly IOptionsSnapshot<FilterOptions> _options;
         private readonly ILogger<FilterQueryActionFilter> _logger;
 
-        public FilterQueryActionFilter(IOptionsSnapshot<FilterOptions> options, ILogger<FilterQueryActionFilter> logger) : 
-            base(options, logger)
+        public FilterQueryActionFilter(IStringLocalizer<FilterQueryActionFilter> localizer, IOptionsSnapshot<FilterOptions> options, ILogger<FilterQueryActionFilter> logger) : 
+            base(localizer, options, logger)
         {
+            _localizer = localizer;
             _options = options;
             _logger = logger;
         }
@@ -69,8 +71,8 @@ namespace BetterAPI.Filtering
 
             // FIXME: do memory-based filter (or not? is it valuable or not?)
 
-            _logger?.LogWarning("Filter operation has fallen back to object-level filtering. " +
-                                "This means that filtering was not performed by the underlying data store, and is not likely consistent across an entire collection.");
+            _logger?.LogWarning(_localizer.GetString("Filter operation has fallen back to object-level filtering. " +
+                                                     "This means that filtering was not performed by the underlying data store, and is not likely consistent across an entire collection."));
         }
     }
 }
