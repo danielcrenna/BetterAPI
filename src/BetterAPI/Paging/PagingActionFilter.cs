@@ -7,6 +7,7 @@
 using System;
 using System.Threading.Tasks;
 using BetterAPI.Extensions;
+using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Logging;
@@ -45,7 +46,7 @@ namespace BetterAPI.Paging
                 if (settable)
                 {
                     var nextLinkType = typeof(NextLinkAnnotated<>).MakeGenericType(body.GetType());
-                    var nextLink = _store.BuildNextLinkForQuery(underlyingType!);
+                    var nextLink = $"{context.HttpContext.Request.GetDisplayUrlNoQueryString()}/{_store.BuildNextLinkForQuery(underlyingType!)}";
                     
                     // FIXME: Instancing.CreateInstance will crash on NextLinkAnnotated<> and Envelope<>,
                     //        so we have to use manual reflection until that is resolved

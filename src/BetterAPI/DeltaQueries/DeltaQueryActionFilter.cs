@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Options;
 using System;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
@@ -19,13 +20,11 @@ namespace BetterAPI.DeltaQueries
     public sealed class DeltaQueryActionFilter : CollectionQueryActionFilter<DeltaQueryOptions>
     {
         private readonly IDeltaQueryStore _store;
-        private readonly IOptionsSnapshot<DeltaQueryOptions> _options;
 
         public DeltaQueryActionFilter(IStringLocalizer<DeltaQueryActionFilter> localizer, IDeltaQueryStore store, IOptionsSnapshot<DeltaQueryOptions> options, ILogger<DeltaQueryActionFilter> logger) : 
             base(localizer, options, logger)
         {
             _store = store;
-            _options = options;
         }
         
         public override async Task OnValidRequestAsync(Type underlyingType, StringValues clauses, ActionExecutingContext context, ActionExecutionDelegate next)
@@ -42,7 +41,7 @@ namespace BetterAPI.DeltaQueries
                 if (settable)
                 {
                     var deltaType = typeof(DeltaAnnotated<>).MakeGenericType(body.GetType());
-                    var deltaLink = _store.BuildDeltaLinkForQuery(underlyingType);
+                    var deltaLink = $"{context.HttpContext.Request.GetDisplayUrlNoQueryString()}/{_store.BuildDeltaLinkForQuery(underlyingType)}";
                     
                     // FIXME: Instancing.CreateInstance will crash on DeltaAnnotated<> and Envelope<>,
                     //        so we have to use manual reflection until that is resolved
