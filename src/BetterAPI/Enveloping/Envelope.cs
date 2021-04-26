@@ -23,6 +23,6 @@ namespace BetterAPI.Enveloping
 
         public List<T>? Value { get; set; }
 
-        public int PageCount => Value?.Count ?? 0;
+        public int Items => Value?.Count ?? 0;
     }
 }

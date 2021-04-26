@@ -17,12 +17,12 @@ namespace BetterAPI.Paging
             Value = Enumerable.Empty<T>().ToList();
         }
 
-        public CountEnvelope(IEnumerable<T> value, int totalCount)
+        public CountEnvelope(IEnumerable<T> value, int maxItems)
         {
             Value = value?.ToList();
-            TotalCount = totalCount;
+            MaxItems = maxItems;
         }
 
-        public int? TotalCount { get; set; }
+        public int? MaxItems { get; set; }
     }
 }
