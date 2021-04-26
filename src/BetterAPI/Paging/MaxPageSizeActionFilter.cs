@@ -45,7 +45,7 @@ namespace BetterAPI.Paging
             var executed = await next.Invoke();
 
             if (!executed.HttpContext.Items.ContainsKey(Constants.MaxPageSizeContextKey))
-                return; // the underlying store handled the sort request
+                return; // the underlying store handled the request
 
             executed.HttpContext.Items.Remove(Constants.MaxPageSizeContextKey);
 

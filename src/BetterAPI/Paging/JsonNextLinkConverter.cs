@@ -11,44 +11,45 @@ using System.Text.Json.Serialization;
 using BetterAPI.Enveloping;
 using BetterAPI.Reflection;
 
-namespace BetterAPI.DeltaQueries
+namespace BetterAPI.Paging
 {
-    /// <summary> Serializes a flattened object so that delta annotations can appear on any outgoing model. </summary>
-    public sealed class JsonDeltaConverter<T> : JsonConverter<DeltaAnnotated<T>>
+    /// <summary> Serializes a flattened object so that next page links can appear on any outgoing model. </summary>
+    public sealed class JsonNextLinkConverter<T> : JsonConverter<NextLinkAnnotated<T>>
     {
         // ReSharper disable once StaticMemberInGenericType
-        private static readonly string DeltaLinkName;
+        private static readonly string NextLinkName;
 
         private readonly AccessorMembers _members;
         private readonly ITypeReadAccessor _reader;
         private readonly ITypeWriteAccessor _writer;
 
-        static JsonDeltaConverter()
+        static JsonNextLinkConverter()
         {
-            var delta = AccessorMembers.Create(typeof(DeltaAnnotated<T>), AccessorMemberTypes.Properties,
-                AccessorMemberScope.Public) ?? throw new InvalidOperationException();
+            var page = AccessorMembers.Create(typeof(NextLinkAnnotated<T>), AccessorMemberTypes.Properties, AccessorMemberScope.Public) 
+                       ?? throw new InvalidOperationException();
 
-            if (!delta.TryGetValue(nameof(DeltaAnnotated<T>.DeltaLink), out var deltaLink))
+            if (!page.TryGetValue(nameof(NextLinkAnnotated<T>.NextLink), out var nextLink))
                 throw new InvalidOperationException();
 
-            if (!deltaLink.TryGetAttribute<JsonPropertyNameAttribute>(out var attribute))
+            if (!nextLink.TryGetAttribute<JsonPropertyNameAttribute>(out var attribute))
                 throw new InvalidOperationException();
 
-            DeltaLinkName = attribute.Name;
+            NextLinkName = attribute.Name;
         }
 
-        public JsonDeltaConverter()
+        public JsonNextLinkConverter()
         {
-            _reader = ReadAccessor.Create(typeof(T), AccessorMemberTypes.Properties, AccessorMemberScope.Public, out _members);
-            _writer = WriteAccessor.Create(typeof(T), AccessorMemberTypes.Properties, AccessorMemberScope.Public);
+            var collectionType = typeof(T);
+            _reader = ReadAccessor.Create(collectionType, AccessorMemberTypes.Properties, AccessorMemberScope.Public, out _members);
+            _writer = WriteAccessor.Create(collectionType, AccessorMemberTypes.Properties, AccessorMemberScope.Public);
         }
 
         public override bool CanConvert(Type typeToConvert)
         {
-            return typeToConvert.ImplementsGeneric(typeof(DeltaAnnotated<>));
+            return typeToConvert.ImplementsGeneric(typeof(NextLinkAnnotated<>));
         }
 
-        public override DeltaAnnotated<T> Read(ref Utf8JsonReader reader, Type typeToConvert,
+        public override NextLinkAnnotated<T> Read(ref Utf8JsonReader reader, Type typeToConvert,
             JsonSerializerOptions options)
         {
             if (reader.TokenType != JsonTokenType.StartObject) throw new JsonException();
@@ -73,14 +74,14 @@ namespace BetterAPI.DeltaQueries
             while (reader.Read())
             {
                 if (reader.TokenType == JsonTokenType.EndObject)
-                    return new DeltaAnnotated<T>(data, link); // success: end of object
+                    return new NextLinkAnnotated<T>(data, link); // success: end of object
 
                 if (reader.TokenType != JsonTokenType.PropertyName)
                     throw new JsonException(); // fail: did not pass through previous property value
 
                 var key = reader.GetString();
 
-                if (key != null && key.Equals(DeltaLinkName, StringComparison.OrdinalIgnoreCase))
+                if (key != null && key.Equals(NextLinkName, StringComparison.OrdinalIgnoreCase))
                 {
                     if(!reader.Read() || reader.TokenType != JsonTokenType.String)
                         throw new JsonException();
@@ -102,7 +103,7 @@ namespace BetterAPI.DeltaQueries
             throw new JsonException();
         }
 
-        public override void Write(Utf8JsonWriter writer, DeltaAnnotated<T> value, JsonSerializerOptions options)
+        public override void Write(Utf8JsonWriter writer, NextLinkAnnotated<T> value, JsonSerializerOptions options)
         {
             writer.WriteStartObject();
             if (value.Data is IAnnotated annotated)
@@ -115,7 +116,7 @@ namespace BetterAPI.DeltaQueries
             writer.WriteEndObject();
         }
 
-        internal static void WriteInner(AccessorMembers members, IReadAccessor reader, Utf8JsonWriter writer, DeltaAnnotated<T> value, JsonSerializerOptions options)
+        internal static void WriteInner(AccessorMembers members, IReadAccessor reader, Utf8JsonWriter writer, NextLinkAnnotated<T> value, JsonSerializerOptions options)
         {
             if (value.Data != null)
             {
@@ -137,10 +138,10 @@ namespace BetterAPI.DeltaQueries
             WriteAnnotation(writer, value);
         }
 
-        private static void WriteAnnotation(Utf8JsonWriter writer, DeltaAnnotated<T> value)
+        private static void WriteAnnotation(Utf8JsonWriter writer, NextLinkAnnotated<T> value)
         {
-            writer.WritePropertyName(DeltaLinkName);
-            writer.WriteStringValue(value.DeltaLink);
+            writer.WritePropertyName(NextLinkName);
+            writer.WriteStringValue(value.NextLink);
         }
     }
 }

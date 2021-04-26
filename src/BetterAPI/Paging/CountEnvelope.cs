@@ -6,23 +6,23 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using BetterAPI.Enveloping;
 
-namespace BetterAPI.Enveloping
+namespace BetterAPI.Paging
 {
-    public class Envelope<T> : IEnveloped
+    public sealed class CountEnvelope<T> : Envelope<T>
     {
-        public Envelope()
+        public CountEnvelope()
         {
             Value = Enumerable.Empty<T>().ToList();
         }
 
-        public Envelope(IEnumerable<T> value)
+        public CountEnvelope(IEnumerable<T> value, int totalCount)
         {
             Value = value?.ToList();
+            TotalCount = totalCount;
         }
 
-        public List<T>? Value { get; set; }
-
-        public int PageCount => Value?.Count ?? 0;
+        public int? TotalCount { get; set; }
     }
 }

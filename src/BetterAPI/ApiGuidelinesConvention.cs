@@ -81,6 +81,8 @@ namespace BetterAPI
                 {
                     if (_registry.TryGetValue(action.Controller.ControllerName, out var controllerType) && controllerType != default)
                     {
+                        // FIXME: @nextLink, @deltaLink, should be present, too
+                        // This is Envelope<T> because we want the OpenAPI spec to show the correct example (but this causes issues for IsCollectionQuery
                         var collectionType = typeof(Envelope<>).MakeGenericType(controllerType);
 
                         // get resource collection with return=representation:

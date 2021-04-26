@@ -22,7 +22,7 @@ namespace BetterAPI.Enveloping
                 if (context.ActionDescriptor.ReturnsEnumerableType(out var collectionType))
                 {
                     var body = executed.GetResultBody(result, out var settable);
-                    if (settable)
+                    if (settable && !(body is IEnveloped))
                     {
                         var type = typeof(Envelope<>).MakeGenericType(collectionType!);
                         var envelope = Activator.CreateInstance(type, body);

@@ -7,15 +7,43 @@ namespace BetterAPI.Paging
 {
     public static class ServiceCollectionExtensions
     {
-        public static IServiceCollection AddCollectionPaging(this IServiceCollection services, IConfiguration configuration) => services.AddCollectionPaging(configuration.Bind);
+        public static IServiceCollection AddServerSidePaging(this IServiceCollection services, IConfiguration configuration)
+        {
+            return services.AddServerSidePaging(configuration.Bind);
+        }
 
-        public static IServiceCollection AddCollectionPaging(this IServiceCollection services, Action<PagingOptions>? configureAction = default)
+        public static IServiceCollection AddServerSidePaging(this IServiceCollection services, Action<PagingOptions>? configureAction = default)
         {
             if (configureAction != default)
             {
                 services.AddOptions();
                 services.Configure(configureAction);
             }
+
+            services.AddSerializerOptions();
+            services.TryAddSingleton<IPageQueryStore, DefaultPageQueryStore>();
+            services.TryAddScoped<PagingActionFilter>();
+            services.AddMvcCore(o => { o.Filters.AddService<PagingActionFilter>(int.MinValue); });
+            return services;
+        }
+        
+        public static IServiceCollection AddClientSidePaging(this IServiceCollection services, IConfiguration configuration) => services.AddClientSidePaging(configuration.Bind);
+
+        public static IServiceCollection AddClientSidePaging(this IServiceCollection services, Action<PagingOptions>? configureAction = default)
+        {
+            if (configureAction != default)
+            {
+                services.AddOptions();
+                services.Configure(configureAction);
+            }
+            
+            services.AddSkipPaging(options =>
+            {
+                var paging = new PagingOptions();
+                configureAction?.Invoke(paging);
+                options.HasDefaultBehaviorWhenMissing = paging.Skip.HasDefaultBehaviorWhenMissing;
+                options.Operator = paging.Skip.Operator;
+            });
 
             services.AddTopPaging(options =>
             {
@@ -25,21 +53,21 @@ namespace BetterAPI.Paging
                 options.Operator = paging.Top.Operator;
             });
 
-            services.AddSkipPaging(options =>
-            {
-                var paging = new PagingOptions();
-                configureAction?.Invoke(paging);
-                options.HasDefaultBehaviorWhenMissing = paging.Skip.HasDefaultBehaviorWhenMissing;
-                options.Operator = paging.Skip.Operator;
-            });
-
-            services.AddMaxPageSize(options =>
+            services.AddMaxPageSizePaging(options =>
             {
                 var paging = new PagingOptions();
                 configureAction?.Invoke(paging);
                 options.HasDefaultBehaviorWhenMissing = paging.MaxPageSize.HasDefaultBehaviorWhenMissing;
                 options.Operator = paging.MaxPageSize.Operator;
                 options.DefaultPageSize = paging.MaxPageSize.DefaultPageSize;
+            });
+
+            services.AddCountPaging(options =>
+            {
+                var paging = new PagingOptions();
+                configureAction?.Invoke(paging);
+                options.HasDefaultBehaviorWhenMissing = paging.Count.HasDefaultBehaviorWhenMissing;
+                options.Operator = paging.Count.Operator;
             });
 
             return services;
@@ -56,7 +84,7 @@ namespace BetterAPI.Paging
             }
 
             services.TryAddScoped<TopActionFilter>();
-            services.AddMvc(o => { o.Filters.AddService<TopActionFilter>(int.MinValue); });
+            services.AddMvcCore(o => { o.Filters.AddService<TopActionFilter>(int.MinValue); });
             return services;
         }
 
@@ -71,13 +99,13 @@ namespace BetterAPI.Paging
             }
             
             services.TryAddScoped<SkipActionFilter>();
-            services.AddMvc(o => { o.Filters.AddService<SkipActionFilter>(int.MinValue); });
+            services.AddMvcCore(o => { o.Filters.AddService<SkipActionFilter>(int.MinValue); });
             return services;
         }
 
-        public static IServiceCollection AddMaxPageSize(this IServiceCollection services, IConfiguration configuration) => services.AddMaxPageSize(configuration.Bind);
+        public static IServiceCollection AddMaxPageSizePaging(this IServiceCollection services, IConfiguration configuration) => services.AddMaxPageSizePaging(configuration.Bind);
 
-        public static IServiceCollection AddMaxPageSize(this IServiceCollection services, Action<MaxPageSizeOptions>? configureAction = default)
+        public static IServiceCollection AddMaxPageSizePaging(this IServiceCollection services, Action<MaxPageSizeOptions>? configureAction = default)
         {
             if (configureAction != default)
             {
@@ -86,7 +114,22 @@ namespace BetterAPI.Paging
             }
 
             services.TryAddScoped<MaxPageSizeActionFilter>();
-            services.AddMvc(o => { o.Filters.AddService<MaxPageSizeActionFilter>(int.MinValue); });
+            services.AddMvcCore(o => { o.Filters.AddService<MaxPageSizeActionFilter>(int.MinValue); });
+            return services;
+        }
+
+        public static IServiceCollection AddCountPaging(this IServiceCollection services, IConfiguration configuration) => services.AddCountPaging(configuration.Bind);
+
+        public static IServiceCollection AddCountPaging(this IServiceCollection services, Action<CountOptions>? configureAction = default)
+        {
+            if (configureAction != default)
+            {
+                services.AddOptions();
+                services.Configure(configureAction);
+            }
+
+            services.TryAddScoped<CountActionFilter>();
+            services.AddMvcCore(o => { o.Filters.AddService<CountActionFilter>(int.MinValue); });
             return services;
         }
     }

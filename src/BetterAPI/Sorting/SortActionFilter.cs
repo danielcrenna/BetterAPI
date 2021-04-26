@@ -104,7 +104,7 @@ namespace BetterAPI.Sorting
             var executed = await next();
 
             if (!executed.HttpContext.Items.ContainsKey(Constants.SortOperationContextKey))
-                return; // the underlying store handled the sort request
+                return; // the underlying store handled the request
 
             executed.HttpContext.Items.Remove(Constants.SortOperationContextKey);
 

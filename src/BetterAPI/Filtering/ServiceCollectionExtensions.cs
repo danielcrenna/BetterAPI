@@ -28,7 +28,7 @@ namespace BetterAPI.Filtering
             }
 
             services.AddScoped<FilterQueryActionFilter>();
-            services.AddMvc(o => { o.Filters.AddService<FilterQueryActionFilter>(int.MinValue); });
+            services.AddMvcCore(o => { o.Filters.AddService<FilterQueryActionFilter>(int.MinValue); });
             return services;
         }
     }

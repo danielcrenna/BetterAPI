@@ -28,7 +28,7 @@ namespace BetterAPI.Shaping
             }
 
             services.AddScoped<IncludeActionFilter>();
-            services.AddMvc(o => { o.Filters.AddService<IncludeActionFilter>(int.MinValue); });
+            services.AddMvcCore(o => { o.Filters.AddService<IncludeActionFilter>(int.MinValue); });
             return services;
         }
 
@@ -48,7 +48,7 @@ namespace BetterAPI.Shaping
             }
 
             services.AddScoped<ExcludeActionFilter>();
-            services.AddMvc(o => { o.Filters.AddService<ExcludeActionFilter>(int.MinValue); });
+            services.AddMvcCore(o => { o.Filters.AddService<ExcludeActionFilter>(int.MinValue); });
             return services;
         }
     }

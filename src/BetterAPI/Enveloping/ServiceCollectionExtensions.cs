@@ -13,7 +13,7 @@ namespace BetterAPI.Enveloping
         public static IServiceCollection AddEnveloping(this IServiceCollection services)
         {
             services.AddScoped<EnvelopeActionFilter>();
-            services.AddMvc(o => { o.Filters.AddService<EnvelopeActionFilter>(int.MinValue); });
+            services.AddMvcCore(o => { o.Filters.AddService<EnvelopeActionFilter>(int.MinValue); });
             return services;
         }
     }

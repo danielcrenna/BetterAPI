@@ -8,24 +8,24 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using BetterAPI.Reflection;
 
-namespace BetterAPI.DeltaQueries
+namespace BetterAPI.Paging
 {
-    public readonly struct DeltaAnnotated<T> : IAnnotated
+    public readonly struct NextLinkAnnotated<T> : IAnnotated
     {
         public T Data { get; }
 
-        [JsonPropertyName("@deltaLink")] public string? DeltaLink { get; }
+        [JsonPropertyName("@nextLink")] public string? NextLink { get; }
 
-        public DeltaAnnotated(T data, string? deltaLink)
+        public NextLinkAnnotated(T data, string? nextLink)
         {
             Data = data;
-            DeltaLink = deltaLink;
+            NextLink = nextLink;
         }
 
         public void WriteInner(Utf8JsonWriter writer, IAnnotated value, JsonSerializerOptions options)
         {
             var reader = ReadAccessor.Create(typeof(T), AccessorMemberTypes.Properties, AccessorMemberScope.Public, out var members);
-            JsonDeltaConverter<T>.WriteInner(members, reader, writer, (DeltaAnnotated<T>) value, options);
+            JsonNextLinkConverter<T>.WriteInner(members, reader, writer, (NextLinkAnnotated<T>) value, options);
         }
     }
 }

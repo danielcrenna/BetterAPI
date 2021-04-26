@@ -60,6 +60,7 @@ namespace BetterAPI
             DocumentLinks(operation);
             DocumentSorting(operation, context);
             DocumentFiltering(operation, context);
+            DocumentPaging(operation, context);
             DocumentDeltaQueries(operation, context);
             DocumentShaping(operation);
         }
@@ -361,7 +362,7 @@ namespace BetterAPI
                 new RuntimeExpressionAnyWrapper
                     {Expression = new ResponseExpression(new BodyExpression(new JsonPointer("/id")))});
 
-            response.Value.Links.Add(operationId, getById);
+            response.Value.Links.Add(operationId.Value, getById);
         }
 
         private void DocumentSorting(OpenApiOperation operation, OperationFilterContext context)
@@ -389,6 +390,44 @@ namespace BetterAPI
                 In = ParameterLocation.Query,
                 Description = _localizer.GetString("Apply a property-level filter to the collection query"),
                 Example = new OpenApiString("")
+            });
+        }
+
+        private void DocumentPaging(OpenApiOperation operation, OperationFilterContext context)
+        {
+            if (!context.ApiDescription.ActionDescriptor.IsCollectionQuery(out _))
+                return;
+
+            operation.Parameters.Add(new OpenApiParameter
+            {
+                Name = _options.CurrentValue.Paging.MaxPageSize.Operator,
+                In = ParameterLocation.Query,
+                Description = _localizer.GetString("Request server-driven paging with a specific page size"),
+                Example = new OpenApiString("")
+            });
+
+            operation.Parameters.Add(new OpenApiParameter
+            {
+                Name = _options.CurrentValue.Paging.Skip.Operator,
+                In = ParameterLocation.Query,
+                Description = _localizer.GetString("Apply a client-directed offset into a collection."),
+                Example = new OpenApiString("")
+            });
+
+            operation.Parameters.Add(new OpenApiParameter
+            {
+                Name = _options.CurrentValue.Paging.Top.Operator,
+                In = ParameterLocation.Query,
+                Description = _localizer.GetString("Apply a client-directed request to specify the number of results to return."),
+                Example = new OpenApiString("")
+            });
+
+            operation.Parameters.Add(new OpenApiParameter
+            {
+                Name = _options.CurrentValue.Paging.Count.Operator,
+                In = ParameterLocation.Query,
+                Description = _localizer.GetString("Requests the server to include the count of items in the response"),
+                Example = new OpenApiString("$count=true")
             });
         }
 

@@ -73,7 +73,7 @@ namespace BetterAPI.Caching
             services.TryAddSingleton<ICacheManager>(r => r.GetRequiredService<InProcessHttpCache>());
 
             services.AddScoped<HttpCacheActionFilter>();
-            services.AddMvc(o => { o.Filters.AddService<HttpCacheActionFilter>(int.MinValue); });
+            services.AddMvcCore(o => { o.Filters.AddService<HttpCacheActionFilter>(int.MinValue); });
             return services;
         }
     }

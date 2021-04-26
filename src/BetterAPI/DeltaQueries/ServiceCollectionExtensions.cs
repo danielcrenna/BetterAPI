@@ -18,8 +18,7 @@ namespace BetterAPI.DeltaQueries
             return services.AddDeltaQueries(configuration.Bind);
         }
 
-        public static IServiceCollection AddDeltaQueries(this IServiceCollection services,
-            Action<DeltaQueryOptions>? configureAction = default)
+        public static IServiceCollection AddDeltaQueries(this IServiceCollection services, Action<DeltaQueryOptions>? configureAction = default)
         {
             if (configureAction != default)
             {
@@ -30,7 +29,7 @@ namespace BetterAPI.DeltaQueries
             services.AddSerializerOptions();
             services.TryAddSingleton<IDeltaQueryStore, DefaultDeltaQueryStore>();
             services.TryAddScoped<DeltaQueryActionFilter>();
-            services.AddMvc(o => { o.Filters.AddService<DeltaQueryActionFilter>(int.MinValue); });
+            services.AddMvcCore(o => { o.Filters.AddService<DeltaQueryActionFilter>(int.MinValue); });
             return services;
         }
     }

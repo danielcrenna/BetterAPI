@@ -29,6 +29,8 @@ namespace BetterAPI
         public const string SortOperationContextKey = "sort";
         public const string FilterOperationContextKey = "filter";
         public const string MaxPageSizeContextKey = "maxpagesize";
+        public const string CountContextKey = "count";
+        public const string CountResultContextKey = "countresult";
 
         public static class Prefer
         {

@@ -71,6 +71,7 @@ namespace BetterAPI
             services.AddRateLimiting(configuration.GetSection(nameof(ApiOptions.RateLimiting)));
             services.AddTokens(configuration.GetSection(nameof(ApiOptions.Tokens)));
             services.AddDeltaQueries(configuration.GetSection(nameof(ApiOptions.DeltaQueries)));
+            services.AddServerSidePaging(configuration.GetSection(nameof(ApiOptions.Paging)));
             services.AddEnveloping();
             services.AddPrefer(configuration.GetSection(nameof(ApiOptions.Prefer)));
             services.AddHttpCaching(configuration.GetSection(nameof(ApiOptions.Cache)));
@@ -80,7 +81,7 @@ namespace BetterAPI
             // See: https://github.com/microsoft/api-guidelines/blob/vNext/Guidelines.md#99-compound-collection-operations
             services.AddFieldInclusions(configuration.GetSection(nameof(ApiOptions.Include)));
             services.AddFieldExclusions(configuration.GetSection(nameof(ApiOptions.Exclude)));
-            services.AddCollectionPaging(configuration.GetSection(nameof(ApiOptions.Paging)));
+            services.AddClientSidePaging(configuration.GetSection(nameof(ApiOptions.Paging)));
             services.AddCollectionSorting(configuration.GetSection(nameof(ApiOptions.Sort)));
             services.AddCollectionFiltering(configuration.GetSection(nameof(ApiOptions.Filter)));
 
@@ -139,7 +140,7 @@ namespace BetterAPI
         private static IMvcBuilder AddXmlSupport(this IMvcBuilder builder)
         {
             builder.AddXmlSerializerFormatters().AddXmlDataContractSerializerFormatters();
-            builder.Services.AddMvc(o =>
+            builder.Services.AddMvcCore(o =>
             {
                 var outputFormatter = o.OutputFormatters.OfType<XmlSerializerOutputFormatter>().First();
                 outputFormatter.WriterSettings.Indent = true;
@@ -166,6 +167,7 @@ namespace BetterAPI
                 var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
                 options.Converters.Add(new JsonDeltaConverterFactory());
                 options.Converters.Add(new JsonShapedDataConverterFactory());
+                options.Converters.Add(new JsonNextLinkConverterFactory());
                 return options;
             });
             return services;

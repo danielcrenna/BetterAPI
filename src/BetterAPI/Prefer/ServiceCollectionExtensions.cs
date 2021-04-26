@@ -38,7 +38,7 @@ namespace BetterAPI.Prefer
             }
 
             services.AddScoped<PreferActionFilter>();
-            services.AddMvc(o => { o.Filters.AddService<PreferActionFilter>(int.MaxValue); });
+            services.AddMvcCore(o => { o.Filters.AddService<PreferActionFilter>(int.MaxValue); });
             return services;
         }
     }
