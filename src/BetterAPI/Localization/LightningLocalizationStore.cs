@@ -26,7 +26,15 @@ namespace BetterAPI.Localization
                 .Select(x => new LocalizedString(x.Key, x.Value ?? x.Key, x.IsMissing, scope))
                 .FirstOrDefault();
 
-            return result ?? new LocalizedString(name, name, true, scope);
+            if (args.Length <= 0)
+                return result ?? new LocalizedString(name, name, true, scope);
+
+            if(result == null)
+                return new LocalizedString(name, string.Format(name, args), true, scope);
+
+            return new LocalizedString(result.Name, string.Format(result.Value, args), result.ResourceNotFound,
+                result.SearchedLocation);
+
         }
 
         public IEnumerable<LocalizationEntry> GetAllTranslations(in bool includeParentCultures, CancellationToken cancellationToken)

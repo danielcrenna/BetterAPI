@@ -62,7 +62,7 @@ namespace BetterAPI
 
             if (action.Is(HttpMethod.Get))
             {
-                if (action.ActionName.Equals("GetById", StringComparison.OrdinalIgnoreCase))
+                if (action.ActionName.Equals(Constants.GetById, StringComparison.OrdinalIgnoreCase))
                 {
                     // invalid id:
                     action.ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest);
@@ -81,12 +81,15 @@ namespace BetterAPI
                 {
                     if (_registry.TryGetValue(action.Controller.ControllerName, out var controllerType) && controllerType != default)
                     {
+                        
                         // FIXME: @nextLink, @deltaLink, should be present, too
-                        // This is Envelope<T> because we want the OpenAPI spec to show the correct example (but this causes issues for IsCollectionQuery
                         var collectionType = typeof(Envelope<>).MakeGenericType(controllerType);
 
                         // get resource collection with return=representation:
                         action.ProducesResponseType(collectionType, StatusCodes.Status200OK); 
+
+                        // get resource collection specifying a $top operator larger than the server maximum
+                        action.ProducesResponseType<ProblemDetails>(StatusCodes.Status413PayloadTooLarge);
                     }
                 }
 
@@ -126,7 +129,7 @@ namespace BetterAPI
 
             if (action.Is(HttpMethod.Delete))
             {
-                if (action.ActionName.Equals("DeleteById", StringComparison.OrdinalIgnoreCase))
+                if (action.ActionName.Equals(Constants.DeleteById, StringComparison.OrdinalIgnoreCase))
                 {
                     // deleted resource with return=minimal:
                     action.ProducesResponseType(StatusCodes.Status204NoContent);

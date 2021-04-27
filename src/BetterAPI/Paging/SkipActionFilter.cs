@@ -20,8 +20,17 @@ namespace BetterAPI.Paging
         
         public override async Task OnValidRequestAsync(Type underlyingType, StringValues clauses, ActionExecutingContext context, ActionExecutionDelegate next)
         {
+            if (clauses.Count != 1 || !int.TryParse(clauses[0], out var skip))
+            {
+                await next.Invoke();
+                return;
+            }
+
+            context.HttpContext.Items[Constants.SkipContextKey] = skip;
+
             var executed = await next.Invoke();
 
+            // FIXME: add fallback and warning
         }
     }
 }

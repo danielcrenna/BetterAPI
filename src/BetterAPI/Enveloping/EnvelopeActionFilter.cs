@@ -18,17 +18,16 @@ namespace BetterAPI.Enveloping
         {
             var executed = await next();
 
-            if (executed.Result is ObjectResult result)
-                if (context.ActionDescriptor.ReturnsEnumerableType(out var collectionType))
+            if (executed.Result is ObjectResult result && !(result.Value is ProblemDetails) && context.ActionDescriptor.ReturnsEnumerableType(out var collectionType))
+            {
+                var body = executed.GetResultBody(result, out var settable);
+                if (settable && !(body is IEnveloped))
                 {
-                    var body = executed.GetResultBody(result, out var settable);
-                    if (settable && !(body is IEnveloped))
-                    {
-                        var type = typeof(Envelope<>).MakeGenericType(collectionType!);
-                        var envelope = Activator.CreateInstance(type, body);
-                        result.Value = envelope;
-                    }
+                    var type = typeof(Envelope<>).MakeGenericType(collectionType!);
+                    var envelope = Activator.CreateInstance(type, body);
+                    result.Value = envelope;
                 }
+            }
         }
     }
 }

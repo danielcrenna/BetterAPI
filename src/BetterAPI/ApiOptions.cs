@@ -37,7 +37,6 @@ namespace BetterAPI
         public string? OpenApiSpecRouteTemplate { get; set; } = "/openapi/{documentname}/openapi.json";
 
         public VersioningOptions Versioning { get; set; } = new VersioningOptions();
-
         public CacheOptions Cache { get; set; } = new CacheOptions();
         public CorsOptions Cors { get; set; } = new CorsOptions();
         public RateLimitingOptions RateLimiting { get; set; } = new RateLimitingOptions();
@@ -50,5 +49,6 @@ namespace BetterAPI
         public DeltaQueryOptions DeltaQueries { get; set; } = new DeltaQueryOptions();
         public ProblemDetailsOptions ProblemDetails { get; set; } = new ProblemDetailsOptions();
         public TokenOptions Tokens { get; set; } = new TokenOptions();
+        public ResourceOptions Resources { get; set; } = new ResourceOptions();
     }
 }

@@ -7,7 +7,6 @@
 using System;
 using System.Threading.Tasks;
 using BetterAPI.Extensions;
-using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Logging;
@@ -30,16 +29,16 @@ namespace BetterAPI.Paging
 
         public override async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
         {
-            if (!context.IsQuery(out var underlyingType))
+            if (!context.IsCollectionQuery(out var underlyingType))
             {
-                _logger?.LogDebug("Skipping {ActionFilter} because this request is not a query", GetType().Name);
+                _logger.LogDebug("Skipping {ActionFilter} because this request is not a query", GetType().Name);
                 await next();
                 return;
             }
 
             var executed = await next();
 
-            if (executed.Result is ObjectResult result)
+            if (executed.Result is ObjectResult result && !(result.Value is ProblemDetails))
             {
                 var body = executed.GetResultBody(result, out var settable);
 

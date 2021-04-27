@@ -34,7 +34,7 @@ namespace BetterAPI.DeltaQueries
             // FIXME:
             // "Note: If the collection is paginated the deltaLink will only be present on the final page but MUST reflect any changes to the data returned across all pages."
 
-            if (executed.Result is ObjectResult result)
+            if (executed.Result is ObjectResult result && !(result.Value is ProblemDetails))
             {
                 var body = executed.GetResultBody(result, out var settable);
 

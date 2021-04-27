@@ -96,7 +96,7 @@ namespace BetterAPI.Sorting
             // ordered consistently.
             //
             foreach (var clause in _options.Value.DefaultSort)
-                if (members.TryGetValue(clause.Field, out var member))
+                if (members.TryGetValue(clause.Field, out var member) && !sortMap.Any(x => x.Item1.Name.Equals(clause.Field, StringComparison.OrdinalIgnoreCase)))
                     sortMap.Add((member, clause.Direction));
 
             context.HttpContext.Items.Add(Constants.SortOperationContextKey, sortMap);

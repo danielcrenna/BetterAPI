@@ -9,7 +9,6 @@ using System.Collections.Generic;
 using System.Runtime.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
-using BetterAPI.Extensions;
 using BetterAPI.Reflection;
 using LightningDB;
 using Microsoft.Extensions.Logging;

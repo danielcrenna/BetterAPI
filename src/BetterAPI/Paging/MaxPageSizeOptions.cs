@@ -11,6 +11,7 @@ namespace BetterAPI.Paging
         public bool HasDefaultBehaviorWhenMissing { get; set; } = true;
         public bool EmptyClauseIsValid => false;
         public string Operator { get; set; } = "$maxpagesize";
-        public int DefaultPageSize { get; set; } = 100;
+        public int DefaultPageSize { get; set; } = 20;
+        public int MaxPageSize { get; set; } = 100;
     }
 }

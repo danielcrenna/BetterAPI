@@ -7,9 +7,12 @@
 using System;
 using System.Collections.Generic;
 using BetterAPI.Data;
+using BetterAPI.Paging;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace BetterAPI
 {
@@ -30,8 +33,11 @@ namespace BetterAPI
 
         public ChangeLogBuilder Add<T>() where T : class, IResource
         {
-            Services.TryAddSingleton<MemoryResourceDataService<T>>();
-            Services.TryAddSingleton<IResourceDataService<T>>(r => r.GetRequiredService<MemoryResourceDataService<T>>());
+            //Services.TryAddSingleton<MemoryResourceDataService<T>>();
+            //Services.TryAddSingleton<IResourceDataService<T>>(r => r.GetRequiredService<MemoryResourceDataService<T>>());
+
+            Services.TryAddSingleton(r => new SqliteResourceDataService<T>("resources.db", 1, r.GetRequiredService<IOptionsMonitor<PagingOptions>>(), r.GetRequiredService<ILogger<SqliteResourceDataService<T>>>()));
+            Services.TryAddSingleton<IResourceDataService<T>>(r => r.GetRequiredService<SqliteResourceDataService<T>>());
             return this;
         }
 

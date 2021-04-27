@@ -31,6 +31,8 @@ namespace BetterAPI
         public const string MaxPageSizeContextKey = "maxpagesize";
         public const string CountContextKey = "count";
         public const string CountResultContextKey = "countresult";
+        public const string SkipContextKey = "skip";
+        public const string TopContextKey = "top";
 
         public static class Prefer
         {
@@ -41,8 +43,10 @@ namespace BetterAPI
         internal static readonly string Status201CreatedString = StatusCodes.Status201Created.ToString();
 
         internal static readonly string Get = nameof(Get);
+        internal static readonly string GetById = nameof(GetById);
         internal static readonly string Create = nameof(Create);
         internal static readonly string Update = nameof(Update);
         internal static readonly string Delete = nameof(Delete);
+        internal static readonly string DeleteById = nameof(DeleteById);
     }
 }

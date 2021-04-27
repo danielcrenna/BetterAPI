@@ -37,7 +37,8 @@ namespace BetterAPI.Paging
         public override async Task OnValidRequestAsync(Type underlyingType, StringValues clauses, ActionExecutingContext context, ActionExecutionDelegate next)
         {
             var maxPageSize = _pagingOptions.Value.MaxPageSize.DefaultPageSize;
-            if (clauses.Count > 0 && int.TryParse(clauses[0], out var pageSize) && pageSize < maxPageSize)
+
+            if (clauses.Count == 1 && int.TryParse(clauses[0], out var pageSize) && pageSize < maxPageSize)
                 maxPageSize = pageSize;
 
             context.HttpContext.Items[Constants.MaxPageSizeContextKey] = maxPageSize;

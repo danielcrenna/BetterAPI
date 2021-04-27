@@ -128,19 +128,19 @@ namespace BetterAPI
         {
             foreach (var (statusCode, response) in operation.Responses)
             {
-                if (statusCode == StatusCodes.Status304NotModified.ToString())
-                {
-                    if (response.Description == null || response.Description == _localizer.GetString("Not Modified"))
-                    {
-                        response.Description = _localizer.GetString("The resource was not returned, because it was not modified according to the ETag or LastModifiedDate.");
-                    }
-                }
-
                 if (statusCode == StatusCodes.Status201Created.ToString())
                 {
                     if (response.Description == null || response.Description == _localizer.GetString("Success"))
                     {
                         response.Description = _localizer.GetString("Returns the newly created resource, or an empty body if a minimal return is preferred");
+                    }
+                }
+
+                if (statusCode == StatusCodes.Status304NotModified.ToString())
+                {
+                    if (response.Description == null || response.Description == _localizer.GetString("Not Modified"))
+                    {
+                        response.Description = _localizer.GetString("The resource was not returned, because it was not modified according to the ETag or LastModifiedDate.");
                     }
                 }
 
@@ -159,6 +159,15 @@ namespace BetterAPI
                     if (response.Description == null || response.Description == _localizer.GetString("Client Error"))
                     {
                         response.Description = _localizer.GetString("The resource was not created, because it has unmet pre-conditions");
+                    }
+                }
+
+                // FIXME: ProblemDetails should use application/problem+json as the media type.
+                if (statusCode == StatusCodes.Status413PayloadTooLarge.ToString())
+                {
+                    if (response.Description == null || response.Description == _localizer.GetString("Client Error"))
+                    {
+                        response.Description = _localizer.GetString("Requested page size was larger than the server's maximum page size.");
                     }
                 }
             }
@@ -427,7 +436,7 @@ namespace BetterAPI
                 Name = _options.CurrentValue.Paging.Count.Operator,
                 In = ParameterLocation.Query,
                 Description = _localizer.GetString("Requests the server to include the count of items in the response"),
-                Example = new OpenApiString("$count=true")
+                Example = new OpenApiString("true")
             });
         }
 

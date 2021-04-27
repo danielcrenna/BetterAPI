@@ -19,7 +19,7 @@ namespace BetterAPI.Data
         private readonly IDictionary<Guid, T> _deleted =
             new ConcurrentDictionary<Guid, T>();
 
-        public IEnumerable<T> Get(CancellationToken cancellationToken)
+        public IEnumerable<T> Get(ResourceQuery query, CancellationToken cancellationToken)
         {
             return _store.Values;
         }

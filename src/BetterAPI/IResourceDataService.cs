@@ -16,11 +16,16 @@ namespace BetterAPI
     /// <typeparam name="T">The resource reference type</typeparam>
     public interface IResourceDataService<T> where T : class, IResource
     {
-        IEnumerable<T> Get(CancellationToken cancellationToken);
+        IEnumerable<T> Get(ResourceQuery query, CancellationToken cancellationToken);
         bool TryGetById(Guid id, out T? resource, CancellationToken cancellationToken);
         bool TryAdd(T model);
         bool TryDeleteById(Guid id, out T? deleted, out bool error);
 
-        bool SupportsSorting => typeof(IResourceDataService<T>).IsAssignableFrom(GetType());
+
+        bool SupportsSorting => false;
+        bool SupportsMaxPageSize  => false;
+        bool SupportsCount => false;
+        bool SupportsSkip => false;
+        bool SupportsTop => false;
     }
 }

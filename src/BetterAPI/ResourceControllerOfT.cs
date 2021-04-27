@@ -22,6 +22,7 @@ namespace BetterAPI
         private readonly IStringLocalizer<ResourceController<T>> _localizer;
         private readonly IResourceDataService<T> _service;
         private readonly IEventBroadcaster _events;
+        private readonly IOptionsSnapshot<ApiOptions> _options;
 
         public ResourceController(IStringLocalizer<ResourceController<T>> localizer, IResourceDataService<T> service, IEventBroadcaster events, IOptionsSnapshot<ApiOptions> options,
             ILogger<ResourceController> logger) : base(localizer, options, logger)
@@ -29,6 +30,7 @@ namespace BetterAPI
             _localizer = localizer;
             _service = service;
             _events = events;
+            _options = options;
         }
 
         [HttpOptions]
@@ -46,21 +48,88 @@ namespace BetterAPI
             Response.Headers.TryAdd(ApiHeaderNames.Link, $"<{Request.Scheme}://{Request.Host}/{Options.Value.OpenApiUiRoutePrefix?.TrimStart('/')}>; rel=\"help\"");
         }
 
-        [Display(Description = "Returns all saved resources, with optional sort, ordering, and filter criteria")]
+        [Display(Description = "Returns all saved resources, with optional sorting, filtering, and paging criteria")]
         [HttpGet]
         public IActionResult Get(ApiVersion apiVersion, CancellationToken cancellationToken)
         {
-            IEnumerable<T> results;
-
-            if (_service.SupportsSorting &&
-                HttpContext.Items.TryGetValue(Constants.SortOperationContextKey, out var sortMap) && sortMap != null &&
-                _service is IResourceDataServiceSorting<T> sorting)
+            var query = new ResourceQuery();
+            
+            if (_service.SupportsSorting && HttpContext.Items.TryGetValue(Constants.SortOperationContextKey, out var sortMap) && sortMap != null)
             {
-                results = sorting.Get((List<(AccessorMember, SortDirection)>) sortMap, cancellationToken);
+                query.Sorting = (List<(AccessorMember, SortDirection)>) sortMap;
                 HttpContext.Items.Remove(Constants.SortOperationContextKey);
             }
-            else
-                results = _service.Get(cancellationToken);
+
+            if (_service.SupportsCount && HttpContext.Items.TryGetValue(Constants.CountContextKey, out var countValue) && countValue is bool count && count)
+            {
+                query.CountTotalRows = true;
+                HttpContext.Items.Remove(Constants.CountContextKey);
+            }
+
+            if (_service.SupportsSkip && HttpContext.Items.TryGetValue(Constants.SkipContextKey, out var skipValue) && skipValue is int skip)
+            {
+                query.PageOffset = skip;
+                HttpContext.Items.Remove(Constants.SkipContextKey);
+            }
+
+            if (_service.SupportsTop & HttpContext.Items.TryGetValue(Constants.TopContextKey, out var topValue) && topValue is int top)
+            {
+                //
+                // "Note that client-driven paging does not preclude server-driven paging.
+                // If the page size requested by the client is larger than the default page size
+                // supported by the server, the expected response would be the number of results specified by the client,
+                // paginated as specified by the server paging settings."
+                //
+
+                query.PageSize = top;
+                HttpContext.Items.Remove(Constants.TopContextKey);
+            }
+
+            if (_service.SupportsMaxPageSize && HttpContext.Items.TryGetValue(Constants.MaxPageSizeContextKey, out var maxPageSizeValue) && maxPageSizeValue is int maxPageSize)
+            {
+                query.MaxPageSize = maxPageSize;
+                HttpContext.Items.Remove(Constants.MaxPageSizeContextKey);
+            }
+
+            // If no $skip is provided, assume the query is for the first page
+            query.PageOffset ??= 0;
+
+            //
+            // "Clients MAY request server-driven paging with a specific page size by specifying a $maxpagesize preference.
+            //  The server SHOULD honor this preference if the specified page size is smaller than the server's default page size."
+            //
+            // Interpretation:
+            // - If the client specifies $top, use $top as the page size.
+            // - If the client omits $top but specified $maxpagesize, use the smaller of $maxpagesize and server default page size.
+            if (!query.PageSize.HasValue)
+            {
+                if (query.MaxPageSize.HasValue && query.MaxPageSize.Value < _options.Value.Paging.MaxPageSize.DefaultPageSize)
+                    query.PageSize = query.MaxPageSize.Value;
+                else
+                    query.PageSize = _options.Value.Paging.MaxPageSize.DefaultPageSize;
+            }
+
+            //
+            // "If the server can't honor $top and/or $skip,
+            // the server MUST return an error to the client informing about it instead of just ignoring the query options.
+            // This will avoid the risk of the client making assumptions about the data returned."
+            //
+            if (query.PageSize.Value > _options.Value.Paging.MaxPageSize.MaxPageSize)
+            {
+                return PayloadTooLargeWithDetails("Requested page size ({0}) was larger than the server's maximum page size ({1}).",
+                    query.PageSize, _options.Value.Paging.MaxPageSize.MaxPageSize);
+            }
+
+            IEnumerable<T> results = _service.Get(query, cancellationToken);
+
+            //
+            // "Developers who want to know the full number of records across all pages, MAY include the query parameter
+            // $count=true to tell the server to include the count of items in the response.
+            // 
+            if (query.TotalRows.HasValue)
+            {
+                HttpContext.Items.TryAdd(Constants.CountResultContextKey, query.TotalRows.Value);
+            }
 
             return Ok(results);
         }
@@ -83,10 +152,20 @@ namespace BetterAPI
                 return BadRequest(ModelState);
 
             if (model.Id.Equals(Guid.Empty))
-                return BadRequestWithDetails("The resource's ID was uninitialized.");
+                if (_options.Value.Resources.RequireExplicitIds)
+                    return BadRequestWithDetails("The resource's ID was uninitialized.");
+                else
+                {
+                    var accessor = WriteAccessor.Create(model, AccessorMemberTypes.Properties, AccessorMemberScope.Public);
+                    if(!accessor.TrySetValue(model, nameof(IResource.Id), Guid.NewGuid()))
+                        return BadRequestWithDetails("The resource's ID was uninitialized, and the resource does not permit setting it.");
+                }
 
             if (_service.TryGetById(model.Id, out _, cancellationToken))
+            {
+                Response.Headers.TryAdd(HeaderNames.Location, $"{Request.Path}/{model.Id}");
                 return BadRequestWithDetails("This resource already exists. Did you mean to update it?");
+            }
 
             //
             // FIXME: The corner-case where we're creating but also have a pre-condition which should block this create operation.

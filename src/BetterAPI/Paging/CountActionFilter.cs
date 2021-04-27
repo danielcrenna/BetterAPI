@@ -58,16 +58,16 @@ namespace BetterAPI.Paging
 
             executed.HttpContext.Items.Remove(Constants.CountContextKey);
 
-            if (!totalCount.HasValue)
+            if (executed.Result is OkObjectResult result && !(result.Value is ProblemDetails))
             {
-                _logger.LogWarning(_localizer.GetString(
-                    "Result set count operation has fallen back to object-level sub-selection. " +
-                    "This means that paging was not performed by the underlying data store, and is not " +
-                    "likely consistent across an entire collection."));
-            }
-            
-            if (executed.Result is OkObjectResult result)
-            {
+                if (!totalCount.HasValue)
+                {
+                    _logger.LogWarning(_localizer.GetString(
+                        "Result set count operation has fallen back to object-level sub-selection. " +
+                        "This means that paging was not performed by the underlying data store, and is not " +
+                        "likely consistent across an entire collection."));
+                }
+
                 var body = executed.GetResultBody(result, out var settable);
                 if (settable && body is IEnumerable enumerable)
                 {
@@ -86,13 +86,9 @@ namespace BetterAPI.Paging
                 if (string.IsNullOrWhiteSpace(clause))
                     continue;
 
-                var tokens = clause.Split('=', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                if (tokens.Length != 2)
-                    continue;
-
-                return tokens[1].Equals("true", StringComparison.OrdinalIgnoreCase) || 
-                       int.TryParse(tokens[1], out var countAsNumber) && countAsNumber == 1 || 
-                       tokens[1].Equals("yes", StringComparison.OrdinalIgnoreCase);
+                return clause.Equals("true", StringComparison.OrdinalIgnoreCase) || 
+                       int.TryParse(clause, out var countAsNumber) && countAsNumber == 1 || 
+                       clause.Equals("yes", StringComparison.OrdinalIgnoreCase);
             }
 
             return false;

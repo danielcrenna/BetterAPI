@@ -27,25 +27,30 @@ namespace BetterAPI
             Logger = logger;
         }
 
-        protected IActionResult BadRequestWithDetails(string details)
+        protected IActionResult BadRequestWithDetails(string details, params object[] arguments)
         {
-            return StatusCodeWithProblemDetails(StatusCodes.Status400BadRequest, "Bad Request", details);
+            return StatusCodeWithProblemDetails(StatusCodes.Status400BadRequest, "Bad Request", details, arguments);
         }
 
-        protected IActionResult InternalServerErrorWithDetails(string details)
+        protected IActionResult InternalServerErrorWithDetails(string details, params object[] arguments)
         {
             return StatusCodeWithProblemDetails(StatusCodes.Status500InternalServerError, "Internal Server Error",
-                details);
+                details, arguments);
         }
 
-        protected IActionResult StatusCodeWithProblemDetails(int statusCode, string statusDescription, string details)
+        protected IActionResult PayloadTooLargeWithDetails(string details, params object[] arguments)
+        {
+            return StatusCodeWithProblemDetails(StatusCodes.Status413PayloadTooLarge, "Payload Too Large", details, arguments);
+        }
+
+        protected IActionResult StatusCodeWithProblemDetails(int statusCode, string statusDescription, string details, params object[] arguments)
         {
             return StatusCode(statusCode, new ProblemDetails
             {
                 Status = statusCode,
                 Type = $"{Options.Value.ProblemDetails.BaseUrl}{statusCode}",
                 Title = _localizer.GetString(statusDescription),
-                Detail = _localizer.GetString(details),
+                Detail = _localizer.GetString(details, arguments),
                 Instance = Request.Path
             });
         }
