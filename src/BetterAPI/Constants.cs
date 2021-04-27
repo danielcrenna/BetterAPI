@@ -14,7 +14,7 @@ namespace BetterAPI
         public const string DefaultConfigSection = nameof(BetterAPI);
 
         /// <summary>
-        ///     The context key used to store the object result into `HttpContext.Items` no other middleware is permitted
+        ///     The context key used to store the object result into `HttpContext.Items` when no other middleware is permitted
         ///     to modify the result (i.e. when minimal representation is preferred)
         /// </summary>
         public const string TerminalObjectResultValue = nameof(TerminalObjectResultValue);
