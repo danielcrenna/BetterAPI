@@ -33,11 +33,13 @@ namespace BetterAPI.Data
         private readonly ITypeReadAccessor _reads;
         private readonly ITypeWriteAccessor _writes;
 
-        public bool SupportsSorting => true;
+        public bool SupportsSort => true;
         public bool SupportsMaxPageSize => true;
         public bool SupportsCount => true;
         public bool SupportsSkip => true;
         public bool SupportsTop => true;
+        public bool SupportsInclude => true;
+        public bool SupportsExclude => true;
 
         static SqliteResourceDataService()
         {
@@ -67,20 +69,25 @@ namespace BetterAPI.Data
             var db = OpenConnection();
 
             var sb = new StringBuilder();
-            sb.Append($"SELECT * FROM \"{viewName}\"");
+            sb.Append(BuildSelectFields(query));
+            sb.Append(' ');
 
             var orderBy = BuildOrderBy(query);
 
             // Perf: Using OFFSET forces skip-reading records, so we'll settle with a sub-select
             //       over IDs, which is at least less data to scan and part of the index
-            sb.Append($" WHERE \"{nameof(IResource.Id)}\" NOT IN (");
+            sb.Append($"WHERE \"{nameof(IResource.Id)}\" NOT IN (");
             sb.Append($"SELECT \"{nameof(IResource.Id)}\" FROM {viewName} ");
             sb.Append(orderBy);
-            sb.Append(" LIMIT ");
+            sb.Append(' ');
+            sb.Append("LIMIT");
+            sb.Append(' ');
             sb.Append(query.PageOffset);
             sb.Append(") ");
             sb.Append(orderBy);
-            sb.Append(" LIMIT ");
+            sb.Append(' ');
+            sb.Append("LIMIT");
+            sb.Append(' ');
             sb.Append(query.PageSize);
 
             var sql = sb.ToString();
@@ -90,7 +97,8 @@ namespace BetterAPI.Data
             {
                 var count = new StringBuilder();
                 count.Append("SELECT COUNT(*) FROM (");
-                count.Append($"SELECT * FROM {viewName} ");
+                count.Append(BuildSelectFields(query));
+                count.Append(' ');
                 count.Append(orderBy);
                 count.Append(')');
 
@@ -100,6 +108,41 @@ namespace BetterAPI.Data
             }
 
             return result;
+        }
+
+        private StringBuilder BuildSelectFields(ResourceQuery query)
+        {
+            var sb = new StringBuilder("SELECT ");
+
+            if (query.Fields == null)
+            {
+                sb.Append('*');
+            }
+            else
+            {
+                var count = 0;
+                foreach(var field in query.Fields)
+                {
+                    if (!_members.TryGetValue(field, out var member))
+                        continue;
+
+                    if (count != 0)
+                        sb.Append(", ");
+                    sb.Append('"');
+                    sb.Append(member.Name);
+                    sb.Append('"');
+                    count++;
+                }
+            }
+
+            sb.Append(' ');
+            sb.Append("FROM");
+            sb.Append(' ');
+            sb.Append('"');
+            sb.Append(_reads.Type.Name);
+            sb.Append('"');
+
+            return sb;
         }
 
         private static StringBuilder BuildOrderBy(ResourceQuery query)
@@ -415,7 +458,6 @@ namespace BetterAPI.Data
             if(!member.TryGetAttribute(out DefaultValueAttribute defaultValue) || defaultValue.Value == default)
                 return "NULL";
 
-            // FIXME: Dapper crashes if the default value starts with "?"
             var type = member.Type.Name.ToUpperInvariant();
             return type == "STRING" ? $"\"{defaultValue.Value}\"" : defaultValue.Value?.ToString();
         }

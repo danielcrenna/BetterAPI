@@ -11,6 +11,7 @@ using BetterAPI.Extensions;
 using BetterAPI.Reflection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
@@ -19,51 +20,67 @@ namespace BetterAPI.Shaping
 {
     public sealed class IncludeActionFilter : QueryActionFilter<IncludeOptions>
     {
-        public IncludeActionFilter(IOptionsSnapshot<IncludeOptions> options, ILogger<IncludeActionFilter> logger) : base(options, logger) { }
+        private readonly IStringLocalizer<IncludeActionFilter> _localizer;
+        private readonly ILogger<IncludeActionFilter> _logger;
+
+        public IncludeActionFilter(IStringLocalizer<IncludeActionFilter> localizer, IOptionsSnapshot<IncludeOptions> options, ILogger<IncludeActionFilter> logger) : base(options, logger)
+        {
+            _localizer = localizer;
+            _logger = logger;
+        }
 
         public override async Task OnValidRequestAsync(Type underlyingType, StringValues clauses, ActionExecutingContext context, ActionExecutionDelegate next)
         {
+            var members = AccessorMembers.Create(underlyingType, AccessorMemberTypes.Properties, AccessorMemberScope.Public);
+
+            var inclusions = new List<string>();
+            foreach (var value in clauses)
+            {
+                var fields = value.Split(new[] {','},
+                    StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                if (fields.Length == 0)
+                    continue; // (FIXME: add a validation error?)
+
+                foreach (var field in fields)
+                {
+                    if (!members.TryGetValue(field, out var member) || inclusions.Contains(member.Name))
+                        continue;
+
+                    inclusions.Add(member.Name);
+                }
+            }
+
+            if (inclusions.Count == 0)
+            {
+                await next.Invoke();
+                return;
+            }
+
+            context.HttpContext.Items.TryAdd(Constants.IncludeContextKey, inclusions);
+
             var executed = await next.Invoke();
-            
-            if (executed.Result is ObjectResult result)
+
+            if (executed.HttpContext.Items.ContainsKey(Constants.IncludeContextKey))
+            {
+                executed.HttpContext.Items.Remove(Constants.IncludeContextKey);
+
+                _logger.LogWarning(_localizer.GetString("Shaping operation has fallen back to object-level shaping. " +
+                                                        "This means that shaping was not performed by the underlying data store, and is likely " +
+                                                        "performing excessive work to return discarded values."));
+            }
+
+            if (executed.Result is ObjectResult result && !(result.Value is ProblemDetails))
             {
                 var body = executed.GetResultBody(result, out var settable);
 
                 if (settable)
                 {
-                    var members = AccessorMembers.Create(underlyingType, AccessorMemberTypes.Fields | AccessorMemberTypes.Properties,
-                        AccessorMemberScope.Public);
+                    if(body.GetType().ImplementsGeneric(typeof(IEnumerable<>)))
+                        underlyingType = typeof(IEnumerable<>).MakeGenericType(underlyingType);
 
-                    var inclusions = new List<string>();
-                    foreach (var value in clauses)
-                    {
-                        var fields = value.Split(new[] {','},
-                            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                        if (fields.Length == 0)
-                            continue; // (FIXME: add a validation error?)
-
-                        foreach (var field in fields)
-                        {
-                            if (!members.TryGetValue(field, out var member) || inclusions.Contains(member.Name))
-                                continue;
-
-                            inclusions.Add(member.Name);
-                        }
-                    }
-
-                    if (inclusions.Count > 0)
-                    {
-                        // FIXME: Instancing.CreateInstance will crash on ShapedData<> and Envelope<>,
-                        //        so we have to use manual reflection until that is resolved
-                        // var delta = Instancing.CreateInstance(typeof(DeltaAnnotated<>).MakeGenericType(deltaType), body, deltaLink);    
-                        var shapingType = typeof(ShapedData<>).MakeGenericType(underlyingType);
-                        var shaped = Activator.CreateInstance(shapingType, body, inclusions);
-                    
-                        // IMPORTANT: put the full value in HTTP items, so we can generate proper ETags from a shaped result
-                        executed.HttpContext.Items[Constants.CanonicalObjectResultValue] = result.Value;
-
-                        result.Value = shaped;
-                    }
+                    var shapingType = typeof(ShapedData<>).MakeGenericType(underlyingType);
+                    var shaped = Activator.CreateInstance(shapingType, body, inclusions);
+                    result.Value = shaped;
                 }
             }
         }

@@ -5,6 +5,7 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 using System;
+using System.Linq;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -27,8 +28,14 @@ namespace BetterAPI.Shaping
                 services.Configure(configureAction);
             }
 
+            services.AddSerializerOptions();
             services.AddScoped<IncludeActionFilter>();
-            services.AddMvcCore(o => { o.Filters.AddService<IncludeActionFilter>(int.MinValue); });
+            services.AddMvcCore(o => { o.Filters.AddService<IncludeActionFilter>(int.MinValue); })
+                .AddJsonOptions(o =>
+                {
+                    if(!o.JsonSerializerOptions.Converters.Any(x => x is JsonShapedDataConverterFactory))
+                        o.JsonSerializerOptions.Converters.Add(new JsonShapedDataConverterFactory());
+                });
             return services;
         }
 
@@ -47,8 +54,14 @@ namespace BetterAPI.Shaping
                 services.Configure(configureAction);
             }
 
+            services.AddSerializerOptions();
             services.AddScoped<ExcludeActionFilter>();
-            services.AddMvcCore(o => { o.Filters.AddService<ExcludeActionFilter>(int.MinValue); });
+            services.AddMvcCore(o => { o.Filters.AddService<ExcludeActionFilter>(int.MinValue); })
+                .AddJsonOptions(o =>
+                {
+                    if(!o.JsonSerializerOptions.Converters.Any(x => x is JsonShapedDataConverterFactory))
+                        o.JsonSerializerOptions.Converters.Add(new JsonShapedDataConverterFactory());
+                });
             return services;
         }
     }

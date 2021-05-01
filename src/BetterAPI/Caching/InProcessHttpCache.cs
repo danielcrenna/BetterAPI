@@ -38,15 +38,22 @@ namespace BetterAPI.Caching
             return false;
         }
 
-        public void Save(string displayUrl, string etag)
+        public bool Save(string displayUrl, string etag)
         {
-            Cache.Set(BuildETagCacheKey(displayUrl, etag), Encoding.UTF8.GetBytes(etag));
+            var cacheKey = BuildETagCacheKey(displayUrl, etag);
+            if (Cache.TryGetValue(cacheKey, out _))
+                return false;
+            Cache.Set(cacheKey, Encoding.UTF8.GetBytes(etag));
+            return true;
         }
 
-        public void Save(string displayUrl, DateTimeOffset lastModified)
+        public bool Save(string displayUrl, DateTimeOffset lastModified)
         {
-            Cache.Set(BuildLastModifiedCacheKey(displayUrl, lastModified),
-                Encoding.UTF8.GetBytes(lastModified.ToString("d")));
+            var cacheKey = BuildLastModifiedCacheKey(displayUrl, lastModified);
+            if (Cache.TryGetValue(cacheKey, out _))
+                return false;
+            Cache.Set(cacheKey, Encoding.UTF8.GetBytes(lastModified.ToString("d")));
+            return true;
         }
 
         private static string BuildLastModifiedCacheKey(string displayUrl, DateTimeOffset lastModified)

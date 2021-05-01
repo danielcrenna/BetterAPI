@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -23,7 +24,12 @@ namespace BetterAPI.Paging
             services.AddSerializerOptions();
             services.TryAddSingleton<IPageQueryStore, DefaultPageQueryStore>();
             services.TryAddScoped<PagingActionFilter>();
-            services.AddMvcCore(o => { o.Filters.AddService<PagingActionFilter>(int.MinValue); });
+            services.AddMvcCore(o => { o.Filters.AddService<PagingActionFilter>(int.MinValue); })
+                .AddJsonOptions(o =>
+                {
+                    if(!o.JsonSerializerOptions.Converters.Any(x => x is JsonNextLinkConverterFactory))
+                        o.JsonSerializerOptions.Converters.Add(new JsonNextLinkConverterFactory());
+                });
             return services;
         }
         

@@ -81,7 +81,6 @@ namespace BetterAPI
                 {
                     if (_registry.TryGetValue(action.Controller.ControllerName, out var controllerType) && controllerType != default)
                     {
-                        
                         // FIXME: @nextLink, @deltaLink, should be present, too
                         var collectionType = typeof(Envelope<>).MakeGenericType(controllerType);
 
@@ -90,6 +89,18 @@ namespace BetterAPI
 
                         // get resource collection specifying a $top operator larger than the server maximum
                         action.ProducesResponseType<ProblemDetails>(StatusCodes.Status413PayloadTooLarge);
+                    }
+                }
+
+                if (action.ActionName.Equals(Constants.GetNextPage, StringComparison.OrdinalIgnoreCase))
+                {
+                    if (_registry.TryGetValue(action.Controller.ControllerName, out var controllerType) && controllerType != default)
+                    {
+                        // FIXME: @nextLink, @deltaLink, should be present, too
+                        var collectionType = typeof(Envelope<>).MakeGenericType(controllerType);
+
+                        // get resource collection with return=representation:
+                        action.ProducesResponseType(collectionType, StatusCodes.Status200OK); 
                     }
                 }
 

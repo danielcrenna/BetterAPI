@@ -53,9 +53,9 @@ namespace BetterAPI
             services.AddOptions();
             services.Configure<ApiOptions>(configuration);
 
-            // Add core services
+            // Add core services:
+            //
             services.AddTimestamps();
-            services.AddSerializerOptions();
             services.AddEventServices();
             services.TryAddSingleton<TypeRegistry>();
             services.TryAddSingleton<ApiRouter>();
@@ -79,6 +79,7 @@ namespace BetterAPI
             // 
             // Ensure proper order for outside-in filters:
             // See: https://github.com/microsoft/api-guidelines/blob/vNext/Guidelines.md#99-compound-collection-operations
+            //
             services.AddFieldInclusions(configuration.GetSection(nameof(ApiOptions.Include)));
             services.AddFieldExclusions(configuration.GetSection(nameof(ApiOptions.Exclude)));
             services.AddClientSidePaging(configuration.GetSection(nameof(ApiOptions.Paging)));
@@ -94,6 +95,7 @@ namespace BetterAPI
             // mvc.AddPolicyProtection();
 
             // MVC configuration with dependencies:
+            //
             services.AddSingleton<ApiGuidelinesConvention>();
             services.AddSingleton<IConfigureOptions<MvcOptions>, ConfigureMvcOptions>();
             services.AddSingleton<IConfigureOptions<ApiBehaviorOptions>, ConfigureApiBehaviorOptions>();
@@ -103,18 +105,6 @@ namespace BetterAPI
             {
                 // FIXME: Implement me
                 x.FeatureProviders.Add(new ApiGuidelinesControllerFeatureProvider());
-            });
-
-            mvc.AddJsonOptions(o =>
-            {
-                o.JsonSerializerOptions.Converters.Add(new JsonDeltaConverterFactory());
-                o.JsonSerializerOptions.Converters.Add(new JsonShapedDataConverterFactory());
-
-                // 
-                // Currently, we're setting the enum to camelCase because it's indicated in the guidelines
-                // (though it's shown once as PascalCase, so it's not entirely clear):
-                // https://github.com/microsoft/api-guidelines/blob/vNext/Guidelines.md#1323-post-hybrid-model
-                o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
             });
 
             services.AddSingleton<IConfigureOptions<SwaggerGenOptions>, ConfigureSwaggerGenOptions>();
@@ -127,6 +117,7 @@ namespace BetterAPI
 
                 // Set the comments path for the Swagger JSON and UI.
                 // See: https://docs.microsoft.com/en-us/aspnet/core/tutorials/getting-started-with-swashbuckle?view=aspnetcore-5.0&tabs=visual-studio#xml-comments
+                //
                 var assemblyName = assembly?.GetName().Name;
                 var xmlFile = $"{assemblyName}.xml";
                 var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
@@ -150,7 +141,7 @@ namespace BetterAPI
         }
 
         /// <summary>
-        ///     Adds timestamp generation for services that require them. The default implementation is the local server wall time.
+        ///     Adds timestamp generation for services that require them. The default implementation is the local server's wall time.
         /// </summary>
         /// <param name="services"></param>
         /// <returns></returns>
@@ -162,14 +153,17 @@ namespace BetterAPI
 
         public static IServiceCollection AddSerializerOptions(this IServiceCollection services)
         {
-            services.TryAddSingleton(r =>
-            {
-                var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
-                options.Converters.Add(new JsonDeltaConverterFactory());
-                options.Converters.Add(new JsonShapedDataConverterFactory());
-                options.Converters.Add(new JsonNextLinkConverterFactory());
-                return options;
-            });
+            services.AddMvcCore()
+                .AddJsonOptions(o =>
+                {
+                    // 
+                    // Currently, we're setting the enum to camelCase because it's indicated in the guidelines
+                    // (though it's shown once as PascalCase, so it's not entirely clear):
+                    // https://github.com/microsoft/api-guidelines/blob/vNext/Guidelines.md#1323-post-hybrid-model
+                    if(!o.JsonSerializerOptions.Converters.Any(x => x is JsonStringEnumConverter))
+                        o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+                });
+
             return services;
         }
 

@@ -7,6 +7,8 @@
 using System;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Localization;
 
 namespace BetterAPI.Extensions
 {
@@ -26,19 +28,12 @@ namespace BetterAPI.Extensions
                 settable = false;
                 return body;
             }
-
-            // We can then check if there is a canonical result, so we don't need to deal
-            // with modified results in unrelated middleware
-            body = context.HttpContext.Items[Constants.CanonicalObjectResultValue];
-            if (body != default)
-            {
-                settable = true;
-                return body;
-            }
-
             body = result.Value;
-            if(body == default)
-                throw new NullReferenceException("Could not locate expected result body");
+            if (body == default)
+            {
+                var localizer = context.HttpContext.RequestServices.GetRequiredService<IStringLocalizer<ActionContext>>();
+                throw new NullReferenceException(localizer.GetString("Could not locate expected result body"));
+            }
 
             settable = true;
             return body;

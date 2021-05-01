@@ -4,13 +4,17 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace BetterAPI.Enveloping
 {
-    public class Envelope<T> : IEnveloped
+    public class Envelope<T> : IEnveloped, IEnumerable<T>
     {
+        private static readonly IEnumerable<T> EmptyEnumerable = Enumerable.Empty<T>();
+        private static readonly IEnumerator<T> EmptyEnumerator = EmptyEnumerable.GetEnumerator();
+        
         public Envelope()
         {
             Value = Enumerable.Empty<T>().ToList();
@@ -24,5 +28,15 @@ namespace BetterAPI.Enveloping
         public List<T>? Value { get; set; }
 
         public int Items => Value?.Count ?? 0;
+        
+        public IEnumerator<T> GetEnumerator()
+        {
+            return Value?.GetEnumerator() ?? EmptyEnumerator;
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return Value?.GetEnumerator() ?? EmptyEnumerator;
+        }
     }
 }

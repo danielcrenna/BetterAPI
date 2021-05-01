@@ -13,7 +13,7 @@ using BetterAPI.Reflection;
 
 namespace BetterAPI.Shaping
 {
-    /// <summary> Serializes a flattened object so that models are shaped by specific set of included fields. </summary>
+    /// <summary> Serializes a flattened object so that models are shaped by a specific set of included fields. </summary>
     public sealed class JsonShapedDataConverter<T> : JsonConverter<ShapedData<T>>
     {
         private readonly AccessorMembers _members;
@@ -28,7 +28,7 @@ namespace BetterAPI.Shaping
 
         public override bool CanConvert(Type typeToConvert)
         {
-            return typeof(IShapedData).IsAssignableFrom(typeToConvert) ||
+            return typeof(IShaped).IsAssignableFrom(typeToConvert) ||
                    typeToConvert.ImplementsGeneric(typeof(ShapedData<>));
         }
 
@@ -77,10 +77,24 @@ namespace BetterAPI.Shaping
         public override void Write(Utf8JsonWriter writer, ShapedData<T> value, JsonSerializerOptions options)
         {
             writer.WriteStartObject();
-            if (value.Data != null)
+            if (value.Data is IAnnotated annotated)
+            {
+                annotated.WriteInner(writer, annotated, options);
+                WriteInner(_members, _reader, writer, value, options);
+            }
+            else
+            {
+                WriteInner(_members, _reader, writer, value, options);
+            }
+            writer.WriteEndObject();
+        }
+
+        internal static void WriteInner(AccessorMembers members, IReadAccessor reader, Utf8JsonWriter writer, IShaped value, JsonSerializerOptions options)
+        {
+            if (value.Body != null)
                 foreach (var field in value.Fields)
                 {
-                    if (!_members.TryGetValue(field, out var member))
+                    if (!members.TryGetValue(field, out var member))
                         continue;
 
                     if (!member.CanRead)
@@ -91,10 +105,9 @@ namespace BetterAPI.Shaping
                     writer.WritePropertyName(propertyName);
 
                     // value (can be null):
-                    _reader.TryGetValue(value.Data, member.Name, out var item);
+                    reader.TryGetValue(value.Body, member.Name, out var item);
                     JsonSerializer.Serialize(writer, item, options);
                 }
-            writer.WriteEndObject();
         }
     }
 }

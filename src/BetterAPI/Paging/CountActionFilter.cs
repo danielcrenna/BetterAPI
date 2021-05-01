@@ -34,23 +34,25 @@ namespace BetterAPI.Paging
         
         public override async Task OnValidRequestAsync(Type underlyingType, StringValues clauses, ActionExecutingContext context, ActionExecutionDelegate next)
         {
-            if (clauses.Count <= 0 || !IsCountRequested(clauses))
+            if (clauses.Count > 0 && IsCountRequested(clauses))
             {
-                await next.Invoke();
-                return;
+                context.HttpContext.Items[Constants.CountContextKey] = true;
             }
 
-            context.HttpContext.Items[Constants.CountContextKey] = true;
-
-            var executed = await next.Invoke();
+            ActionExecutedContext executed = await next.Invoke();
 
             int? totalCount = default;
 
+            // Check if the query is from a continuation token, and pass its preference if it is
+            if (context.HttpContext.Items.TryGetValue(Constants.QueryContextKey, out var queryValue) && queryValue is ResourceQuery query && query.CountTotalRows)
+            {
+                totalCount = query.TotalRows;
+            }
+            
             if (!executed.HttpContext.Items.ContainsKey(Constants.CountContextKey))
             {
                 // the underlying store handled the request, and the total count is available
-                if (executed.HttpContext.Items.TryGetValue(Constants.CountResultContextKey, out var countResult) &&
-                    countResult is int countResultValue)
+                if (executed.HttpContext.Items.TryGetValue(Constants.CountResultContextKey, out var countResult) && countResult is int countResultValue)
                 {
                     totalCount = countResultValue;
                 }
@@ -72,8 +74,7 @@ namespace BetterAPI.Paging
                 if (settable && body is IEnumerable enumerable)
                 {
                     var type = typeof(CountEnvelope<>).MakeGenericType(underlyingType!);
-                    var envelope = Activator.CreateInstance(type, body,
-                        totalCount ?? enumerable.Cast<object>().Count());
+                    var envelope = Activator.CreateInstance(type, body, totalCount ?? enumerable.Cast<object>().Count());
                     result.Value = envelope;
                 }
             }

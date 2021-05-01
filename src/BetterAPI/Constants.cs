@@ -19,20 +19,15 @@ namespace BetterAPI
         /// </summary>
         public const string TerminalObjectResultValue = nameof(TerminalObjectResultValue);
 
-        /// <summary>
-        ///     The context key used to store the object result into `HttpContext.Items` when a canonical value is
-        ///     needed for comparison purposes (i.e. for ETag generation), but the actual result is modified by
-        ///     other middleware (i.e. shaping)
-        /// </summary>
-        public const string CanonicalObjectResultValue = nameof(CanonicalObjectResultValue);
-
-        public const string SortOperationContextKey = "sort";
+        public const string SortContextKey = "sort";
         public const string FilterOperationContextKey = "filter";
         public const string MaxPageSizeContextKey = "maxpagesize";
         public const string CountContextKey = "count";
         public const string CountResultContextKey = "countresult";
         public const string SkipContextKey = "skip";
         public const string TopContextKey = "top";
+        public const string IncludeContextKey = "include";
+        public const string QueryContextKey = "query";
 
         public static class Prefer
         {
@@ -44,6 +39,7 @@ namespace BetterAPI
 
         internal static readonly string Get = nameof(Get);
         internal static readonly string GetById = nameof(GetById);
+        internal static readonly string GetNextPage = nameof(GetNextPage);
         internal static readonly string Create = nameof(Create);
         internal static readonly string Update = nameof(Update);
         internal static readonly string Delete = nameof(Delete);

@@ -5,12 +5,16 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 using System;
+using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using BetterAPI.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Primitives;
 
 namespace BetterAPI.Paging
 {
@@ -44,17 +48,64 @@ namespace BetterAPI.Paging
 
                 if (settable)
                 {
-                    var nextLinkType = typeof(NextLinkAnnotated<>).MakeGenericType(body.GetType());
-                    var nextLink = $"{context.HttpContext.Request.GetDisplayUrlNoQueryString()}/{_store.BuildNextLinkForQuery(underlyingType!)}";
-                    
-                    // FIXME: Instancing.CreateInstance will crash on NextLinkAnnotated<> and Envelope<>,
-                    //        so we have to use manual reflection until that is resolved
-                    // var delta = Instancing.CreateInstance(typeof(NextLinkAnnotated<>).MakeGenericType(nextLinkType), body, nextLink);    
-                    var page = Activator.CreateInstance(nextLinkType, body, nextLink);
-                    
-                    result.Value = page;
+                    if (executed.HttpContext.Items.TryGetValue(Constants.QueryContextKey, out var queryValue) && queryValue is ResourceQuery query)
+                    {
+                        var offset = query.PageOffset.GetValueOrDefault();
+                        var size = query.PageSize.GetValueOrDefault(_options.Value.MaxPageSize.DefaultPageSize);
+                        var maxSize = query.TotalRows.GetValueOrDefault();
+
+                        var hasNextPage = offset + size < maxSize;
+                        var hasPrevPage = offset > 0;
+
+                        if (hasNextPage)
+                        { 
+                            var nextLinkType = typeof(NextLinkAnnotated<>).MakeGenericType(body.GetType());
+                            var nextPageHash = _store.BuildNextLinkForQuery(underlyingType!, query);
+                            var nextLink = $"{context.HttpContext.Request.GetDisplayUrlNoQueryString()}/nextPage/{nextPageHash}";
+                            var page = Activator.CreateInstance(nextLinkType, body, nextLink);
+                            result.Value = page;
+                        }
+
+                        if (_options.Value.AppendPagingLinkRelations)
+                        {
+                            AppendPageLinkRelations(executed, hasNextPage, hasPrevPage, size, offset, maxSize);
+                        }
+                    }
                 }
             }
+        }
+
+        private void AppendPageLinkRelations(ActionContext context, bool hasNextPage, bool hasPrevPage, int size, int offset, int maxSize)
+        {
+            Dictionary<string, StringValues> queryInfo;
+            if (!string.IsNullOrWhiteSpace(context.HttpContext.Request.QueryString.Value))
+            {
+                queryInfo = QueryHelpers.ParseNullableQuery(context.HttpContext.Request.QueryString.Value)
+                            ?? new Dictionary<string, StringValues>(4);
+            }
+            else
+            {
+                queryInfo = new Dictionary<string, StringValues>(4);
+            }
+
+            queryInfo[_options.Value.Skip.Operator] = "0";
+            queryInfo[_options.Value.Top.Operator] = size.ToString();
+            context.HttpContext.AppendLinkRelation(queryInfo, "first");
+
+            if (hasNextPage)
+            {
+                queryInfo[_options.Value.Skip.Operator] = (offset + size).ToString();
+                context.HttpContext.AppendLinkRelation(queryInfo, "next");
+            }
+
+            if (hasPrevPage)
+            {
+                queryInfo[_options.Value.Skip.Operator] = Math.Max(0, offset - size).ToString();
+                context.HttpContext.AppendLinkRelation(queryInfo, "prev");
+            }
+
+            queryInfo[_options.Value.Skip.Operator] = (maxSize - size).ToString();
+            context.HttpContext.AppendLinkRelation(queryInfo, "last");
         }
     }
 }

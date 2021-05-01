@@ -10,6 +10,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using BetterAPI.Enveloping;
 using BetterAPI.Reflection;
+using BetterAPI.Shaping;
 
 namespace BetterAPI.Paging
 {
@@ -106,13 +107,20 @@ namespace BetterAPI.Paging
         public override void Write(Utf8JsonWriter writer, NextLinkAnnotated<T> value, JsonSerializerOptions options)
         {
             writer.WriteStartObject();
+            if (value.Data is IShaped shaped)
+            {
+                shaped.WriteInner(writer, shaped, options);
+                WriteAnnotation(writer, value);
+            }
             if (value.Data is IAnnotated annotated)
             {
                 annotated.WriteInner(writer, annotated, options);
                 WriteAnnotation(writer, value);
             }
             else
+            {
                 WriteInner(_members, _reader, writer, value, options);
+            }
             writer.WriteEndObject();
         }
 

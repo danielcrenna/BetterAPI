@@ -53,6 +53,21 @@ namespace BetterAPI.Data
 
         #endregion
 
+        #region Nullable<Int32>
+
+        public static void WriteNullableInt32(this BinaryWriter bw, int? value)
+        {
+            if (bw.WriteBoolean(value.HasValue))
+                bw.Write(value!.Value);
+        }
+
+        public static int? ReadNullableInt32(this BinaryReader br)
+        {
+            return br.ReadBoolean() ? (int?) br.ReadInt32() : null;
+        }
+
+        #endregion
+
         #region VarBuffer
 
         public static void WriteVarBuffer(this BinaryWriter bw, byte[]? buffer)

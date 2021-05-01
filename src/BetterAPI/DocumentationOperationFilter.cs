@@ -18,6 +18,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi;
 using Microsoft.OpenApi.Any;
@@ -36,12 +37,14 @@ namespace BetterAPI
         private readonly TypeRegistry _registry;
         private readonly IStringLocalizer<DocumentationOperationFilter> _localizer;
         private readonly IOptionsMonitor<ApiOptions> _options;
+        private readonly ILogger<DocumentationOperationFilter> _logger;
 
-        public DocumentationOperationFilter(TypeRegistry registry, IStringLocalizer<DocumentationOperationFilter> localizer, IOptionsMonitor<ApiOptions> options)
+        public DocumentationOperationFilter(TypeRegistry registry, IStringLocalizer<DocumentationOperationFilter> localizer, IOptionsMonitor<ApiOptions> options, ILogger<DocumentationOperationFilter> logger)
         {
             _registry = registry;
             _localizer = localizer;
             _options = options;
+            _logger = logger;
         }
 
         public void Apply(OpenApiOperation operation, OperationFilterContext context)
@@ -201,14 +204,14 @@ namespace BetterAPI
             }
         }
 
-        private static void EnsureOperationsHaveIds(OpenApiOperation operation, OperationFilterContext context)
+        private void EnsureOperationsHaveIds(OpenApiOperation operation, OperationFilterContext context)
         {
             // Assign a unique operation ID if one wasn't set by the developer
             if (string.IsNullOrWhiteSpace(operation.OperationId))
                 operation.OperationId = CreateOperationId(context);
         }
 
-        private static string CreateOperationId(OperationFilterContext context)
+        private string CreateOperationId(OperationFilterContext context)
         {
             var method = context.MethodInfo;
 
@@ -219,17 +222,18 @@ namespace BetterAPI
 
             if (method.Name.StartsWith(Constants.Get))
                 sb.Append(Constants.Get);
-            if (method.Name.StartsWith(Constants.Create))
+            else if (method.Name.StartsWith(Constants.Create))
                 sb.Append(Constants.Create);
-            if (method.Name.StartsWith(Constants.Update))
+            else if (method.Name.StartsWith(Constants.Update))
                 sb.Append(Constants.Update);
-            if (method.Name.StartsWith(Constants.Delete))
+            else if (method.Name.StartsWith(Constants.Delete))
                 sb.Append(Constants.Delete);
 
             Type? type = default;
             var plural = false;
 
-            foreach (var producesResponseType in context.MethodInfo.GetCustomAttributes(true)
+            foreach (var producesResponseType in context.ApiDescription.ActionDescriptor.FilterDescriptors
+                .Select(x => x.Filter)
                 .OfType<ProducesResponseTypeAttribute>())
             {
                 if (producesResponseType.Type == typeof(void))
@@ -263,7 +267,14 @@ namespace BetterAPI
             if (parameters.Any(x => x.Name != null && x.Name.Equals(nameof(IResource.Id), StringComparison.OrdinalIgnoreCase)))
                 sb.Append("ById");
 
-            return sb.ToString();
+            if (parameters.Any(x => x.Name != null && x.Name.Equals("continuationToken", StringComparison.OrdinalIgnoreCase)))
+                sb.Append("NextPage");
+
+            var operationId = sb.ToString();
+
+            _logger.LogDebug("OperationId: " + operationId);
+
+            return operationId;
         }
 
         private void DocumentPrefer(OpenApiOperation operation)
@@ -282,7 +293,7 @@ namespace BetterAPI
         {
             if (context.ApiDescription.ActionDescriptor.EndpointMetadata.Any(x => x is DoNotHttpCacheAttribute))
                 return; // explicit opt-out
-
+            
             operation.Parameters.Add(new OpenApiParameter
             {
                 Name = ApiHeaderNames.IfNoneMatch,
@@ -379,12 +390,15 @@ namespace BetterAPI
             if (!context.ApiDescription.ActionDescriptor.IsCollectionQuery(out _))
                 return;
 
+            if (operation.OperationId.EndsWith("NextPage"))
+                return; // cannot sort an opaque query
+
             operation.Parameters.Add(new OpenApiParameter
             {
                 Name = _options.CurrentValue.Sort.Operator,
                 In = ParameterLocation.Query,
                 Description = _localizer.GetString("Apply a property-level sort to the collection query"),
-                Example = new OpenApiString($"{_options.CurrentValue.Sort.Operator}=id asc")
+                Example = new OpenApiString("id asc")
             });
         }
 
@@ -392,6 +406,9 @@ namespace BetterAPI
         {
             if (!context.ApiDescription.ActionDescriptor.IsCollectionQuery(out _))
                 return;
+
+            if (operation.OperationId.EndsWith("NextPage"))
+                return; // cannot filter an opaque query
 
             operation.Parameters.Add(new OpenApiParameter
             {
@@ -406,6 +423,9 @@ namespace BetterAPI
         {
             if (!context.ApiDescription.ActionDescriptor.IsCollectionQuery(out _))
                 return;
+
+            if (operation.OperationId.EndsWith("NextPage"))
+                return; // cannot page an opaque query
 
             operation.Parameters.Add(new OpenApiParameter
             {
@@ -458,6 +478,9 @@ namespace BetterAPI
         {
             if (!IsQuery(operation))
                 return;
+
+            if (operation.OperationId.EndsWith("NextPage"))
+                return; // cannot shape an opaque query
 
             operation.Parameters.Add(new OpenApiParameter
             {

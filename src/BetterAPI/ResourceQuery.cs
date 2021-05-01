@@ -12,14 +12,14 @@ namespace BetterAPI
 {
     public sealed class ResourceQuery
     {
-        public List<(AccessorMember, SortDirection)>? Sorting { get; set; } = default;
-        
-        public int? MaxPageSize { get; set; } = default;
         public int? PageOffset { get; set; } = 0;
         public int? PageSize { get; set; } = 0;
+        public int? MaxPageSize { get; set; } = default;
 
         public bool CountTotalRows { get; set; } = false;
         public int? TotalRows { get; set; } = default;
-        
+
+        public List<string>? Fields { get; set; } = default;
+        public List<(AccessorMember, SortDirection)>? Sorting { get; set; } = default;
     }
 }

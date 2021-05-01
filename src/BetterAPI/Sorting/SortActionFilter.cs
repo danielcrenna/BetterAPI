@@ -99,20 +99,20 @@ namespace BetterAPI.Sorting
                 if (members.TryGetValue(clause.Field, out var member) && !sortMap.Any(x => x.Item1.Name.Equals(clause.Field, StringComparison.OrdinalIgnoreCase)))
                     sortMap.Add((member, clause.Direction));
 
-            context.HttpContext.Items.Add(Constants.SortOperationContextKey, sortMap);
+            context.HttpContext.Items.Add(Constants.SortContextKey, sortMap);
                 
             var executed = await next();
 
-            if (!executed.HttpContext.Items.ContainsKey(Constants.SortOperationContextKey))
+            if (!executed.HttpContext.Items.ContainsKey(Constants.SortContextKey))
                 return; // the underlying store handled the request
 
-            executed.HttpContext.Items.Remove(Constants.SortOperationContextKey);
+            executed.HttpContext.Items.Remove(Constants.SortContextKey);
 
             _logger.LogWarning(_localizer.GetString("Sorting operation has fallen back to object-level sorting. " +
                                 "This means that sorting was not performed by the underlying data store, and is not " +
                                 "likely consistent across an entire collection."));
 
-            if (executed.Result is OkObjectResult result)
+            if (executed.Result is OkObjectResult result && !(result.Value is ProblemDetails))
             {
                 var collection = executed.GetResultBody(result, out var settable);
                 var method = BuilderMethod.MakeGenericMethod(underlyingType) ?? throw new NullReferenceException();

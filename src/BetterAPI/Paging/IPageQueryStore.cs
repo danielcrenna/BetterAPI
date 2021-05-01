@@ -10,6 +10,7 @@ namespace BetterAPI.Paging
 {
     public interface IPageQueryStore
     {
-        string? BuildNextLinkForQuery(Type context);
+        string? BuildNextLinkForQuery(Type context, ResourceQuery query);
+        ResourceQuery? GetQueryFromHash(string queryHash);
     }
 }

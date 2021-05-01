@@ -5,10 +5,13 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
+using BetterAPI.Reflection;
 
 namespace BetterAPI.Shaping
 {
-    public readonly struct ShapedData<T> : IShapedData
+    public readonly struct ShapedData<T> : IShaped
     {
         public T Data { get; }
         public IList<string> Fields { get; }
@@ -26,5 +29,11 @@ namespace BetterAPI.Shaping
         }
 
         public object? Body => Data;
+
+        public void WriteInner(Utf8JsonWriter writer, IShaped value, JsonSerializerOptions options)
+        {
+            var reader = ReadAccessor.Create(typeof(T), AccessorMemberTypes.Properties, AccessorMemberScope.Public, out var members);
+            JsonShapedDataConverter<T>.WriteInner(members, reader, writer, value, options);
+        }
     }
 }

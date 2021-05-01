@@ -37,6 +37,6 @@ namespace Demo
         public string? Summary { get; set; }
 
         [ProtectedByPolicy("TopSecret")]
-        public string SecretMessage { get; set; } = "ThisIsTopSecret!";
+        public string SecretMessage { get; set; }
     }
 }

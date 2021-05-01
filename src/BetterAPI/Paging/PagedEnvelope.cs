@@ -15,6 +15,7 @@ namespace BetterAPI.Paging
         public CountEnvelope()
         {
             Value = Enumerable.Empty<T>().ToList();
+            MaxItems = 0;
         }
 
         public CountEnvelope(IEnumerable<T> value, int maxItems)

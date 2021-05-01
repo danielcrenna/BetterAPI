@@ -7,6 +7,7 @@
 using System;
 using System.Threading.Tasks;
 using BetterAPI.Extensions;
+using BetterAPI.Shaping;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 
@@ -18,10 +19,11 @@ namespace BetterAPI.Enveloping
         {
             var executed = await next();
 
-            if (executed.Result is ObjectResult result && !(result.Value is ProblemDetails) && context.ActionDescriptor.ReturnsEnumerableType(out var collectionType))
+            if (executed.Result is ObjectResult result && !(result.Value is ProblemDetails) &&
+                context.ActionDescriptor.ReturnsEnumerableType(out var collectionType))
             {
                 var body = executed.GetResultBody(result, out var settable);
-                if (settable && !(body is IEnveloped))
+                if (settable && !(body is IEnveloped) && !(body is IShaped))
                 {
                     var type = typeof(Envelope<>).MakeGenericType(collectionType!);
                     var envelope = Activator.CreateInstance(type, body);

@@ -4,6 +4,8 @@ using System.ComponentModel.DataAnnotations;
 using System.Net;
 using System.Threading;
 using BetterAPI.Caching;
+using BetterAPI.Data;
+using BetterAPI.Paging;
 using BetterAPI.Reflection;
 using BetterAPI.Sorting;
 using Microsoft.AspNetCore.Http;
@@ -21,14 +23,16 @@ namespace BetterAPI
     {
         private readonly IStringLocalizer<ResourceController<T>> _localizer;
         private readonly IResourceDataService<T> _service;
+        private readonly IPageQueryStore _store;
         private readonly IEventBroadcaster _events;
         private readonly IOptionsSnapshot<ApiOptions> _options;
 
-        public ResourceController(IStringLocalizer<ResourceController<T>> localizer, IResourceDataService<T> service, IEventBroadcaster events, IOptionsSnapshot<ApiOptions> options,
+        public ResourceController(IStringLocalizer<ResourceController<T>> localizer, IResourceDataService<T> service, IPageQueryStore store, IEventBroadcaster events, IOptionsSnapshot<ApiOptions> options,
             ILogger<ResourceController> logger) : base(localizer, options, logger)
         {
             _localizer = localizer;
             _service = service;
+            _store = store;
             _events = events;
             _options = options;
         }
@@ -48,20 +52,45 @@ namespace BetterAPI
             Response.Headers.TryAdd(ApiHeaderNames.Link, $"<{Request.Scheme}://{Request.Host}/{Options.Value.OpenApiUiRoutePrefix?.TrimStart('/')}>; rel=\"help\"");
         }
 
+        [Display(Description = "Returns the next page from an opaque continuation token")]
+        [HttpGet("nextPage/{continuationToken}")]
+        public IActionResult GetNextPage(ApiVersion apiVersion, string continuationToken, CancellationToken cancellationToken)
+        {
+            // suppress any warnings since we rely on the URL itself, not a user-provided query
+            HttpContext.Items.Remove(Constants.SortContextKey);
+            HttpContext.Items.Remove(Constants.CountContextKey);
+            HttpContext.Items.Remove(Constants.SkipContextKey);
+            HttpContext.Items.Remove(Constants.TopContextKey);
+            HttpContext.Items.Remove(Constants.MaxPageSizeContextKey);
+            HttpContext.Items.Remove(Constants.IncludeContextKey);
+
+            var query = _store.GetQueryFromHash(continuationToken);
+            if (query == default)
+                return NotFound();
+
+            query.PageOffset += query.PageSize.GetValueOrDefault(_options.Value.Paging.MaxPageSize.DefaultPageSize);
+
+            var results = Query(query, cancellationToken);
+            return Ok(results);
+        }
+
         [Display(Description = "Returns all saved resources, with optional sorting, filtering, and paging criteria")]
         [HttpGet]
         public IActionResult Get(ApiVersion apiVersion, CancellationToken cancellationToken)
         {
             var query = new ResourceQuery();
             
-            if (_service.SupportsSorting && HttpContext.Items.TryGetValue(Constants.SortOperationContextKey, out var sortMap) && sortMap != null)
+            if (_service.SupportsSort && HttpContext.Items.TryGetValue(Constants.SortContextKey, out var sortMap) && sortMap != null)
             {
                 query.Sorting = (List<(AccessorMember, SortDirection)>) sortMap;
-                HttpContext.Items.Remove(Constants.SortOperationContextKey);
+                HttpContext.Items.Remove(Constants.SortContextKey);
             }
 
-            if (_service.SupportsCount && HttpContext.Items.TryGetValue(Constants.CountContextKey, out var countValue) && countValue is bool count && count)
+            if (_service.SupportsCount)
             {
+                // We don't check whether the request asked for counting, because we need counting to determine next page results either way,
+                // so we'll attempt to always count the total records if it's supported.
+
                 query.CountTotalRows = true;
                 HttpContext.Items.Remove(Constants.CountContextKey);
             }
@@ -89,6 +118,12 @@ namespace BetterAPI
             {
                 query.MaxPageSize = maxPageSize;
                 HttpContext.Items.Remove(Constants.MaxPageSizeContextKey);
+            }
+
+            if (_service.SupportsInclude && HttpContext.Items.TryGetValue(Constants.IncludeContextKey, out var includeValue) && includeValue is List<string> include)
+            {
+                query.Fields = include;
+                HttpContext.Items.Remove(Constants.IncludeContextKey);
             }
 
             // If no $skip is provided, assume the query is for the first page
@@ -120,6 +155,12 @@ namespace BetterAPI
                     query.PageSize, _options.Value.Paging.MaxPageSize.MaxPageSize);
             }
 
+            var results = Query(query, cancellationToken);
+            return Ok(results);
+        }
+
+        private IEnumerable<T> Query(ResourceQuery query, CancellationToken cancellationToken)
+        {
             IEnumerable<T> results = _service.Get(query, cancellationToken);
 
             //
@@ -131,7 +172,9 @@ namespace BetterAPI
                 HttpContext.Items.TryAdd(Constants.CountResultContextKey, query.TotalRows.Value);
             }
 
-            return Ok(results);
+            HttpContext.Items.TryAdd(Constants.QueryContextKey, query);
+            
+            return results;
         }
 
         [HttpGet("{id}.{format?}")]

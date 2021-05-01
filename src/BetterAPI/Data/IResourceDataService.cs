@@ -8,7 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 
-namespace BetterAPI
+namespace BetterAPI.Data
 {
     /// <summary>
     /// Describes the contract required to fulfill API guidelines data operations against resources
@@ -21,11 +21,14 @@ namespace BetterAPI
         bool TryAdd(T model);
         bool TryDeleteById(Guid id, out T? deleted, out bool error);
 
+        bool SupportsSort => false;
 
-        bool SupportsSorting => false;
         bool SupportsMaxPageSize  => false;
         bool SupportsCount => false;
         bool SupportsSkip => false;
         bool SupportsTop => false;
+
+        bool SupportsInclude => false;
+        bool SupportsExclude => false;
     }
 }

@@ -12,7 +12,7 @@ namespace BetterAPI.Caching
     {
         bool TryGetETag(string cacheKey, out string? etag);
         bool TryGetLastModified(string cacheKey, out DateTimeOffset lastModified);
-        void Save(string displayUrl, string etag);
-        void Save(string displayUrl, DateTimeOffset lastModified);
+        bool Save(string displayUrl, string etag);
+        bool Save(string displayUrl, DateTimeOffset lastModified);
     }
 }

@@ -19,6 +19,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 
@@ -26,21 +28,26 @@ namespace BetterAPI.Caching
 {
     public sealed class HttpCacheActionFilter : IAsyncActionFilter
     {
+        private readonly IStringLocalizer<HttpCacheActionFilter> _localizer;
         private readonly IHttpCache _cache;
-        private readonly JsonSerializerOptions _options;
+        private readonly IOptions<JsonOptions> _options;
         private readonly IOptionsSnapshot<ProblemDetailsOptions> _problemDetailOptions;
+        private readonly ILogger<HttpCacheActionFilter> _logger;
 
-        public HttpCacheActionFilter(IHttpCache cache, JsonSerializerOptions options, IOptionsSnapshot<ProblemDetailsOptions> problemDetailOptions)
+        public HttpCacheActionFilter(IStringLocalizer<HttpCacheActionFilter> localizer, IHttpCache cache, IOptions<JsonOptions> options, IOptionsSnapshot<ProblemDetailsOptions> problemDetailOptions, ILogger<HttpCacheActionFilter> logger)
         {
+            _localizer = localizer;
             _cache = cache;
             _options = options;
             _problemDetailOptions = problemDetailOptions;
+            _logger = logger;
         }
 
         public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
         {
             if (context.ActionDescriptor.EndpointMetadata.Any(x => x is DoNotHttpCacheAttribute))
             {
+                _logger.LogDebug(_localizer.GetString("Skipping HTTP caching because the action has opted out."));
                 await next.Invoke();
                 return;
             }
@@ -53,12 +60,9 @@ namespace BetterAPI.Caching
             else
                 TryHandleUnsafeRequests(context, request, displayUrl);
 
-            if (context.Result is StatusCodeResult)
-                return; // short-circuit
-
             var executed = await next.Invoke();
 
-            if (executed.Result is ObjectResult result)
+            if (executed.Result is ObjectResult result && !(result.Value is ProblemDetails))
             {
                 var body = executed.GetResultBody(result);
 
@@ -83,7 +87,10 @@ namespace BetterAPI.Caching
                 //|| NotModifiedSinceFailed(request, displayUrl)
                 //|| UnmodifiedSinceFailed(request, displayUrl)
             )
+            {
                 context.Result = new StatusCodeResult((int) HttpStatusCode.NotModified);
+                _logger.LogDebug(_localizer.GetString("HTTP cache short-circuited request ({StatusCode})"), (int) HttpStatusCode.NotModified);
+            }
         }
 
         private void TryHandleUnsafeRequests(ActionExecutingContext context, HttpRequest request, string displayUrl)
@@ -96,7 +103,10 @@ namespace BetterAPI.Caching
                 //|| NotModifiedSinceFailed(request, displayUrl) 
                 //|| UnmodifiedSinceFailed(request, displayUrl)
             )
+            {
                 context.Result = PreconditionFailed(displayUrl);
+                _logger.LogDebug(_localizer.GetString("HTTP cache short-circuited request ({StatusCode})"), (int) HttpStatusCode.PreconditionFailed);
+            }
         }
 
         private void TryHandleSafeRequests(ActionExecutedContext context, HttpRequest request, string displayUrl)
@@ -106,7 +116,11 @@ namespace BetterAPI.Caching
                 //|| NotModifiedSinceFailed(request, displayUrl) 
                 //|| UnmodifiedSinceFailed(request, displayUrl)
             )
-                context.Result = new StatusCodeResult((int) HttpStatusCode.NotModified);
+            {
+                context.Result = new StatusCodeResult((int)HttpStatusCode.NotModified);
+                _logger.LogDebug(_localizer.GetString("HTTP cache short-circuited request ({StatusCode})"), (int) HttpStatusCode.NotModified);
+            }
+
         }
 
         private void TryHandleUnsafeRequests(ActionExecutedContext context, HttpRequest request, string displayUrl)
@@ -116,7 +130,10 @@ namespace BetterAPI.Caching
                 //|| NotModifiedSinceFailed(request, displayUrl) 
                 //|| UnmodifiedSinceFailed(request, displayUrl)
             )
+            {
                 context.Result = PreconditionFailed(displayUrl);
+                _logger.LogDebug(_localizer.GetString("HTTP cache short-circuited request ({StatusCode})"), (int) HttpStatusCode.PreconditionFailed);
+            }
         }
 
         private ObjectResult PreconditionFailed(string displayUrl)
@@ -127,8 +144,8 @@ namespace BetterAPI.Caching
             {
                 Status = statusCode,
                 Type = $"{_problemDetailOptions.Value.BaseUrl}{statusCode}",
-                Title = "Precondition Failed",
-                Detail = "The operation was aborted because it had unmet pre-conditions.",
+                Title = _localizer.GetString("Precondition Failed"),
+                Detail = _localizer.GetString("The operation was aborted because it had unmet pre-conditions."),
                 Instance = displayUrl
             });
         }
@@ -149,7 +166,7 @@ namespace BetterAPI.Caching
             else if(type.ImplementsGeneric(typeof(ShapedData<>)))
             {
                 type = type.GetGenericArguments()[0];
-                body = ((IShapedData) body).Body;
+                body = ((IShaped) body).Body;
                 GenerateAndAppendLastModified(context, body, type, displayUrl);
             }
             else
@@ -160,10 +177,11 @@ namespace BetterAPI.Caching
 
         private void GenerateAndAppendETag(ActionContext context, object body, string displayUrl)
         {
-            var json = JsonSerializer.Serialize(body, _options);
+            var json = JsonSerializer.Serialize(body, _options.Value.JsonSerializerOptions);
             var etag = ETagGenerator.Generate(Encoding.UTF8.GetBytes(json));
             context.HttpContext.Response.Headers.Add(ApiHeaderNames.ETag, new[] {etag.Value});
-            _cache.Save(displayUrl, etag.Value);
+            if(_cache.Save(displayUrl, etag.Value))
+                _logger.LogDebug(_localizer.GetString("HTTP caching with ETag '{Etag}'"), etag.Value);
         }
 
         private DateTimeOffset? GenerateAndAppendLastModified(ActionContext context, object? body, Type type,
@@ -197,9 +215,14 @@ namespace BetterAPI.Caching
             if (!changed || !lastModified.HasValue)
                 return lastModified;
 
+            var lastModifiedValue = lastModified.Value.ToString("R");
+
             context.HttpContext.Response.Headers.Remove(ApiHeaderNames.LastModified);
-            context.HttpContext.Response.Headers.Add(ApiHeaderNames.LastModified, lastModified.Value.ToString("R"));
-            _cache.Save(displayUrl, lastModified.Value);
+            context.HttpContext.Response.Headers.Add(ApiHeaderNames.LastModified, lastModifiedValue);
+
+            if(_cache.Save(displayUrl, lastModified.Value))
+                _logger.LogDebug(_localizer.GetString("HTTP caching with Last-Modified '{LastModified}'"), lastModifiedValue);
+
             return lastModified;
         }
 

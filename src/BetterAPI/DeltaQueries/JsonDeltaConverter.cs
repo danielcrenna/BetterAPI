@@ -10,6 +10,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using BetterAPI.Enveloping;
 using BetterAPI.Reflection;
+using BetterAPI.Shaping;
 
 namespace BetterAPI.DeltaQueries
 {
@@ -105,13 +106,20 @@ namespace BetterAPI.DeltaQueries
         public override void Write(Utf8JsonWriter writer, DeltaAnnotated<T> value, JsonSerializerOptions options)
         {
             writer.WriteStartObject();
-            if (value.Data is IAnnotated annotated)
+            if (value.Data is IShaped shaped)
+            {
+                shaped.WriteInner(writer, shaped, options);
+                WriteAnnotation(writer, value);
+            }
+            else if (value.Data is IAnnotated annotated)
             {
                 annotated.WriteInner(writer, annotated, options);
                 WriteAnnotation(writer, value);
             }
             else
+            {
                 WriteInner(_members, _reader, writer, value, options);
+            }
             writer.WriteEndObject();
         }
 
