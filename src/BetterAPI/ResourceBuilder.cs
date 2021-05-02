@@ -36,7 +36,7 @@ namespace BetterAPI
             //Services.TryAddSingleton<MemoryResourceDataService<T>>();
             //Services.TryAddSingleton<IResourceDataService<T>>(r => r.GetRequiredService<MemoryResourceDataService<T>>());
 
-            Services.TryAddSingleton(r => new SqliteResourceDataService<T>("resources.db", 1, r.GetRequiredService<IOptionsMonitor<PagingOptions>>(), r.GetRequiredService<ILogger<SqliteResourceDataService<T>>>()));
+            Services.TryAddSingleton(r => new SqliteResourceDataService<T>("resources.db", 1,  r.GetRequiredService<ILogger<SqliteResourceDataService<T>>>()));
             Services.TryAddSingleton<IResourceDataService<T>>(r => r.GetRequiredService<SqliteResourceDataService<T>>());
             return this;
         }

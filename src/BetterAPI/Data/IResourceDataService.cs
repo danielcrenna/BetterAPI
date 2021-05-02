@@ -27,8 +27,10 @@ namespace BetterAPI.Data
         bool SupportsCount => false;
         bool SupportsSkip => false;
         bool SupportsTop => false;
+        bool SupportsSince => false;
 
-        bool SupportsInclude => false;
-        bool SupportsExclude => false;
+        bool SupportsSearch => false;
+
+        bool SupportsShaping => false;
     }
 }

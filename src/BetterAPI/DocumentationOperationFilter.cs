@@ -173,6 +173,15 @@ namespace BetterAPI
                         response.Description = _localizer.GetString("Requested page size was larger than the server's maximum page size.");
                     }
                 }
+
+                // FIXME: ProblemDetails should use application/problem+json as the media type.
+                if (statusCode == StatusCodes.Status500InternalServerError.ToString())
+                {
+                    if (response.Description == null || response.Description == _localizer.GetString("Server Error"))
+                    {
+                        response.Description = _localizer.GetString("An unexpected error occurred saving this resource. An error was logged. Please try again later.");
+                    }
+                }
             }
         }
 

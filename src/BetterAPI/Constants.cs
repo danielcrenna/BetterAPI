@@ -25,8 +25,9 @@ namespace BetterAPI
         public const string CountContextKey = "count";
         public const string CountResultContextKey = "countresult";
         public const string SkipContextKey = "skip";
+        public const string SinceContextKey = "since";
         public const string TopContextKey = "top";
-        public const string IncludeContextKey = "include";
+        public const string ShapingContextKey = "shaping";
         public const string QueryContextKey = "query";
 
         public static class Prefer

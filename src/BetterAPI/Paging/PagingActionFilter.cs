@@ -6,7 +6,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Threading;
 using System.Threading.Tasks;
 using BetterAPI.Extensions;
 using Microsoft.AspNetCore.Mvc;

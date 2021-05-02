@@ -10,16 +10,16 @@ using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
-using BetterAPI.Paging;
+using BetterAPI.Caching;
 using BetterAPI.Reflection;
 using BetterAPI.Sorting;
 using Dapper;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace BetterAPI.Data
 {
@@ -27,7 +27,6 @@ namespace BetterAPI.Data
         where T : class, IResource
     {
         private readonly int _revision;
-        private readonly IOptionsMonitor<PagingOptions> _options;
         private readonly ILogger<SqliteResourceDataService<T>> _logger;
         private readonly AccessorMembers _members;
         private readonly ITypeReadAccessor _reads;
@@ -38,18 +37,17 @@ namespace BetterAPI.Data
         public bool SupportsCount => true;
         public bool SupportsSkip => true;
         public bool SupportsTop => true;
-        public bool SupportsInclude => true;
-        public bool SupportsExclude => true;
+        public bool SupportsShaping => true;
+        public bool SupportsSearch => true;
 
         static SqliteResourceDataService()
         {
             SqlMapper.AddTypeHandler(new GuidTypeHandler());
         }
 
-        public SqliteResourceDataService(string filePath, int revision, IOptionsMonitor<PagingOptions> options, ILogger<SqliteResourceDataService<T>> logger)
+        public SqliteResourceDataService(string filePath, int revision, ILogger<SqliteResourceDataService<T>> logger)
         {
             _revision = revision;
-            _options = options;
             _logger = logger;
 
             _reads = ReadAccessor.Create(typeof(T), AccessorMemberTypes.Properties, AccessorMemberScope.Public, out _members);
@@ -218,8 +216,9 @@ namespace BetterAPI.Data
 
             try
             {
+                // must commit even if we don't create anything, or we'll lock the db
                 Visit(db, t);
-                t.Commit();
+                t.Commit(); 
             }
             catch (Exception e)
             {
@@ -236,6 +235,7 @@ namespace BetterAPI.Data
                     "WHERE type='table' " +
                     "AND name LIKE :name " +
                     "ORDER BY name DESC ", new {name = $"{_reads.Type.Name}%"}, t)
+                .Where(x => !x.name.Contains("_Search"))
                 .AsList();
 
             int revision;
@@ -263,132 +263,216 @@ namespace BetterAPI.Data
 
         private void CreateTableRevision(IDbConnection db, IDbTransaction t, int revision)
         {
-            var sql = CreateTableSql(revision);
-            db.Execute(sql, transaction: t);
+            db.Execute(CreateTableSql(revision, false), transaction: t);
+
+            foreach (var member in _members)
+            {
+                if (member.Name.Equals(nameof(IResource.Id)))
+                {
+                    IndexMember(db, t, revision, member, true);
+                }
+
+                if (member.HasAttribute<IndexAttribute>() || member.HasAttribute<LastModifiedAttribute>())
+                {
+                    IndexMember(db, t, revision, member, false);
+                }
+            }
+
+            if (SupportsSearch)
+            {
+                // See: https://sqlite.org/fts5.html
+                db.Execute(CreateTableSql(revision, true), transaction: t);
+            }
+        }
+
+        private void IndexMember(IDbConnection db, IDbTransaction t, int revision, AccessorMember member, bool unique)
+        {
+            db.Execute(CreateIndexSql(revision, member, unique), transaction: t);
+        }
+
+        private string CreateIndexSql(int revision, AccessorMember member, bool unique)
+        {
+            var sb = new StringBuilder();
+            sb.Append("CREATE");
+            if (unique)
+            {
+                sb.Append(' ');
+                sb.Append("UNIQUE");
+            }
+            sb.Append(' ');
+            sb.Append("INDEX");
+            sb.Append(' ');
+            sb.Append('"');
+            sb.Append(_reads.Type.Name);
+            sb.Append('_');
+            sb.Append('V');
+            sb.Append(revision);
+            sb.Append("_");
+            sb.Append(member.Name);
+            sb.Append('"');
+            sb.Append(' ');
+            sb.Append("ON");
+            sb.Append(' ');
+            sb.Append(_reads.Type.Name);
+            sb.Append("_V");
+            sb.Append(revision);
+            sb.Append('(');
+            sb.Append('"');
+            sb.Append(member.Name);
+            sb.Append('"');
+            sb.Append(')');
+            sb.Append(';');
+
+            var indexSql = sb.ToString();
+            return indexSql;
         }
 
         private void InsertRecord(T resource, int revision, IDbConnection db, IDbTransaction t)
         {
             var previous = revision == 1 ? 1 : revision - 1;
 
-            var sequence =
-                db.QuerySingleOrDefault<long?>($"SELECT MAX(\"Sequence\") FROM \"{_reads.Type.Name}_V{previous}\"",
-                        transaction: t)
-                    .GetValueOrDefault(0);
+            var sequence = db.QuerySingleOrDefault<long?>(
+                $"SELECT MAX(\"Sequence\") FROM \"{_reads.Type.Name}_V{revision}\"",
+                transaction: t);
 
+            // account for the corner case of multiple revisions before the first insertion
+            while(previous != 1 && !sequence.HasValue)
+            {
+                sequence = db.QuerySingleOrDefault<long?>(
+                    $"SELECT MAX(\"Sequence\") FROM \"{_reads.Type.Name}_V{previous}\"",
+                    transaction: t);
+
+                previous--;
+            }
+
+            sequence = sequence.GetValueOrDefault(0);
             sequence++;
 
-            if(resource.Id == Guid.Empty)
-                _writes.TrySetValue(resource, nameof(IResource.Id), Guid.NewGuid());
+            
+            var hash = InsertSql(resource, revision, sequence, false, out string sql);
+            db.Execute(sql, hash, t);
 
-            var insert = new StringBuilder();
-            insert.Append("INSERT INTO '");
-            insert.Append(_reads.Type.Name);
-            insert.Append("_V");
-            insert.Append(revision);
-            insert.Append("' (");
+            if (SupportsSearch)
+            {
+                hash = InsertSql(resource, revision, sequence, true, out sql);
+                db.Execute(sql, hash, t);
+            }
+        }
+
+        private Dictionary<string, object> InsertSql(T resource, int revision, long? sequence, bool fts, out string sql)
+        {
+            var sb = new StringBuilder();
+            sb.Append("INSERT INTO '");
+            sb.Append(_reads.Type.Name);
+            sb.Append("_V");
+            sb.Append(revision);
+            if (fts)
+            {
+                sb.Append('_');
+                sb.Append("Search");
+            }
+            sb.Append("' (");
             for (var i = 0; i < _members.Count; i++)
             {
                 if (i != 0)
-                    insert.Append(", ");
+                    sb.Append(", ");
                 var column = _members[i];
-                insert.Append("\"");
-                insert.Append(column.Name);
-                insert.Append("\"");
+                sb.Append("\"");
+                sb.Append(column.Name);
+                sb.Append("\"");
             }
-
-            insert.Append(", \"Sequence\") VALUES (");
+            sb.Append(", \"Sequence\") VALUES (");
             for (var i = 0; i < _members.Count; i++)
             {
                 if (i != 0)
-                    insert.Append(", ");
+                    sb.Append(", ");
                 var column = _members[i];
-                insert.Append(":");
-                insert.Append(column.Name);
+                sb.Append(":");
+                sb.Append(column.Name);
             }
+            sb.Append(", :Sequence)");
+            sql = sb.ToString();
 
-            insert.Append(", :Sequence)");
-
-            var hash = new Dictionary<string, object> {{"Sequence", sequence}};
+            var hash = new Dictionary<string, object> {{"Sequence", sequence!}};
             foreach (var member in _members)
             {
-                if(_reads.TryGetValue(resource, member.Name, out var value))
+                if (!member.CanRead)
+                    continue;
+                if (_reads.TryGetValue(resource, member.Name, out var value))
                     hash.Add(member.Name, value);
             }
-
-            var sql = insert.ToString();
-            db.Execute(sql, hash, t);
+            return hash;
         }
 
         private void RebuildView(IDbConnection db, IDbTransaction t, IEnumerable<TableInfo> tableInfoList, int revision)
         {
             db.Execute($"DROP VIEW IF EXISTS \"{_reads.Type.Name}\"");
 
-            var view = new StringBuilder();
-            view.Append("CREATE VIEW \"");
-            view.Append(_reads.Type.Name);
-            view.Append("\" (");
+            var sb = new StringBuilder();
+            sb.Append("CREATE VIEW \"");
+            sb.Append(_reads.Type.Name);
+            sb.Append("\" (");
             for (var i = 0; i < _members.Count; i++)
             {
                 if (i != 0)
-                    view.Append(", ");
+                    sb.Append(", ");
                 var column = _members[i];
-                view.Append("\"");
-                view.Append(column.Name);
-                view.Append("\"");
+                sb.Append("\"");
+                sb.Append(column.Name);
+                sb.Append("\"");
             }
 
-            view.Append(", \"Sequence\") AS SELECT ");
+            sb.Append(", \"Sequence\") AS SELECT ");
             for (var i = 0; i < _members.Count; i++)
             {
                 if (i != 0)
-                    view.Append(", ");
+                    sb.Append(", ");
                 var column = _members[i];
-                view.Append("\"");
-                view.Append(column.Name);
-                view.Append("\"");
+                sb.Append("\"");
+                sb.Append(column.Name);
+                sb.Append("\"");
             }
 
-            view.Append(", \"Sequence\" FROM \"");
-            view.Append(_reads.Type.Name);
-            view.Append("_V");
-            view.Append(revision);
-            view.Append("\" ");
+            sb.Append(", \"Sequence\" FROM \"");
+            sb.Append(_reads.Type.Name);
+            sb.Append("_V");
+            sb.Append(revision);
+            sb.Append("\" ");
 
             foreach (var entry in tableInfoList)
             {
                 var hash = BuildSqlHash(entry);
 
-                view.Append("UNION SELECT ");
+                sb.Append("UNION SELECT ");
                 var j = 0;
                 foreach (var column in _members)
                 {
                     if (j != 0)
-                        view.Append(", ");
+                        sb.Append(", ");
 
                     if (!hash.ContainsKey(column.Name))
                     {
-                        view.Append(ResolveColumnDefaultValue(column));
-                        view.Append(" AS \"");
-                        view.Append(column.Name);
-                        view.Append("\"");
+                        sb.Append(ResolveColumnDefaultValue(column));
+                        sb.Append(" AS \"");
+                        sb.Append(column.Name);
+                        sb.Append("\"");
                         j++;
                         continue;
                     }
 
-                    view.Append("\"");
-                    view.Append(column.Name);
-                    view.Append("\"");
+                    sb.Append("\"");
+                    sb.Append(column.Name);
+                    sb.Append("\"");
                     j++;
                 }
 
-                view.Append(", \"Sequence\" FROM \"");
-                view.Append(entry.name);
-                view.Append("\" ");
+                sb.Append(", \"Sequence\" FROM \"");
+                sb.Append(entry.name);
+                sb.Append("\" ");
             }
 
-            view.Append(" ORDER BY \"Sequence\" ASC ");
-            var viewSql = view.ToString();
+            sb.Append(" ORDER BY \"Sequence\" ASC ");
+            var viewSql = sb.ToString();
             db.Execute(viewSql, transaction: t);
         }
 
@@ -413,33 +497,80 @@ namespace BetterAPI.Data
             return sqlHash;
         }
 
-        private string CreateTableSql(int revision)
+        private string CreateTableSql(int revision, bool fts)
         {
-            var create = new StringBuilder();
-            create.Append("CREATE TABLE \"");
-            create.Append(_reads.Type.Name);
-            create.Append("_V");
-            create.Append(revision);
-            create.Append("\" (");
+            var sb = new StringBuilder();
+            sb.Append("CREATE");
+            if (fts)
+            {
+                sb.Append(' ');
+                sb.Append("VIRTUAL");
+            }
+            sb.Append(' ');
+            sb.Append("TABLE");
+            sb.Append(' ');
+            sb.Append('"');
+            sb.Append(_reads.Type.Name);
+            sb.Append("_V");
+            sb.Append(revision);
+            if (fts)
+            {
+                sb.Append('_');
+                sb.Append("Search");
+            }
+            sb.Append('"');
+            sb.Append(' ');
+            if (fts)
+            {
+                sb.Append("USING");
+                sb.Append(' ');
+                sb.Append("FTS5");
+                sb.Append(' ');
+            }
+            sb.Append('(');
             for (var i = 0; i < _members.Count; i++)
             {
                 if (i != 0)
-                    create.Append(", ");
+                    sb.Append(", ");
+
                 var column = _members[i];
-                create.Append(" \"");
-                create.Append(column.Name);
-                create.Append("\" ");
-                create.Append(ResolveColumnTypeToDbType(column));
-                create.Append(" DEFAULT ");
-                create.Append(ResolveColumnDefaultValue(column));
+                sb.Append(" \"");
+                sb.Append(column.Name);
+                sb.Append("\" ");
+
+                if (!fts)
+                {
+                    sb.Append(ResolveColumnTypeToDbType(column));
+                    sb.Append(" DEFAULT ");
+                    sb.Append(ResolveColumnDefaultValue(column));
+                }
             }
 
             // See: https://www.sqlite.org/lang_createtable.html#rowid
             // - "INTEGER PRIMARY KEY" is faster when explicit
             // - don't use ROWID, as our sequence spans multiple tables, and ROWID uses AUTO INCREMENT
-            create.Append(", \"Sequence\" INTEGER PRIMARY KEY) WITHOUT ROWID");
-            var createSql = create.ToString();
-            return createSql;
+            sb.Append(',');
+            sb.Append(' ');
+            sb.Append('"');
+            sb.Append("Sequence");
+            sb.Append('"');
+            if (!fts)
+            {
+                sb.Append(' ');
+                sb.Append("INTEGER PRIMARY KEY");
+            }
+            sb.Append(')');
+
+            // https://www.sqlite.org/vtab.html
+            // SEE: "2.1.3. WITHOUT ROWID Virtual Tables"
+            // This should be possible since we have a single PK, but it crashes
+            if (!fts)
+            {
+                sb.Append(" WITHOUT ROWID");
+            }
+
+            var sql = sb.ToString();
+            return sql;
         }
 
         private static string ResolveColumnTypeToDbType(AccessorMember member)

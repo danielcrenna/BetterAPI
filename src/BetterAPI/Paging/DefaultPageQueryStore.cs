@@ -11,7 +11,6 @@ using System.Text;
 using BetterAPI.Data;
 using BetterAPI.Reflection;
 using BetterAPI.Sorting;
-using HashidsNet;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
 

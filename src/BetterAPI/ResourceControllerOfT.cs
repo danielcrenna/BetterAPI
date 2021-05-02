@@ -62,7 +62,7 @@ namespace BetterAPI
             HttpContext.Items.Remove(Constants.SkipContextKey);
             HttpContext.Items.Remove(Constants.TopContextKey);
             HttpContext.Items.Remove(Constants.MaxPageSizeContextKey);
-            HttpContext.Items.Remove(Constants.IncludeContextKey);
+            HttpContext.Items.Remove(Constants.ShapingContextKey);
 
             var query = _store.GetQueryFromHash(continuationToken);
             if (query == default)
@@ -120,10 +120,10 @@ namespace BetterAPI
                 HttpContext.Items.Remove(Constants.MaxPageSizeContextKey);
             }
 
-            if (_service.SupportsInclude && HttpContext.Items.TryGetValue(Constants.IncludeContextKey, out var includeValue) && includeValue is List<string> include)
+            if (_service.SupportsShaping && HttpContext.Items.TryGetValue(Constants.ShapingContextKey, out var shapingValue) && shapingValue is List<string> include)
             {
                 query.Fields = include;
-                HttpContext.Items.Remove(Constants.IncludeContextKey);
+                HttpContext.Items.Remove(Constants.ShapingContextKey);
             }
 
             // If no $skip is provided, assume the query is for the first page
@@ -135,7 +135,7 @@ namespace BetterAPI
             //
             // Interpretation:
             // - If the client specifies $top, use $top as the page size.
-            // - If the client omits $top but specified $maxpagesize, use the smaller of $maxpagesize and server default page size.
+            // - If the client omits $top but specified $maxpagesize, use the smaller of $maxpagesize and the server's default page size.
             if (!query.PageSize.HasValue)
             {
                 if (query.MaxPageSize.HasValue && query.MaxPageSize.Value < _options.Value.Paging.MaxPageSize.DefaultPageSize)
@@ -194,7 +194,8 @@ namespace BetterAPI
             if (!TryValidateModel(model))
                 return BadRequest(ModelState);
 
-            if (model.Id.Equals(Guid.Empty))
+            var uninitialized = model.Id.Equals(Guid.Empty);
+            if (uninitialized)
                 if (_options.Value.Resources.RequireExplicitIds)
                     return BadRequestWithDetails("The resource's ID was uninitialized.");
                 else
@@ -204,7 +205,8 @@ namespace BetterAPI
                         return BadRequestWithDetails("The resource's ID was uninitialized, and the resource does not permit setting it.");
                 }
 
-            if (_service.TryGetById(model.Id, out _, cancellationToken))
+            // Save a database call if the server set the ID
+            if (!uninitialized && _service.TryGetById(model.Id, out _, cancellationToken))
             {
                 Response.Headers.TryAdd(HeaderNames.Location, $"{Request.Path}/{model.Id}");
                 return BadRequestWithDetails("This resource already exists. Did you mean to update it?");
