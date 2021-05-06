@@ -117,6 +117,9 @@ namespace BetterAPI
                     // created resource with return=minimal:
                     action.ProducesResponseType(StatusCodes.Status201Created);
 
+                    // tried to create a resource that already exists:
+                    action.ProducesResponseType<ProblemDetails>(StatusCodes.Status303SeeOther);
+
                     // invalid body:
                     action.ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest);
 

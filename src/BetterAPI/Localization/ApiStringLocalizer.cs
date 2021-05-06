@@ -45,7 +45,7 @@ namespace BetterAPI.Localization
 
         public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures)
         {
-            return _store.GetAllTranslations(includeParentCultures, _accessor.HttpContext?.RequestAborted ?? CancellationToken.None)
+            return _store.GetAllTranslationsByCurrentCulture(includeParentCultures, _accessor.HttpContext?.RequestAborted ?? CancellationToken.None)
                 .Select(x => x.AsLocalizedString);
         }
     }

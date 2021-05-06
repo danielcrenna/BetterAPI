@@ -6,6 +6,7 @@
     <NoWarn>$(NoWarn);1591</NoWarn>
     <Nullable>enable</Nullable>
     <LangVersion>8</LangVersion>
+    <UserSecretsId>11a049f4-a0b4-4ef4-b95e-6bfd90704d10</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

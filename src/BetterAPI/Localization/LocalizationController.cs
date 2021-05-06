@@ -42,7 +42,7 @@ namespace BetterAPI.Localization
         [ProducesResponseType(typeof(IEnumerable<LocalizationViewModel>), StatusCodes.Status200OK)]
         public IActionResult Get(CancellationToken cancellationToken)
         {
-            var all = _store.GetAllTranslations(true, cancellationToken);
+            var all = _store.GetAllTranslationsByCurrentCulture(true, cancellationToken);
             var models = all.Select(x => new LocalizationViewModel(x.Culture, x.Scope, x.Key, x.Value));
             return Ok(models);
         }
@@ -51,7 +51,7 @@ namespace BetterAPI.Localization
         [ProducesResponseType(typeof(IEnumerable<LocalizationViewModel>), StatusCodes.Status200OK)]
         public IActionResult GetMissing(CancellationToken cancellationToken)
         {
-            var all = _store.GetAllMissingTranslations(true, cancellationToken);
+            var all = _store.GetAllMissingTranslationsByCurrentCulture(true, cancellationToken);
             var models = all.Select(x => new LocalizationViewModel(x.Culture, x.Scope, x.Key, x.Value));
             return Ok(models);
         }
@@ -60,7 +60,7 @@ namespace BetterAPI.Localization
         [ProducesResponseType(typeof(IEnumerable<ScopedLocalizationViewModel>), StatusCodes.Status200OK)]
         public IActionResult GetMissing(string scope, CancellationToken cancellationToken)
         {
-            var all = _store.GetAllMissingTranslations(scope, true, cancellationToken);
+            var all = _store.GetAllMissingTranslationsByCurrentCulture(scope, true, cancellationToken);
             var models = all.Select(x => new ScopedLocalizationViewModel(x.Culture, x.Key, x.Value));
             return Ok(models);
         }

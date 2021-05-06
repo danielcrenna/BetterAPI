@@ -55,10 +55,12 @@ namespace BetterAPI.Caching
             var request = context.HttpContext.Request;
             var displayUrl = request.GetDisplayUrl();
 
-            if (IsSafeRequest(request))
-                TryHandleSafeRequests(context, request, displayUrl);
-            else
-                TryHandleUnsafeRequests(context, request, displayUrl);
+            var terminated = IsSafeRequest(request)
+                ? TryHandleSafeRequests(context, request, displayUrl)
+                : TryHandleUnsafeRequests(context, request, displayUrl);
+
+            if (terminated)
+                return;
 
             var executed = await next.Invoke();
 
@@ -77,7 +79,7 @@ namespace BetterAPI.Caching
             }
         }
 
-        private void TryHandleSafeRequests(ActionExecutingContext context, HttpRequest request, string displayUrl)
+        private bool TryHandleSafeRequests(ActionExecutingContext context, HttpRequest request, string displayUrl)
         {
             // Before execution, if the cache misses, we have to let the request execute, in case the cache
             // would otherwise populate with the value for this check during execution
@@ -90,10 +92,13 @@ namespace BetterAPI.Caching
             {
                 context.Result = new StatusCodeResult((int) HttpStatusCode.NotModified);
                 _logger.LogDebug(_localizer.GetString("HTTP cache short-circuited request ({StatusCode})"), (int) HttpStatusCode.NotModified);
+                return true;
             }
+
+            return false;
         }
 
-        private void TryHandleUnsafeRequests(ActionExecutingContext context, HttpRequest request, string displayUrl)
+        private bool TryHandleUnsafeRequests(ActionExecutingContext context, HttpRequest request, string displayUrl)
         {
             // After execution, we can assume that a cache miss is legitimate, since the server
             // has had the opportunity to populate the cache with the requested value prior to this check
@@ -106,7 +111,10 @@ namespace BetterAPI.Caching
             {
                 context.Result = PreconditionFailed(displayUrl);
                 _logger.LogDebug(_localizer.GetString("HTTP cache short-circuited request ({StatusCode})"), (int) HttpStatusCode.PreconditionFailed);
+                return true;
             }
+
+            return false;
         }
 
         private void TryHandleSafeRequests(ActionExecutedContext context, HttpRequest request, string displayUrl)

@@ -11,26 +11,31 @@ using System.Threading;
 namespace BetterAPI.Data
 {
     /// <summary>
-    /// Describes the contract required to fulfill API guidelines data operations against resources
+    /// Describes the contract required to fulfill API guidelines data operations against resources.
     /// </summary>
-    /// <typeparam name="T">The resource reference type</typeparam>
-    public interface IResourceDataService<T> where T : class, IResource
+    public interface IResourceDataService
     {
-        IEnumerable<T> Get(ResourceQuery query, CancellationToken cancellationToken);
-        bool TryGetById(Guid id, out T? resource, CancellationToken cancellationToken);
-        bool TryAdd(T model);
-        bool TryDeleteById(Guid id, out T? deleted, out bool error);
-
-        bool SupportsSort => false;
-
+        bool SupportsSorting => false;
+        bool SupportsFiltering => false;
         bool SupportsMaxPageSize  => false;
         bool SupportsCount => false;
         bool SupportsSkip => false;
         bool SupportsTop => false;
         bool SupportsSince => false;
-
         bool SupportsSearch => false;
-
         bool SupportsShaping => false;
+    }
+
+    /// <summary>
+    /// Describes the contract required to fulfill API guidelines data operations against resources.
+    /// </summary>
+    /// <typeparam name="T">The resource reference type</typeparam>
+    public interface IResourceDataService<T> : IResourceDataService 
+        where T : class, IResource
+    {
+        IEnumerable<T> Get(ResourceQuery query, CancellationToken cancellationToken);
+        bool TryGetById(Guid id, out T? resource, CancellationToken cancellationToken);
+        bool TryAdd(T model);
+        bool TryDeleteById(Guid id, out T? deleted, out bool error);
     }
 }

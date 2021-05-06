@@ -21,5 +21,6 @@ namespace BetterAPI
 
         public List<string>? Fields { get; set; } = default;
         public List<(AccessorMember, SortDirection)>? Sorting { get; set; } = default;
+        public string? SearchQuery { get; set; } = default;
     }
 }

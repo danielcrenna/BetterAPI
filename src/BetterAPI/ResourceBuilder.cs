@@ -11,6 +11,7 @@ using BetterAPI.Paging;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -36,8 +37,12 @@ namespace BetterAPI
             //Services.TryAddSingleton<MemoryResourceDataService<T>>();
             //Services.TryAddSingleton<IResourceDataService<T>>(r => r.GetRequiredService<MemoryResourceDataService<T>>());
 
-            Services.TryAddSingleton(r => new SqliteResourceDataService<T>("resources.db", 1,  r.GetRequiredService<ILogger<SqliteResourceDataService<T>>>()));
+            Services.TryAddSingleton(r => new SqliteResourceDataService<T>("resources.db", 1,
+                r.GetRequiredService<IStringLocalizer<SqliteResourceDataService<T>>>(),
+                r.GetRequiredService<ILogger<SqliteResourceDataService<T>>>()));
+
             Services.TryAddSingleton<IResourceDataService<T>>(r => r.GetRequiredService<SqliteResourceDataService<T>>());
+            Services.TryAddTransient<IResourceDataService>(r => r.GetRequiredService<SqliteResourceDataService<T>>());
             return this;
         }
 

@@ -34,10 +34,15 @@ namespace BetterAPI.Localization
 
             return new LocalizedString(result.Name, string.Format(result.Value, args), result.ResourceNotFound,
                 result.SearchedLocation);
-
         }
 
-        public IEnumerable<LocalizationEntry> GetAllTranslations(in bool includeParentCultures, CancellationToken cancellationToken)
+        public IEnumerable<LocalizationEntry> GetAllTranslations(CancellationToken cancellationToken)
+        {
+            var entries = GetStruct<LocalizationEntry>(cancellationToken);
+            return entries;
+        }
+
+        public IEnumerable<LocalizationEntry> GetAllTranslationsByCurrentCulture(in bool includeParentCultures, CancellationToken cancellationToken)
         {
             // FIXME: index IsMissing
             // FIXME: use includeParentCultures
@@ -49,7 +54,7 @@ namespace BetterAPI.Localization
             return entries;
         }
 
-        public IEnumerable<LocalizationEntry> GetAllMissingTranslations(in bool includeParentCultures, CancellationToken cancellationToken)
+        public IEnumerable<LocalizationEntry> GetAllMissingTranslationsByCurrentCulture(in bool includeParentCultures, CancellationToken cancellationToken)
         {
             // FIXME: index IsMissing
             // FIXME: use includeParentCultures
@@ -61,7 +66,7 @@ namespace BetterAPI.Localization
             return entries;
         }
 
-        public IEnumerable<LocalizationEntry> GetAllMissingTranslations(string scope, in bool includeParentCultures, CancellationToken cancellationToken)
+        public IEnumerable<LocalizationEntry> GetAllMissingTranslationsByCurrentCulture(string scope, in bool includeParentCultures, CancellationToken cancellationToken)
         {
             // FIXME: index IsMissing
             // FIXME: index Culture/Scope compound key
@@ -96,6 +101,12 @@ namespace BetterAPI.Localization
                 return false; // already have a key for this culture
             
             return TryAppend(new LocalizationEntry(Guid.NewGuid(), cultureName, value), cancellationToken, _logger);
+        }
+
+        public bool MarkAsUnused(string key, CancellationToken cancellationToken)
+        {
+            // FIXME: implement
+            return false;
         }
     }
 }

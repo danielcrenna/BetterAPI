@@ -9,12 +9,11 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Net.Mime;
-using System.Text;
 using BetterAPI.Caching;
+using BetterAPI.Data;
 using BetterAPI.Extensions;
 using BetterAPI.Reflection;
 using Humanizer;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.Extensions.Localization;
@@ -36,13 +35,19 @@ namespace BetterAPI
         // FIXME: We need to rebuild the swagger document if the options change
         private readonly TypeRegistry _registry;
         private readonly IStringLocalizer<DocumentationOperationFilter> _localizer;
+        private readonly IResourceDataService _service;
         private readonly IOptionsMonitor<ApiOptions> _options;
         private readonly ILogger<DocumentationOperationFilter> _logger;
 
-        public DocumentationOperationFilter(TypeRegistry registry, IStringLocalizer<DocumentationOperationFilter> localizer, IOptionsMonitor<ApiOptions> options, ILogger<DocumentationOperationFilter> logger)
+        public DocumentationOperationFilter(TypeRegistry registry, 
+            IStringLocalizer<DocumentationOperationFilter> localizer, 
+            IResourceDataService service,
+            IOptionsMonitor<ApiOptions> options, 
+            ILogger<DocumentationOperationFilter> logger)
         {
             _registry = registry;
             _localizer = localizer;
+            _service = service;
             _options = options;
             _logger = logger;
         }
@@ -53,19 +58,60 @@ namespace BetterAPI
             DocumentFeatures(operation, context);
             DocumentActions(operation, context);
             DocumentResponses(operation);
+            DocumentParameters(operation);
             DocumentSchemas(context);
         }
-        
+
+        private void DocumentParameters(OpenApiOperation operation)
+        {
+            foreach (var parameter in operation.Parameters)
+            {
+                // FIXME:
+                // There doesn't seem to be a way to SwaggerUI to have both a description/example, and a default value,
+                // or a way to customize the Example value where it is only used as the UI's placeholder and doesn't
+                // populate the field when "Try it out" is clicked:
+                // https://github.com/swagger-api/swagger-ui/issues/5776
+
+                if (parameter.Name.Equals("format", StringComparison.OrdinalIgnoreCase))
+                {
+                    parameter.Example = new OpenApiString("json");
+                    parameter.Description = _localizer.GetString("The media type format expected by the client.");
+                }
+
+                if (parameter.Name.Equals("id", StringComparison.OrdinalIgnoreCase))
+                {
+                    if(operation.OperationId.StartsWith(Constants.Get))
+                        parameter.Description = _localizer.GetString("The ID of the resource to retrieve.");
+
+                    if(operation.OperationId.StartsWith(Constants.Update))
+                        parameter.Description = _localizer.GetString("The ID of the resource to update.");
+
+                    if(operation.OperationId.StartsWith(Constants.Delete))
+                        parameter.Description = _localizer.GetString("The ID of the resource to delete.");
+                }
+            }
+        }
+
         private void DocumentFeatures(OpenApiOperation operation, OperationFilterContext context)
         {
             DocumentPrefer(operation);
             DocumentHttpCaching(operation, context);
             DocumentLinks(operation);
-            DocumentSorting(operation, context);
-            DocumentFiltering(operation, context);
-            DocumentPaging(operation, context);
             DocumentDeltaQueries(operation, context);
-            DocumentShaping(operation);
+
+            if(_service.SupportsFiltering)
+                DocumentFiltering(operation, context);
+
+            DocumentPaging(operation, context);
+
+            if(_service.SupportsSorting)
+                DocumentSorting(operation, context);
+
+            if(_service.SupportsShaping)
+                DocumentShaping(operation);
+
+            if(_service.SupportsSearch)
+                DocumentSearch(operation);
         }
 
         private void DocumentActions(OpenApiOperation operation, OperationFilterContext context)
@@ -131,15 +177,39 @@ namespace BetterAPI
         {
             foreach (var (statusCode, response) in operation.Responses)
             {
-                if (statusCode == StatusCodes.Status201Created.ToString())
+                if (statusCode == Constants.Status200OkString)
                 {
                     if (response.Description == null || response.Description == _localizer.GetString("Success"))
                     {
-                        response.Description = _localizer.GetString("Returns the newly created resource, or an empty body if a minimal return is preferred");
+                        response.Description = _localizer.GetString("The operation succeeded, and there is additional content returned in the response.");
                     }
                 }
 
-                if (statusCode == StatusCodes.Status304NotModified.ToString())
+                if (statusCode == Constants.Status201CreatedString)
+                {
+                    if (response.Description == null || response.Description == _localizer.GetString("Success"))
+                    {
+                        response.Description = _localizer.GetString("Returns the newly created resource, or an empty body if a minimal return is preferred.");
+                    }
+                }
+
+                if (statusCode == Constants.Status204NoContentString)
+                {
+                    if (response.Description == null || response.Description == _localizer.GetString("Success"))
+                    {
+                        response.Description = _localizer.GetString("The operation succeeded, and there is no additional content available.");
+                    }
+                }
+
+                if (statusCode == Constants.Status303SeeOtherString)
+                {
+                    if (response.Description == null || response.Description == _localizer.GetString("See Other"))
+                    {
+                        response.Description = _localizer.GetString("This resource already exists. Did you mean to update it?");
+                    }
+                }
+
+                if (statusCode == Constants.Status304NotModifiedString)
                 {
                     if (response.Description == null || response.Description == _localizer.GetString("Not Modified"))
                     {
@@ -147,44 +217,93 @@ namespace BetterAPI
                     }
                 }
 
-                // FIXME: ProblemDetails should use application/problem+json as the media type.
-                if (statusCode == StatusCodes.Status400BadRequest.ToString())
+                if (statusCode == Constants.Status400BadRequestString)
                 {
+                    ProblemDetailsMediaType(operation, response);
+
                     if (response.Description == null || response.Description == _localizer.GetString("Bad Request"))
                     {
-                        response.Description = _localizer.GetString("There was an error with the request, and further problem details are available");
+                        response.Description = _localizer.GetString("There was an error with the request, and further problem details are available.");
                     }
                 }
 
-                // FIXME: ProblemDetails should use application/problem+json as the media type.
-                if (statusCode == StatusCodes.Status412PreconditionFailed.ToString())
+                if (statusCode == Constants.Status404NotFoundString)
                 {
+                    ProblemDetailsMediaType(operation, response);
+
+                    if (response.Description == null || response.Description == _localizer.GetString("Not Found"))
+                    {
+                        response.Description = _localizer.GetString("There is no resource with the specified ID on this server.");
+                    }
+                }
+
+                if (statusCode == Constants.Status410GoneString)
+                {
+                    ProblemDetailsMediaType(operation, response);
+
                     if (response.Description == null || response.Description == _localizer.GetString("Client Error"))
                     {
-                        response.Description = _localizer.GetString("The resource was not created, because it has unmet pre-conditions");
+                        response.Description = _localizer.GetString("The resource was already deleted from the server.");
                     }
                 }
 
-                // FIXME: ProblemDetails should use application/problem+json as the media type.
-                if (statusCode == StatusCodes.Status413PayloadTooLarge.ToString())
+                if (statusCode == Constants.Status412PreconditionFailedString)
                 {
+                    ProblemDetailsMediaType(operation, response);
+
+                    if (response.Description == null || response.Description == _localizer.GetString("Client Error"))
+                    {
+                        if(operation.OperationId.StartsWith(Constants.Create))
+                            response.Description = _localizer.GetString("The resource was not created, because it has unmet pre-conditions.");
+
+                        if(operation.OperationId.StartsWith(Constants.Update))
+                            response.Description = _localizer.GetString("The resource was not updated, because it has unmet pre-conditions.");
+
+                        if(operation.OperationId.StartsWith(Constants.Delete))
+                            response.Description = _localizer.GetString("The resource was not deleted, because it has unmet pre-conditions.");
+                    }
+                }
+
+                if (statusCode == Constants.Status413PayloadTooLargeString)
+                {
+                    ProblemDetailsMediaType(operation, response);
+
                     if (response.Description == null || response.Description == _localizer.GetString("Client Error"))
                     {
                         response.Description = _localizer.GetString("Requested page size was larger than the server's maximum page size.");
                     }
                 }
 
-                // FIXME: ProblemDetails should use application/problem+json as the media type.
-                if (statusCode == StatusCodes.Status500InternalServerError.ToString())
+                if (statusCode == Constants.Status500InternalServerErrorString)
                 {
+                    ProblemDetailsMediaType(operation, response);
+
                     if (response.Description == null || response.Description == _localizer.GetString("Server Error"))
                     {
-                        response.Description = _localizer.GetString("An unexpected error occurred saving this resource. An error was logged. Please try again later.");
+                        if(operation.OperationId.StartsWith(Constants.Create))
+                            response.Description = _localizer.GetString("An unexpected error occurred saving this resource. An error was logged. Please try again later.");
+
+                        if(operation.OperationId.StartsWith(Constants.Delete))
+                            response.Description = _localizer.GetString("An unexpected error occurred deleting this resource. An error was logged. Please try again later.");
                     }
                 }
             }
         }
 
+        private void ProblemDetailsMediaType(OpenApiOperation operation, OpenApiResponse response)
+        {
+            // API versioning replaces media types with incorrect values for ProblemDetails
+            var reference = response.Content.Values.First();
+            response.Content.Clear();
+
+            // See: https://tools.ietf.org/html/rfc7807#section-6.2
+            if (_options.CurrentValue.ApiFormats.HasFlagFast(ApiSupportedMediaTypes.ApplicationJson))
+                response.Content["application/problem+json"] = reference;
+
+            if (_options.CurrentValue.ApiFormats.HasFlagFast(ApiSupportedMediaTypes.ApplicationXml))
+                response.Content["application/problem+xml"] = reference;
+        }
+        
         private void DocumentSchemas(OperationFilterContext context)
         {
             // This will run multiple times, so we store previously discovered types
@@ -227,62 +346,62 @@ namespace BetterAPI
             if (method.ReturnType == typeof(void))
                 return method.Name;
 
-            var sb = new StringBuilder();
-
-            if (method.Name.StartsWith(Constants.Get))
-                sb.Append(Constants.Get);
-            else if (method.Name.StartsWith(Constants.Create))
-                sb.Append(Constants.Create);
-            else if (method.Name.StartsWith(Constants.Update))
-                sb.Append(Constants.Update);
-            else if (method.Name.StartsWith(Constants.Delete))
-                sb.Append(Constants.Delete);
-
-            Type? type = default;
-            var plural = false;
-
-            foreach (var producesResponseType in context.ApiDescription.ActionDescriptor.FilterDescriptors
-                .Select(x => x.Filter)
-                .OfType<ProducesResponseTypeAttribute>())
+            var operationId = Pooling.StringBuilderPool.Scoped(sb =>
             {
-                if (producesResponseType.Type == typeof(void))
-                    continue;
-                if (producesResponseType.StatusCode <= 199 || producesResponseType.StatusCode >= 299)
-                    continue;
+                if (method.Name.StartsWith(Constants.Get))
+                    sb.Append(Constants.Get);
+                else if (method.Name.StartsWith(Constants.Create))
+                    sb.Append(Constants.Create);
+                else if (method.Name.StartsWith(Constants.Update))
+                    sb.Append(Constants.Update);
+                else if (method.Name.StartsWith(Constants.Delete))
+                    sb.Append(Constants.Delete);
 
-                type = GetModelType(producesResponseType.Type, out plural);
-                break;
-            }
+                Type? type = default;
+                var plural = false;
 
-            var parameters = method.GetParameters();
-
-            if (type == default)
-                foreach (var parameter in parameters)
+                foreach (var producesResponseType in context.ApiDescription.ActionDescriptor.FilterDescriptors
+                    .Select(x => x.Filter)
+                    .OfType<ProducesResponseTypeAttribute>())
                 {
-                    var attributes = parameter.GetCustomAttributes(true);
+                    if (producesResponseType.Type == typeof(void))
+                        continue;
+                    if (producesResponseType.StatusCode <= 199 || producesResponseType.StatusCode >= 299)
+                        continue;
 
-                    foreach (var attribute in attributes)
-                    {
-                        if (!(attribute is FromBodyAttribute))
-                            continue;
-                        type = GetModelType(parameter.ParameterType, out plural);
-                        break;
-                    }
+                    type = GetModelType(producesResponseType.Type, out plural);
+                    break;
                 }
 
-            type ??= GetModelType(method.ReturnType, out plural);
-            sb.Append(plural ? type.Name.Pluralize() : type.Name);
+                var parameters = method.GetParameters();
 
-            if (parameters.Any(x => x.Name != null && x.Name.Equals(nameof(IResource.Id), StringComparison.OrdinalIgnoreCase)))
-                sb.Append("ById");
+                if (type == default)
+                    foreach (var parameter in parameters)
+                    {
+                        var attributes = parameter.GetCustomAttributes(true);
 
-            if (parameters.Any(x => x.Name != null && x.Name.Equals("continuationToken", StringComparison.OrdinalIgnoreCase)))
-                sb.Append("NextPage");
+                        foreach (var attribute in attributes)
+                        {
+                            if (!(attribute is FromBodyAttribute))
+                                continue;
+                            type = GetModelType(parameter.ParameterType, out plural);
+                            break;
+                        }
+                    }
 
-            var operationId = sb.ToString();
+                type ??= GetModelType(method.ReturnType, out plural);
+                sb.Append(plural ? type.Name.Pluralize() : type.Name);
 
+                if (parameters.Any(x =>
+                    x.Name != null && x.Name.Equals(nameof(IResource.Id), StringComparison.OrdinalIgnoreCase)))
+                    sb.Append("ById");
+
+                if (parameters.Any(x =>
+                    x.Name != null && x.Name.Equals("continuationToken", StringComparison.OrdinalIgnoreCase)))
+                    sb.Append("NextPage");
+            });
+            
             _logger.LogDebug("OperationId: " + operationId);
-
             return operationId;
         }
 
@@ -340,7 +459,6 @@ namespace BetterAPI
         {
             return !IsMutation(operation);
         }
-
 
         private static bool IsMutation(OpenApiOperation operation)
         {
@@ -436,37 +554,49 @@ namespace BetterAPI
             if (operation.OperationId.EndsWith("NextPage"))
                 return; // cannot page an opaque query
 
-            operation.Parameters.Add(new OpenApiParameter
+            if (_service.SupportsMaxPageSize)
             {
-                Name = _options.CurrentValue.Paging.MaxPageSize.Operator,
-                In = ParameterLocation.Query,
-                Description = _localizer.GetString("Request server-driven paging with a specific page size"),
-                Example = new OpenApiString("")
-            });
+                operation.Parameters.Add(new OpenApiParameter
+                {
+                    Name = _options.CurrentValue.Paging.MaxPageSize.Operator,
+                    In = ParameterLocation.Query,
+                    Description = _localizer.GetString("Request server-driven paging with a specific page size"),
+                    Example = new OpenApiString("")
+                });
+            }
 
-            operation.Parameters.Add(new OpenApiParameter
+            if (_service.SupportsSkip)
             {
-                Name = _options.CurrentValue.Paging.Skip.Operator,
-                In = ParameterLocation.Query,
-                Description = _localizer.GetString("Apply a client-directed offset into a collection."),
-                Example = new OpenApiString("")
-            });
+                operation.Parameters.Add(new OpenApiParameter
+                {
+                    Name = _options.CurrentValue.Paging.Skip.Operator,
+                    In = ParameterLocation.Query,
+                    Description = _localizer.GetString("Apply a client-directed offset into a collection."),
+                    Example = new OpenApiString("")
+                });
+            }
 
-            operation.Parameters.Add(new OpenApiParameter
+            if (_service.SupportsTop)
             {
-                Name = _options.CurrentValue.Paging.Top.Operator,
-                In = ParameterLocation.Query,
-                Description = _localizer.GetString("Apply a client-directed request to specify the number of results to return."),
-                Example = new OpenApiString("")
-            });
+                operation.Parameters.Add(new OpenApiParameter
+                {
+                    Name = _options.CurrentValue.Paging.Top.Operator,
+                    In = ParameterLocation.Query,
+                    Description = _localizer.GetString("Apply a client-directed request to specify the number of results to return."),
+                    Example = new OpenApiString("")
+                });
+            }
 
-            operation.Parameters.Add(new OpenApiParameter
+            if (_service.SupportsCount)
             {
-                Name = _options.CurrentValue.Paging.Count.Operator,
-                In = ParameterLocation.Query,
-                Description = _localizer.GetString("Requests the server to include the count of items in the response"),
-                Example = new OpenApiString("true")
-            });
+                operation.Parameters.Add(new OpenApiParameter
+                {
+                    Name = _options.CurrentValue.Paging.Count.Operator,
+                    In = ParameterLocation.Query,
+                    Description = _localizer.GetString("Requests the server to include the count of items in the response"),
+                    Example = new OpenApiString("true")
+                });
+            }
         }
 
         private void DocumentDeltaQueries(OpenApiOperation operation, OperationFilterContext context)
@@ -504,6 +634,23 @@ namespace BetterAPI
                 Name = _options.CurrentValue.Exclude.Operator,
                 In = ParameterLocation.Query,
                 Description = _localizer.GetString("Omit the specified fields in the response body"),
+                Example = new OpenApiString("")
+            });
+        }
+
+        private void DocumentSearch(OpenApiOperation operation)
+        {
+            if (!IsQuery(operation))
+                return;
+
+            if (operation.OperationId.EndsWith("NextPage"))
+                return; // cannot search an opaque query
+
+            operation.Parameters.Add(new OpenApiParameter
+            {
+                Name = _options.CurrentValue.Search.Operator,
+                In = ParameterLocation.Query,
+                Description = _localizer.GetString("Perform a full text search with the given search criteria"),
                 Example = new OpenApiString("")
             });
         }

@@ -12,7 +12,7 @@ using System.Runtime.CompilerServices;
 
 namespace BetterAPI.Reflection
 {
-    internal static class TypeExtensions
+    public static class TypeExtensions
     {
         public static bool IsAnonymous(this Type type)
         {

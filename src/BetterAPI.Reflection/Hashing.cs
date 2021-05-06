@@ -5,9 +5,8 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 using System.Text;
-using BetterAPI.Reflection;
 
-namespace BetterAPI
+namespace BetterAPI.Reflection
 {
     internal class Hashing
     {

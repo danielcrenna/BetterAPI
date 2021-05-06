@@ -40,19 +40,24 @@ namespace BetterAPI.Localization
             }
         }
 
-        public IEnumerable<LocalizationEntry> GetAllTranslations(in bool includeParentCultures, CancellationToken cancellationToken)
+        public IEnumerable<LocalizationEntry> GetAllTranslations(CancellationToken cancellationToken)
         {
             return _resources.Where(x => !x.IsMissing);
         }
 
-        public IEnumerable<LocalizationEntry> GetAllMissingTranslations(in bool includeParentCultures, CancellationToken cancellationToken)
+        public IEnumerable<LocalizationEntry> GetAllTranslationsByCurrentCulture(in bool includeParentCultures, CancellationToken cancellationToken)
         {
-            return _resources.Where(x => x.IsMissing);
+            return _resources.Where(x => !x.IsMissing && x.Culture.Equals(CultureInfo.CurrentUICulture.Name));
         }
 
-        public IEnumerable<LocalizationEntry> GetAllMissingTranslations(string scope, in bool includeParentCultures, CancellationToken cancellationToken)
+        public IEnumerable<LocalizationEntry> GetAllMissingTranslationsByCurrentCulture(in bool includeParentCultures, CancellationToken cancellationToken)
         {
-            return _resources.Where(x => x.IsMissing && x.Scope.Equals(scope, StringComparison.OrdinalIgnoreCase));
+            return _resources.Where(x => x.IsMissing && x.Culture.Equals(CultureInfo.CurrentUICulture.Name));
+        }
+
+        public IEnumerable<LocalizationEntry> GetAllMissingTranslationsByCurrentCulture(string scope, in bool includeParentCultures, CancellationToken cancellationToken)
+        {
+            return _resources.Where(x => x.IsMissing && x.Scope.Equals(scope, StringComparison.OrdinalIgnoreCase) && x.Culture.Equals(CultureInfo.CurrentUICulture.Name));
         }
 
         public bool TryAddMissingTranslation(string cultureName, LocalizedString value, CancellationToken cancellationToken)
@@ -75,6 +80,11 @@ namespace BetterAPI.Localization
 
             _resources.Add(new LocalizationEntry(Guid.NewGuid(), culture.Name, value));
             return true;
+        }
+
+        public bool MarkAsUnused(string key, CancellationToken cancellationToken)
+        {
+            return false;
         }
     }
 }

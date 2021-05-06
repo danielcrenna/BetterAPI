@@ -16,7 +16,7 @@ namespace BetterAPI
 {
     public static class HostBuilderExtensions
     {
-        public static IHostBuilder HostApiServer<TStartup>(this IHostBuilder builder,
+        public static IHostBuilder ConfigureApiServer<TStartup>(this IHostBuilder builder,
             Func<IConfiguration, IConfiguration>? configSelector = default) where TStartup : class
         {
             TStartup? startup = default;
@@ -48,6 +48,7 @@ namespace BetterAPI
 
                     //
                     // The default ApplicationPartManager relies on the entryAssemblyName, which is this library.
+                    // So we need to register the calling application's own controllers as well, here.
                     services.AddControllers().AddApplicationPart(typeof(TStartup).Assembly);
 
                     //

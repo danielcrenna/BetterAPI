@@ -43,6 +43,21 @@ namespace BetterAPI
             return StatusCodeWithProblemDetails(StatusCodes.Status413PayloadTooLarge, "Payload Too Large", details, arguments);
         }
 
+        protected IActionResult GoneWithDetails(string details, params object[] arguments)
+        {
+            return StatusCodeWithProblemDetails(StatusCodes.Status410Gone, "Gone", details, arguments);
+        }
+
+        protected IActionResult NotFoundWithDetails(string details, params object[] arguments)
+        {
+            return StatusCodeWithProblemDetails(StatusCodes.Status404NotFound, "Not Found", details, arguments);
+        }
+
+        protected IActionResult SeeOtherWithDetails(string details, params object[] arguments)
+        {
+            return StatusCodeWithProblemDetails(StatusCodes.Status303SeeOther, "Bad Request", details, arguments);
+        }
+
         protected IActionResult StatusCodeWithProblemDetails(int statusCode, string statusDescription, string details, params object[] arguments)
         {
             return StatusCode(statusCode, new ProblemDetails

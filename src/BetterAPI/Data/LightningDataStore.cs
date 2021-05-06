@@ -204,6 +204,16 @@ namespace BetterAPI.Data
             });
         }
 
+        protected IEnumerable<T?> Get<T>(CancellationToken cancellationToken) where T : class
+        {
+            return GetByKey<T>(KeyBuilder.GetIdPrefix(typeof(T)), cancellationToken);
+        }
+
+        protected IEnumerable<T> GetStruct<T>(CancellationToken cancellationToken) where T : struct
+        {
+            return GetByKeyStruct<T>(KeyBuilder.GetIdPrefix(typeof(T)), cancellationToken);
+        }
+
         protected T? GetByIndex<T>(ReadOnlySpan<byte> index, LightningTransaction? parent, CancellationToken cancellationToken) where T : class
         {
             return (T?) GetByIndexImpl(typeof(T), index, parent, cancellationToken);
@@ -266,9 +276,9 @@ namespace BetterAPI.Data
             {
                 Index(db, tx, id, buffer);
 
+                // FIXME: add multi-key filters
                 //foreach (var combination in members.GetCombinations())
                 //{
-
                 //}
 
                 foreach (var member in members)

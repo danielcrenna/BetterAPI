@@ -26,10 +26,10 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 
-using System;
 using System.Reflection.Emit;
 using System.Text;
 
+// ReSharper disable once CheckNamespace
 namespace Mono.Reflection {
 
 	public sealed class Instruction {

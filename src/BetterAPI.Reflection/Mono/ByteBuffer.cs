@@ -28,6 +28,7 @@
 
 using System;
 
+// ReSharper disable once CheckNamespace
 namespace Mono.Reflection {
 
 	class ByteBuffer {

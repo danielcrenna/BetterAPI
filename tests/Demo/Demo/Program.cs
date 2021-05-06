@@ -19,7 +19,7 @@ namespace Demo
         public static IHostBuilder CreateHostBuilder(string[] args)
         {
             return Host.CreateDefaultBuilder(args)
-                .HostApiServer<Startup>();
+                .ConfigureApiServer<Startup>();
         }
     }
 }

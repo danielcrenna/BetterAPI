@@ -6,7 +6,7 @@
 
 using System;
 
-namespace BetterAPI
+namespace BetterAPI.Reflection
 {
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Property, Inherited = false, AllowMultiple = true)]
     public class MetadataTypeAttribute : Attribute

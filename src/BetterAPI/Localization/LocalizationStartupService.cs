@@ -48,7 +48,7 @@ namespace BetterAPI.Localization
             _semaphore = new SemaphoreSlim(1);
             _disposable = _options.OnChange(o =>
             {
-                AddMissingTranslations(CancellationToken.None);
+                AddMissingTranslations(CancellationToken.None);                
             });
 
             _translations = ScanAssembliesForTranslations();
@@ -72,6 +72,7 @@ namespace BetterAPI.Localization
         public Task StartAsync(CancellationToken cancellationToken)
         {
             AddMissingTranslations(cancellationToken);
+            DeprecateUnusedTranslations(cancellationToken);
             return Task.CompletedTask;
         }
 
@@ -112,7 +113,36 @@ namespace BetterAPI.Localization
             finally
             {
                 _semaphore.Release();
-                _logger.LogDebug(_localizer.GetString("Finished adding {Count} missing translations, took {Elapsed}"), count, sw.Elapsed);
+                _logger.LogDebug(_localizer.GetString("Finished adding {Count} missing translation(s), took {Elapsed}"), count, sw.Elapsed);
+            }
+        }
+
+        private void DeprecateUnusedTranslations(CancellationToken cancellationToken)
+        {
+            _semaphore.Wait(cancellationToken);
+
+            _logger.LogDebug(_localizer.GetString("Deprecating unused translations"));
+
+            var sw = Stopwatch.StartNew();
+            var count = 0;
+
+            try
+            {
+                var names = _translations.SelectMany(x => x.Value).ToHashSet();
+
+                foreach (var entry in _store.GetAllTranslations(cancellationToken))
+                {
+                    if (!names.Contains(entry.Key))
+                    {
+                        _store.MarkAsUnused(entry.Key, cancellationToken);
+                        count++;
+                    }
+                }
+            }
+            finally
+            {
+                _semaphore.Release();
+                _logger.LogDebug(_localizer.GetString("Finished deprecating {Count} unused translation(s), took {Elapsed}"), count, sw.Elapsed);
             }
         }
 
@@ -148,7 +178,7 @@ namespace BetterAPI.Localization
             {
                 _semaphore.Release();
 
-                _logger.LogDebug(()=> _localizer.GetString("Finished adding {Count} discovered translations, took {Elapsed}")!, 
+                _logger.LogDebug(()=> _localizer.GetString("Finished scanning {Count} discovered translations, took {Elapsed}")!, 
                     ()=> translations.Values.Sum(x => x.Count), ()=> sw.Elapsed);
             }
         }

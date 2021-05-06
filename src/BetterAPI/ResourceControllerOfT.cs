@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Net;
 using System.Threading;
 using BetterAPI.Caching;
 using BetterAPI.Data;
 using BetterAPI.Paging;
+using BetterAPI.Patch;
 using BetterAPI.Reflection;
 using BetterAPI.Sorting;
 using Microsoft.AspNetCore.Http;
@@ -19,7 +19,8 @@ using Microsoft.Net.Http.Headers;
 namespace BetterAPI
 {
     [FormatFilter]
-    public class ResourceController<T> : ResourceController where T : class, IResource
+    public class ResourceController<T> : ResourceController, IResourceController<T> 
+        where T : class, IResource
     {
         private readonly IStringLocalizer<ResourceController<T>> _localizer;
         private readonly IResourceDataService<T> _service;
@@ -52,35 +53,13 @@ namespace BetterAPI
             Response.Headers.TryAdd(ApiHeaderNames.Link, $"<{Request.Scheme}://{Request.Host}/{Options.Value.OpenApiUiRoutePrefix?.TrimStart('/')}>; rel=\"help\"");
         }
 
-        [Display(Description = "Returns the next page from an opaque continuation token")]
-        [HttpGet("nextPage/{continuationToken}")]
-        public IActionResult GetNextPage(ApiVersion apiVersion, string continuationToken, CancellationToken cancellationToken)
-        {
-            // suppress any warnings since we rely on the URL itself, not a user-provided query
-            HttpContext.Items.Remove(Constants.SortContextKey);
-            HttpContext.Items.Remove(Constants.CountContextKey);
-            HttpContext.Items.Remove(Constants.SkipContextKey);
-            HttpContext.Items.Remove(Constants.TopContextKey);
-            HttpContext.Items.Remove(Constants.MaxPageSizeContextKey);
-            HttpContext.Items.Remove(Constants.ShapingContextKey);
-
-            var query = _store.GetQueryFromHash(continuationToken);
-            if (query == default)
-                return NotFound();
-
-            query.PageOffset += query.PageSize.GetValueOrDefault(_options.Value.Paging.MaxPageSize.DefaultPageSize);
-
-            var results = Query(query, cancellationToken);
-            return Ok(results);
-        }
-
-        [Display(Description = "Returns all saved resources, with optional sorting, filtering, and paging criteria")]
+        [Display(Description = "Returns all saved resources, with optional sorting, filtering, paging, shaping, and search criteria")]
         [HttpGet]
         public IActionResult Get(ApiVersion apiVersion, CancellationToken cancellationToken)
         {
             var query = new ResourceQuery();
             
-            if (_service.SupportsSort && HttpContext.Items.TryGetValue(Constants.SortContextKey, out var sortMap) && sortMap != null)
+            if (_service.SupportsSorting && HttpContext.Items.TryGetValue(Constants.SortContextKey, out var sortMap) && sortMap != null)
             {
                 query.Sorting = (List<(AccessorMember, SortDirection)>) sortMap;
                 HttpContext.Items.Remove(Constants.SortContextKey);
@@ -155,6 +134,34 @@ namespace BetterAPI
                     query.PageSize, _options.Value.Paging.MaxPageSize.MaxPageSize);
             }
 
+            if (_service.SupportsSearch && HttpContext.Items.TryGetValue(Constants.SearchContextKey, out var searchValue) && searchValue is string searchQuery)
+            {
+                query.SearchQuery = searchQuery;
+                HttpContext.Items.Remove(Constants.SearchContextKey);
+            }
+
+            var results = Query(query, cancellationToken);
+            return Ok(results);
+        }
+
+        [Display(Description = "Returns the next page from an opaque continuation token")]
+        [HttpGet("nextPage/{continuationToken}")]
+        public IActionResult GetNextPage(ApiVersion apiVersion, string continuationToken, CancellationToken cancellationToken)
+        {
+            // suppress any warnings since we rely on the URL itself, not a user-provided query
+            HttpContext.Items.Remove(Constants.SortContextKey);
+            HttpContext.Items.Remove(Constants.CountContextKey);
+            HttpContext.Items.Remove(Constants.SkipContextKey);
+            HttpContext.Items.Remove(Constants.TopContextKey);
+            HttpContext.Items.Remove(Constants.MaxPageSizeContextKey);
+            HttpContext.Items.Remove(Constants.ShapingContextKey);
+
+            var query = _store.GetQueryFromHash(continuationToken);
+            if (query == default)
+                return NotFound();
+
+            query.PageOffset += query.PageSize.GetValueOrDefault(_options.Value.Paging.MaxPageSize.DefaultPageSize);
+
             var results = Query(query, cancellationToken);
             return Ok(results);
         }
@@ -208,8 +215,9 @@ namespace BetterAPI
             // Save a database call if the server set the ID
             if (!uninitialized && _service.TryGetById(model.Id, out _, cancellationToken))
             {
+                // See: https://tools.ietf.org/html/rfc7231#section-4.3.3
                 Response.Headers.TryAdd(HeaderNames.Location, $"{Request.Path}/{model.Id}");
-                return BadRequestWithDetails("This resource already exists. Did you mean to update it?");
+                return SeeOtherWithDetails("This resource already exists. Did you mean to update it?");
             }
 
             //
@@ -227,6 +235,24 @@ namespace BetterAPI
             return Created($"{Request.Path}/{model.Id}", model);
         }
 
+        [HttpPatch("{id}/merge")]
+        public IActionResult MergePatch([FromRoute] Guid id, [FromBody] JsonMergePatch<T> model, CancellationToken cancellationToken)
+        {
+            if (!_service.TryGetById(id, out var resource, cancellationToken) || resource == default)
+                return NotFound();
+
+            ModelState.Clear();
+            model.ApplyTo(resource, ModelState);
+
+            if (!TryValidateModel(model))
+                return BadRequest(ModelState);
+
+            // FIXME: Update
+            // FIXME: NotModified
+
+            return Ok(resource);
+        }
+
         [HttpDelete("{id}")]
         [Display(Description = "Deletes a resource by its unique ID")]
         public IActionResult DeleteById(Guid id)
@@ -238,16 +264,16 @@ namespace BetterAPI
 
             if (deleted != default)
             {
-                return StatusCode((int) HttpStatusCode.Gone);
+                return GoneWithDetails("The resource with ID {0} was already deleted from the server.", id);
             }
 
             if (error)
             {
                 Logger.LogError(ErrorEvents.ErrorSavingResource, _localizer.GetString("Deleting resource with ID {Id} failed to delete from the underlying data store."), id);
-                return InternalServerErrorWithDetails("An unexpected error occurred saving this resource. An error was logged. Please try again later.");
+                return InternalServerErrorWithDetails("An unexpected error occurred deleting this resource. An error was logged. Please try again later.");
             }
 
-            return NotFound();
+            return NotFoundWithDetails("There is no resource with ID {0} on this server.", id);
         }
     }
 }

@@ -28,6 +28,7 @@ namespace BetterAPI
         public const string SinceContextKey = "since";
         public const string TopContextKey = "top";
         public const string ShapingContextKey = "shaping";
+        public const string SearchContextKey = "search";
         public const string QueryContextKey = "query";
 
         public static class Prefer
@@ -36,7 +37,17 @@ namespace BetterAPI
             public const string ReturnRepresentation = "return=representation";
         }
 
+        internal static readonly string Status200OkString = StatusCodes.Status200OK.ToString();
         internal static readonly string Status201CreatedString = StatusCodes.Status201Created.ToString();
+        internal static readonly string Status204NoContentString = StatusCodes.Status204NoContent.ToString();
+        internal static readonly string Status303SeeOtherString = StatusCodes.Status303SeeOther.ToString();
+        internal static readonly string Status304NotModifiedString = StatusCodes.Status304NotModified.ToString();
+        internal static readonly string Status400BadRequestString = StatusCodes.Status400BadRequest.ToString();
+        internal static readonly string Status404NotFoundString = StatusCodes.Status404NotFound.ToString();
+        internal static readonly string Status410GoneString = StatusCodes.Status410Gone.ToString();
+        internal static readonly string Status412PreconditionFailedString = StatusCodes.Status412PreconditionFailed.ToString();
+        internal static readonly string Status413PayloadTooLargeString = StatusCodes.Status413PayloadTooLarge.ToString();
+        internal static readonly string Status500InternalServerErrorString = StatusCodes.Status500InternalServerError.ToString();
 
         internal static readonly string Get = nameof(Get);
         internal static readonly string GetById = nameof(GetById);

@@ -33,8 +33,7 @@ using System.Reflection.Emit;
 
 // ReSharper disable once CheckNamespace
 namespace Mono.Reflection {
-
-	class MethodBodyReader {
+    public class MethodBodyReader {
 
 		static readonly OpCode [] one_byte_opcodes;
 		static readonly OpCode [] two_bytes_opcodes;

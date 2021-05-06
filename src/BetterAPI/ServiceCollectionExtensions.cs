@@ -23,7 +23,9 @@ using BetterAPI.Metrics;
 using BetterAPI.Paging;
 using BetterAPI.Prefer;
 using BetterAPI.Localization;
+using BetterAPI.Patch;
 using BetterAPI.RateLimiting;
+using BetterAPI.Search;
 using BetterAPI.Shaping;
 using BetterAPI.Sorting;
 using BetterAPI.Tokens;
@@ -85,7 +87,7 @@ namespace BetterAPI
             services.AddClientSidePaging(configuration.GetSection(nameof(ApiOptions.Paging)));
             services.AddCollectionSorting(configuration.GetSection(nameof(ApiOptions.Sort)));
             services.AddCollectionFiltering(configuration.GetSection(nameof(ApiOptions.Filter)));
-
+            services.AddSearch(configuration.GetSection(nameof(ApiOptions.Search)));
             services.AddVersioning(configuration.GetSection(nameof(ApiOptions.Versioning)));
 
             var mvc = services.AddControllers()
@@ -130,10 +132,10 @@ namespace BetterAPI
 
         private static IMvcBuilder AddXmlSupport(this IMvcBuilder builder)
         {
-            builder.AddXmlSerializerFormatters().AddXmlDataContractSerializerFormatters();
+            builder.AddXmlDataContractSerializerFormatters();
             builder.Services.AddMvcCore(o =>
             {
-                var outputFormatter = o.OutputFormatters.OfType<XmlSerializerOutputFormatter>().First();
+                var outputFormatter = o.OutputFormatters.OfType<XmlDataContractSerializerOutputFormatter>().First();
                 outputFormatter.WriterSettings.Indent = true;
                 outputFormatter.WriterSettings.NamespaceHandling = NamespaceHandling.OmitDuplicates;
             });
@@ -156,6 +158,9 @@ namespace BetterAPI
             services.AddMvcCore()
                 .AddJsonOptions(o =>
                 {
+                    if(!o.JsonSerializerOptions.Converters.Any(x => x is JsonMergePatchConverterFactory))
+                        o.JsonSerializerOptions.Converters.Add(new JsonMergePatchConverterFactory());
+
                     // 
                     // Currently, we're setting the enum to camelCase because it's indicated in the guidelines
                     // (though it's shown once as PascalCase, so it's not entirely clear):

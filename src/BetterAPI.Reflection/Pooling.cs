@@ -13,7 +13,7 @@ using Microsoft.Extensions.ObjectPool;
 
 namespace BetterAPI.Reflection
 {
-    internal static class Pooling
+    public static class Pooling
     {
         public static ArgumentsPool Arguments = new ArgumentsPool();
 

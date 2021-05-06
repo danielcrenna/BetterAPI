@@ -12,11 +12,11 @@ using BetterAPI.Filtering;
 using BetterAPI.Paging;
 using BetterAPI.Prefer;
 using BetterAPI.RateLimiting;
+using BetterAPI.Search;
 using BetterAPI.Shaping;
 using BetterAPI.Sorting;
 using BetterAPI.Tokens;
 using BetterAPI.Versioning;
-using Microsoft.Extensions.Localization;
 
 namespace BetterAPI
 {
@@ -50,5 +50,6 @@ namespace BetterAPI
         public ProblemDetailsOptions ProblemDetails { get; set; } = new ProblemDetailsOptions();
         public TokenOptions Tokens { get; set; } = new TokenOptions();
         public ResourceOptions Resources { get; set; } = new ResourceOptions();
+        public SearchOptions Search { get; set; } = new SearchOptions();
     }
 }
