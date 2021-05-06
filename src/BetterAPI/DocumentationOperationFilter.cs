@@ -12,6 +12,7 @@ using System.Net.Mime;
 using BetterAPI.Caching;
 using BetterAPI.Data;
 using BetterAPI.Extensions;
+using BetterAPI.Patch;
 using BetterAPI.Reflection;
 using Humanizer;
 using Microsoft.AspNetCore.Mvc;
@@ -54,9 +55,9 @@ namespace BetterAPI
 
         public void Apply(OpenApiOperation operation, OperationFilterContext context)
         {
-            EnsureOperationsHaveIds(operation, context);
+            EnsureOperationHasId(operation, context, out var resourceType);
             DocumentFeatures(operation, context);
-            DocumentActions(operation, context);
+            DocumentActions(operation, context, resourceType);
             DocumentResponses(operation);
             DocumentParameters(operation);
             DocumentSchemas(context);
@@ -114,7 +115,7 @@ namespace BetterAPI
                 DocumentSearch(operation);
         }
 
-        private void DocumentActions(OpenApiOperation operation, OperationFilterContext context)
+        private void DocumentActions(OpenApiOperation operation, OperationFilterContext context, Type? resourceType)
         {
             if (!(context.ApiDescription.ActionDescriptor is ControllerActionDescriptor descriptor))
                 return;
@@ -143,26 +144,41 @@ namespace BetterAPI
 
             if (operation.RequestBody != null)
             {
-                // NOTE: Swashbuckle is not respecting the ConsumesAttribute formats here, so we have to do it manually
-                var content = operation.RequestBody.Content.First().Value;
-                operation.RequestBody.Content.Clear();
-
-                switch (_options.CurrentValue.ApiFormats)
+                if (operation.OperationId.StartsWith(Constants.Merge))
                 {
-                    case ApiSupportedMediaTypes.None:
-                        throw new NotSupportedException(_localizer.GetString("API must support at least one content format"));
-                    case ApiSupportedMediaTypes.ApplicationJson | ApiSupportedMediaTypes.ApplicationXml:
-                        operation.RequestBody.Content.Add(MediaTypeNames.Application.Json, new OpenApiMediaType { Schema = content.Schema });
-                        operation.RequestBody.Content.Add(MediaTypeNames.Application.Xml, new OpenApiMediaType { Schema = content.Schema });
-                        break;
-                    case ApiSupportedMediaTypes.ApplicationJson:
-                        operation.RequestBody.Content.Add(MediaTypeNames.Application.Json, new OpenApiMediaType { Schema = content.Schema });
-                        break;
-                    case ApiSupportedMediaTypes.ApplicationXml:
-                        operation.RequestBody.Content.Add(MediaTypeNames.Application.Xml, new OpenApiMediaType { Schema = content.Schema });
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException();
+                    if (resourceType != default && context.SchemaRepository.Schemas.TryGetValue(resourceType.Name, out var schema))
+                    {
+                        if (_options.CurrentValue.ApiFormats.HasFlagFast(ApiSupportedMediaTypes.ApplicationJson))
+                            operation.RequestBody.Content.Add(ApiMediaTypeNames.Application.JsonMergePatch, new OpenApiMediaType { Schema = schema });
+
+                        if (_options.CurrentValue.ApiFormats.HasFlagFast(ApiSupportedMediaTypes.ApplicationXml))
+                            operation.RequestBody.Content.Add(ApiMediaTypeNames.Application.XmlMergePatch, new OpenApiMediaType { Schema = schema });
+                    }
+                }
+                else
+                {
+
+                    // NOTE: Swashbuckle is not respecting the ConsumesAttribute formats here, so we have to do it manually
+                    var content = operation.RequestBody.Content.First().Value;
+                    operation.RequestBody.Content.Clear();
+
+                    switch (_options.CurrentValue.ApiFormats)
+                    {
+                        case ApiSupportedMediaTypes.None:
+                            throw new NotSupportedException(_localizer.GetString("API must support at least one content format"));
+                        case ApiSupportedMediaTypes.ApplicationJson | ApiSupportedMediaTypes.ApplicationXml:
+                            operation.RequestBody.Content.Add(MediaTypeNames.Application.Json, new OpenApiMediaType { Schema = content.Schema });
+                            operation.RequestBody.Content.Add(MediaTypeNames.Application.Xml, new OpenApiMediaType { Schema = content.Schema });
+                            break;
+                        case ApiSupportedMediaTypes.ApplicationJson:
+                            operation.RequestBody.Content.Add(MediaTypeNames.Application.Json, new OpenApiMediaType { Schema = content.Schema });
+                            break;
+                        case ApiSupportedMediaTypes.ApplicationXml:
+                            operation.RequestBody.Content.Add(MediaTypeNames.Application.Xml, new OpenApiMediaType { Schema = content.Schema });
+                            break;
+                        default:
+                            throw new ArgumentOutOfRangeException();
+                    }
                 }
 
                 var prompt = display.GetPrompt();
@@ -298,10 +314,10 @@ namespace BetterAPI
 
             // See: https://tools.ietf.org/html/rfc7807#section-6.2
             if (_options.CurrentValue.ApiFormats.HasFlagFast(ApiSupportedMediaTypes.ApplicationJson))
-                response.Content["application/problem+json"] = reference;
+                response.Content[ApiMediaTypeNames.Application.ProblemJson] = reference;
 
             if (_options.CurrentValue.ApiFormats.HasFlagFast(ApiSupportedMediaTypes.ApplicationXml))
-                response.Content["application/problem+xml"] = reference;
+                response.Content[ApiMediaTypeNames.Application.ProblemXml] = reference;
         }
         
         private void DocumentSchemas(OperationFilterContext context)
@@ -332,21 +348,30 @@ namespace BetterAPI
             }
         }
 
-        private void EnsureOperationsHaveIds(OpenApiOperation operation, OperationFilterContext context)
+        private void EnsureOperationHasId(OpenApiOperation operation, OperationFilterContext context, out Type? resourceType)
         {
             // Assign a unique operation ID if one wasn't set by the developer
             if (string.IsNullOrWhiteSpace(operation.OperationId))
-                operation.OperationId = CreateOperationId(context);
+                operation.OperationId = CreateOperationId(context, out resourceType);
+            else
+                resourceType = default;
         }
 
-        private string CreateOperationId(OperationFilterContext context)
+        private string CreateOperationId(OperationFilterContext context, out Type? resourceType)
         {
             var method = context.MethodInfo;
 
             if (method.ReturnType == typeof(void))
+            {
+                resourceType = default;
                 return method.Name;
+            }
 
-            var operationId = Pooling.StringBuilderPool.Scoped(sb =>
+            resourceType = default;
+            string? operationId;
+
+            var sb = Pooling.StringBuilderPool.Get();
+            try
             {
                 if (method.Name.StartsWith(Constants.Get))
                     sb.Append(Constants.Get);
@@ -356,8 +381,9 @@ namespace BetterAPI
                     sb.Append(Constants.Update);
                 else if (method.Name.StartsWith(Constants.Delete))
                     sb.Append(Constants.Delete);
+                else if (method.Name.StartsWith(Constants.Merge))
+                    sb.Append(Constants.Merge);
 
-                Type? type = default;
                 var plural = false;
 
                 foreach (var producesResponseType in context.ApiDescription.ActionDescriptor.FilterDescriptors
@@ -369,13 +395,13 @@ namespace BetterAPI
                     if (producesResponseType.StatusCode <= 199 || producesResponseType.StatusCode >= 299)
                         continue;
 
-                    type = GetModelType(producesResponseType.Type, out plural);
+                    resourceType = GetModelType(producesResponseType.Type, out plural);
                     break;
                 }
 
                 var parameters = method.GetParameters();
 
-                if (type == default)
+                if (resourceType == default)
                     foreach (var parameter in parameters)
                     {
                         var attributes = parameter.GetCustomAttributes(true);
@@ -384,13 +410,13 @@ namespace BetterAPI
                         {
                             if (!(attribute is FromBodyAttribute))
                                 continue;
-                            type = GetModelType(parameter.ParameterType, out plural);
+                            resourceType = GetModelType(parameter.ParameterType, out plural);
                             break;
                         }
                     }
 
-                type ??= GetModelType(method.ReturnType, out plural);
-                sb.Append(plural ? type.Name.Pluralize() : type.Name);
+                resourceType ??= GetModelType(method.ReturnType, out plural);
+                sb.Append(plural ? resourceType.Name.Pluralize() : resourceType.Name);
 
                 if (parameters.Any(x =>
                     x.Name != null && x.Name.Equals(nameof(IResource.Id), StringComparison.OrdinalIgnoreCase)))
@@ -399,9 +425,15 @@ namespace BetterAPI
                 if (parameters.Any(x =>
                     x.Name != null && x.Name.Equals("continuationToken", StringComparison.OrdinalIgnoreCase)))
                     sb.Append("NextPage");
-            });
-            
-            _logger.LogDebug("OperationId: " + operationId);
+
+                operationId = sb.ToString();
+            }
+            finally
+            {
+                Pooling.StringBuilderPool.Return(sb);
+            }
+
+            _logger.LogDebug("OperationId: {OperationId}", operationId);
             return operationId;
         }
 
@@ -464,6 +496,7 @@ namespace BetterAPI
         {
             return operation.OperationId.StartsWith(Constants.Create, StringComparison.OrdinalIgnoreCase) ||
                    operation.OperationId.StartsWith(Constants.Update, StringComparison.OrdinalIgnoreCase) ||
+                   operation.OperationId.StartsWith(Constants.Merge, StringComparison.OrdinalIgnoreCase) ||
                    operation.OperationId.StartsWith(Constants.Delete, StringComparison.OrdinalIgnoreCase);
         }
 
@@ -668,6 +701,12 @@ namespace BetterAPI
             if (definition == typeof(IEnumerable<>))
             {
                 plural = true;
+                return type.GetGenericArguments()[0];
+            }
+
+            if (definition == typeof(JsonMergePatch<>))
+            {
+                plural = false;
                 return type.GetGenericArguments()[0];
             }
 

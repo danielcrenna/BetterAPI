@@ -14,7 +14,12 @@ namespace BetterAPI
         {
             public static readonly string Json = MediaTypeNames.Application.Json;
             public static readonly string Xml = MediaTypeNames.Application.Xml;
+
             public static readonly string ProblemJson = "application/problem+json";
+            public static readonly string ProblemXml = "application/problem+json";
+
+            public static readonly string JsonMergePatch = "application/json+merge-patch";
+            public static readonly string XmlMergePatch = "application/xml+merge-patch";
         }
     }
 }

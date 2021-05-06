@@ -54,6 +54,7 @@ namespace BetterAPI
         internal static readonly string GetNextPage = nameof(GetNextPage);
         internal static readonly string Create = nameof(Create);
         internal static readonly string Update = nameof(Update);
+        internal static readonly string Merge = nameof(Merge);
         internal static readonly string Delete = nameof(Delete);
         internal static readonly string DeleteById = nameof(DeleteById);
     }

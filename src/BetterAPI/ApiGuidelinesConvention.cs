@@ -137,8 +137,32 @@ namespace BetterAPI
             }
 
             if (action.Is(HttpMethod.Patch))
-            {
-                Consumes(action);
+            { 
+                // successful patch operation:
+                action.ProducesResponseType(StatusCodes.Status200OK);
+
+                // resource not found:
+                action.ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound);
+
+                // invalid patch operation (tried to modify a read-only field, etc.):
+                action.ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest);
+
+                switch (_options.Value.ApiFormats)
+                {
+                    case ApiSupportedMediaTypes.None:
+                        throw new NotSupportedException(_localizer.GetString("API must support at least one content format"));
+                    case ApiSupportedMediaTypes.ApplicationJson | ApiSupportedMediaTypes.ApplicationXml:
+                        action.Consumes(ApiMediaTypeNames.Application.JsonMergePatch, ApiMediaTypeNames.Application.XmlMergePatch);
+                        break;
+                    case ApiSupportedMediaTypes.ApplicationJson:
+                        action.Consumes(ApiMediaTypeNames.Application.JsonMergePatch);
+                        break;
+                    case ApiSupportedMediaTypes.ApplicationXml:
+                        action.Consumes(ApiMediaTypeNames.Application.XmlMergePatch);
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
             }
 
             if (action.Is(HttpMethod.Delete))

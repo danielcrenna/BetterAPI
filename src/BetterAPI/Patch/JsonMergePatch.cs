@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace BetterAPI.Patch
 {
-    public class JsonMergePatch<T> : DynamicObject where T : class
+    public sealed class JsonMergePatch<T> : DynamicObject where T : class
     {
         private readonly HashSet<string> _changed;
         private readonly ITypeReadAccessor _reads;
@@ -28,7 +28,6 @@ namespace BetterAPI.Patch
         }
 
         public IEnumerable<string> GetChangedMemberNames() => _changed;
-        public IEnumerable<string> GetUnchangedMemberNames() => _members.Names.Except(_changed);
         
         public bool TrySetPropertyValue(string name, object? value)
         {
@@ -78,15 +77,7 @@ namespace BetterAPI.Patch
             foreach (var property in GetChangedMemberNames())
                 _writes[to, property] = _reads[from, property];
         }
-
-        public void CopyUnchangedValues(T original)
-        {
-            var from = _data;
-            var to = original;
-            foreach (var property in GetUnchangedMemberNames())
-                _writes[to, property] = _reads[from, property];
-        }
-
+        
         public void ApplyTo(T original, ModelStateDictionary? modelState = null)
         {
             CopyChangedValues(original);
@@ -104,20 +95,6 @@ namespace BetterAPI.Patch
                     modelState?.AddModelError(property.Name, $"ApplyTo is attempting to change '{property.Name}' to '{_reads[_data, property.Name]}', but it is defined as read only.");
                 }
             }
-        }
-
-        public void Put(T original)
-        {
-            CopyChangedValues(original);
-
-            CopyUnchangedValues(original);
-        }
-        
-        public IDictionary<string, object> ToHash()
-        {
-            IEnumerable<string> changed = GetChangedMemberNames();
-
-            return changed.ToDictionary(member => member, member => _reads[_data, member]);
         }
         
         public void Clear()

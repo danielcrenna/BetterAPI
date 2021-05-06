@@ -235,7 +235,8 @@ namespace BetterAPI
             return Created($"{Request.Path}/{model.Id}", model);
         }
 
-        [HttpPatch("{id}/merge")]
+        [HttpPatch("{id}")]
+        [Display(Description = "Updates a resource specified by its unique ID, using merge patch semantics.")]
         public IActionResult MergePatch([FromRoute] Guid id, [FromBody] JsonMergePatch<T> model, CancellationToken cancellationToken)
         {
             if (!_service.TryGetById(id, out var resource, cancellationToken) || resource == default)

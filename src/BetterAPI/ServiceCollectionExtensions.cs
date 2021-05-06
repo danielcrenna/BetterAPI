@@ -90,9 +90,16 @@ namespace BetterAPI
             services.AddSearch(configuration.GetSection(nameof(ApiOptions.Search)));
             services.AddVersioning(configuration.GetSection(nameof(ApiOptions.Versioning)));
 
-            var mvc = services.AddControllers()
-                .AddApplicationPart(typeof(CacheController).Assembly)
-                .AddXmlSupport();
+            var mvc = services.AddControllers(o =>
+            {
+                var inputFormatter = o.InputFormatters.OfType<SystemTextJsonInputFormatter>().First();
+                inputFormatter.SupportedMediaTypes.Add(ApiMediaTypeNames.Application.JsonMergePatch);
+
+                var outputFormatter = o.OutputFormatters.OfType<SystemTextJsonOutputFormatter>().First();
+                outputFormatter.SupportedMediaTypes.Add(ApiMediaTypeNames.Application.JsonMergePatch);
+            })
+            .AddApplicationPart(typeof(CacheController).Assembly)
+            .AddXmlSupport();
 
             // mvc.AddPolicyProtection();
 
@@ -136,6 +143,7 @@ namespace BetterAPI
             builder.Services.AddMvcCore(o =>
             {
                 var outputFormatter = o.OutputFormatters.OfType<XmlDataContractSerializerOutputFormatter>().First();
+                outputFormatter.SupportedMediaTypes.Add(ApiMediaTypeNames.Application.XmlMergePatch);
                 outputFormatter.WriterSettings.Indent = true;
                 outputFormatter.WriterSettings.NamespaceHandling = NamespaceHandling.OmitDuplicates;
             });
