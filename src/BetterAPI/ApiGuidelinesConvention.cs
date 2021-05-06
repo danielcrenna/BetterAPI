@@ -134,12 +134,25 @@ namespace BetterAPI
             if (action.Is(HttpMethod.Put))
             {
                 Consumes(action);
+
+                // updated resource with return=minimal:
+                action.ProducesResponseType(StatusCodes.Status204NoContent);
+
+                // successful update operation:
+                action.ProducesResponseType(StatusCodes.Status200OK);
             }
 
             if (action.Is(HttpMethod.Patch))
             { 
                 // successful patch operation:
-                action.ProducesResponseType(StatusCodes.Status200OK);
+                if (_registry.TryGetValue(action.Controller.ControllerName, out var controllerType) && controllerType != default)
+                {
+                    // patched resource by ID with return=representation:
+                    action.ProducesResponseType(controllerType, StatusCodes.Status200OK); 
+                }
+
+                // patched resource by ID with return=minimal:
+                action.ProducesResponseType(StatusCodes.Status204NoContent);
 
                 // resource not found:
                 action.ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound);

@@ -146,38 +146,46 @@ namespace BetterAPI
             {
                 if (operation.OperationId.StartsWith(Constants.Merge))
                 {
+                    // We want to ignore the merge patch wrapper and present it as the inner resource type
+                    //
                     if (resourceType != default && context.SchemaRepository.Schemas.TryGetValue(resourceType.Name, out var schema))
                     {
-                        if (_options.CurrentValue.ApiFormats.HasFlagFast(ApiSupportedMediaTypes.ApplicationJson))
-                            operation.RequestBody.Content.Add(ApiMediaTypeNames.Application.JsonMergePatch, new OpenApiMediaType { Schema = schema });
+                        // FIXME: Why is the XML-versioned content missing?
 
-                        if (_options.CurrentValue.ApiFormats.HasFlagFast(ApiSupportedMediaTypes.ApplicationXml))
-                            operation.RequestBody.Content.Add(ApiMediaTypeNames.Application.XmlMergePatch, new OpenApiMediaType { Schema = schema });
+                        var (key, value) = operation.RequestBody.Content.First();
+                        value.Schema = schema;
+                        
+                        switch (_options.CurrentValue.ApiFormats)
+                        {
+                            case ApiSupportedMediaTypes.None:
+                                throw new NotSupportedException(_localizer.GetString("API must support at least one content format"));
+                            case ApiSupportedMediaTypes.ApplicationJson | ApiSupportedMediaTypes.ApplicationXml:
+                                operation.RequestBody.Content.Add(key.Replace("json", "xml"), new OpenApiMediaType { Schema = schema });
+                                break;
+                            case ApiSupportedMediaTypes.ApplicationJson:
+                                break;
+                            case ApiSupportedMediaTypes.ApplicationXml:
+                                operation.RequestBody.Content.Add(key.Replace("json", "xml"), new OpenApiMediaType { Schema = schema });
+                                break;
+                            default:
+                                throw new ArgumentOutOfRangeException();
+                        }
                     }
                 }
                 else
                 {
-
-                    // NOTE: Swashbuckle is not respecting the ConsumesAttribute formats here, so we have to do it manually
-                    var content = operation.RequestBody.Content.First().Value;
+                    // '*'-based media types are confusing, so we'll remove them
+                    var content = operation.RequestBody.Content.Where(x => !x.Key.Contains('*', StringComparison.OrdinalIgnoreCase)).ToList();
                     operation.RequestBody.Content.Clear();
-
-                    switch (_options.CurrentValue.ApiFormats)
+                    foreach (var entry in content)
                     {
-                        case ApiSupportedMediaTypes.None:
-                            throw new NotSupportedException(_localizer.GetString("API must support at least one content format"));
-                        case ApiSupportedMediaTypes.ApplicationJson | ApiSupportedMediaTypes.ApplicationXml:
-                            operation.RequestBody.Content.Add(MediaTypeNames.Application.Json, new OpenApiMediaType { Schema = content.Schema });
-                            operation.RequestBody.Content.Add(MediaTypeNames.Application.Xml, new OpenApiMediaType { Schema = content.Schema });
-                            break;
-                        case ApiSupportedMediaTypes.ApplicationJson:
-                            operation.RequestBody.Content.Add(MediaTypeNames.Application.Json, new OpenApiMediaType { Schema = content.Schema });
-                            break;
-                        case ApiSupportedMediaTypes.ApplicationXml:
-                            operation.RequestBody.Content.Add(MediaTypeNames.Application.Xml, new OpenApiMediaType { Schema = content.Schema });
-                            break;
-                        default:
-                            throw new ArgumentOutOfRangeException();
+                        //if (resourceType != default &&
+                        //    context.SchemaRepository.Schemas.TryGetValue(resourceType.Name, out var schema))
+                        //{
+                        //    entry.Value.Schema = schema;
+                        //}
+
+                        operation.RequestBody.Content.Add(entry);
                     }
                 }
 
