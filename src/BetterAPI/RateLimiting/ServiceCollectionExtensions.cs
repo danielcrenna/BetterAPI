@@ -33,6 +33,9 @@ namespace BetterAPI.RateLimiting
                 builder.RegisterEventSourceCounter("Microsoft.AspNetCore.Hosting", "total-requests");
             });
 
+            services.AddScoped<RateLimitingActionFilter>();
+            services.AddMvcCore(o => { o.Filters.AddService<RateLimitingActionFilter>(int.MaxValue); });
+
             return services;
         }
     }

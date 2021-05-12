@@ -8,14 +8,15 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using System.Net.Mime;
 using BetterAPI.Caching;
 using BetterAPI.Data;
 using BetterAPI.Extensions;
 using BetterAPI.Patch;
 using BetterAPI.Reflection;
 using Humanizer;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
@@ -56,11 +57,30 @@ namespace BetterAPI
         public void Apply(OpenApiOperation operation, OperationFilterContext context)
         {
             EnsureOperationHasId(operation, context, out var resourceType);
+
+            DocumentAuthentication(operation);
             DocumentFeatures(operation, context);
             DocumentActions(operation, context, resourceType);
             DocumentResponses(operation);
             DocumentParameters(operation);
             DocumentSchemas(context);
+        }
+        
+        private static void DocumentAuthentication(OpenApiOperation operation)
+        {
+            operation.Responses.Add(Constants.Status401UnauthorizedString, new OpenApiResponse { Description = "Unauthorized" });
+            operation.Responses.Add(Constants.Status403ForbiddenString, new OpenApiResponse { Description = "Forbidden" });
+            var scheme = new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = JwtBearerDefaults.AuthenticationScheme }
+            };
+            operation.Security = new List<OpenApiSecurityRequirement>
+            {
+                new OpenApiSecurityRequirement
+                {
+                    [ scheme ] = new List<string>()
+                }
+            };
         }
 
         private void DocumentParameters(OpenApiOperation operation)
@@ -144,13 +164,16 @@ namespace BetterAPI
 
             if (operation.RequestBody != null)
             {
-                if (operation.OperationId.StartsWith(Constants.Merge))
+                if (operation.OperationId.StartsWith(Constants.Patch))
                 {
                     // We want to ignore the merge patch wrapper and present it as the inner resource type
                     //
                     if (resourceType != default && context.SchemaRepository.Schemas.TryGetValue(resourceType.Name, out var schema))
                     {
                         // FIXME: Why is the XML-versioned content missing?
+                        // FIXME: Why are the JSON-Patch content items missing?
+                        if (!context.SchemaRepository.Schemas.TryGetValue(nameof(JsonPatch), out var patch))
+                            patch = context.SchemaGenerator.GenerateSchema(typeof(JsonPatch), context.SchemaRepository);
 
                         var (key, value) = operation.RequestBody.Content.First();
                         value.Schema = schema;
@@ -161,11 +184,16 @@ namespace BetterAPI
                                 throw new NotSupportedException(_localizer.GetString("API must support at least one content format"));
                             case ApiSupportedMediaTypes.ApplicationJson | ApiSupportedMediaTypes.ApplicationXml:
                                 operation.RequestBody.Content.Add(key.Replace("json", "xml"), new OpenApiMediaType { Schema = schema });
+
+                                operation.RequestBody.Content.Add(ApiMediaTypeNames.Application.JsonPatchJson, new OpenApiMediaType { Schema = patch});
+                                operation.RequestBody.Content.Add(ApiMediaTypeNames.Application.JsonPatchXml, new OpenApiMediaType { Schema = patch });
                                 break;
                             case ApiSupportedMediaTypes.ApplicationJson:
+                                operation.RequestBody.Content.Add(ApiMediaTypeNames.Application.JsonPatchJson, new OpenApiMediaType { Schema = patch});
                                 break;
                             case ApiSupportedMediaTypes.ApplicationXml:
                                 operation.RequestBody.Content.Add(key.Replace("json", "xml"), new OpenApiMediaType { Schema = schema });
+                                operation.RequestBody.Content.Add(ApiMediaTypeNames.Application.JsonPatchXml, new OpenApiMediaType { Schema = patch});
                                 break;
                             default:
                                 throw new ArgumentOutOfRangeException();
@@ -179,12 +207,6 @@ namespace BetterAPI
                     operation.RequestBody.Content.Clear();
                     foreach (var entry in content)
                     {
-                        //if (resourceType != default &&
-                        //    context.SchemaRepository.Schemas.TryGetValue(resourceType.Name, out var schema))
-                        //{
-                        //    entry.Value.Schema = schema;
-                        //}
-
                         operation.RequestBody.Content.Add(entry);
                     }
                 }
@@ -243,7 +265,7 @@ namespace BetterAPI
 
                 if (statusCode == Constants.Status400BadRequestString)
                 {
-                    ProblemDetailsMediaType(operation, response);
+                    ProblemDetailsMediaType(response);
 
                     if (response.Description == null || response.Description == _localizer.GetString("Bad Request"))
                     {
@@ -251,9 +273,29 @@ namespace BetterAPI
                     }
                 }
 
+                if (statusCode == Constants.Status401UnauthorizedString)
+                {
+                    ProblemDetailsMediaType(response);
+
+                    if (response.Description == null || response.Description == _localizer.GetString("Unauthorized"))
+                    {
+                        response.Description = _localizer.GetString("The resource is protected, and the provided credentials are invalid.");
+                    }
+                }
+
+                if (statusCode == Constants.Status403ForbiddenString)
+                {
+                    ProblemDetailsMediaType(response);
+
+                    if (response.Description == null || response.Description == _localizer.GetString("Forbidden"))
+                    {
+                        response.Description = _localizer.GetString("The resource is protected, and the provided credentials are not allowed to access it.");
+                    }
+                }
+
                 if (statusCode == Constants.Status404NotFoundString)
                 {
-                    ProblemDetailsMediaType(operation, response);
+                    ProblemDetailsMediaType(response);
 
                     if (response.Description == null || response.Description == _localizer.GetString("Not Found"))
                     {
@@ -263,7 +305,7 @@ namespace BetterAPI
 
                 if (statusCode == Constants.Status410GoneString)
                 {
-                    ProblemDetailsMediaType(operation, response);
+                    ProblemDetailsMediaType(response);
 
                     if (response.Description == null || response.Description == _localizer.GetString("Client Error"))
                     {
@@ -273,7 +315,7 @@ namespace BetterAPI
 
                 if (statusCode == Constants.Status412PreconditionFailedString)
                 {
-                    ProblemDetailsMediaType(operation, response);
+                    ProblemDetailsMediaType(response);
 
                     if (response.Description == null || response.Description == _localizer.GetString("Client Error"))
                     {
@@ -290,7 +332,7 @@ namespace BetterAPI
 
                 if (statusCode == Constants.Status413PayloadTooLargeString)
                 {
-                    ProblemDetailsMediaType(operation, response);
+                    ProblemDetailsMediaType(response);
 
                     if (response.Description == null || response.Description == _localizer.GetString("Client Error"))
                     {
@@ -300,7 +342,7 @@ namespace BetterAPI
 
                 if (statusCode == Constants.Status500InternalServerErrorString)
                 {
-                    ProblemDetailsMediaType(operation, response);
+                    ProblemDetailsMediaType(response);
 
                     if (response.Description == null || response.Description == _localizer.GetString("Server Error"))
                     {
@@ -314,10 +356,13 @@ namespace BetterAPI
             }
         }
 
-        private void ProblemDetailsMediaType(OpenApiOperation operation, OpenApiResponse response)
+        private void ProblemDetailsMediaType(OpenApiResponse response)
         {
+            var reference = response.Content.Values.FirstOrDefault();
+            if (reference == default)
+                return;
+
             // API versioning replaces media types with incorrect values for ProblemDetails
-            var reference = response.Content.Values.First();
             response.Content.Clear();
 
             // See: https://tools.ietf.org/html/rfc7807#section-6.2
@@ -389,8 +434,8 @@ namespace BetterAPI
                     sb.Append(Constants.Update);
                 else if (method.Name.StartsWith(Constants.Delete))
                     sb.Append(Constants.Delete);
-                else if (method.Name.StartsWith(Constants.Merge))
-                    sb.Append(Constants.Merge);
+                else if (method.Name.StartsWith(Constants.Patch))
+                    sb.Append(Constants.Patch);
 
                 var plural = false;
 
@@ -504,7 +549,7 @@ namespace BetterAPI
         {
             return operation.OperationId.StartsWith(Constants.Create, StringComparison.OrdinalIgnoreCase) ||
                    operation.OperationId.StartsWith(Constants.Update, StringComparison.OrdinalIgnoreCase) ||
-                   operation.OperationId.StartsWith(Constants.Merge, StringComparison.OrdinalIgnoreCase) ||
+                   operation.OperationId.StartsWith(Constants.Patch, StringComparison.OrdinalIgnoreCase) ||
                    operation.OperationId.StartsWith(Constants.Delete, StringComparison.OrdinalIgnoreCase);
         }
 

@@ -36,6 +36,7 @@ namespace BetterAPI.Data
         IEnumerable<T> Get(ResourceQuery query, CancellationToken cancellationToken);
         bool TryGetById(Guid id, out T? resource, CancellationToken cancellationToken);
         bool TryAdd(T model);
+        bool TryUpdate(T model);
         bool TryDeleteById(Guid id, out T? deleted, out bool error);
     }
 }

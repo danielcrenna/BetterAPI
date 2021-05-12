@@ -11,6 +11,6 @@ namespace BetterAPI.Tokens
     public class TokenRequestModel
     {
         [Required]
-        public string Identity { get; set; }
+        public string? Identity { get; set; }
     }
 }

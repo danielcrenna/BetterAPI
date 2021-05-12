@@ -165,13 +165,16 @@ namespace BetterAPI
                     case ApiSupportedMediaTypes.None:
                         throw new NotSupportedException(_localizer.GetString("API must support at least one content format"));
                     case ApiSupportedMediaTypes.ApplicationJson | ApiSupportedMediaTypes.ApplicationXml:
-                        action.Consumes(ApiMediaTypeNames.Application.JsonMergePatch, ApiMediaTypeNames.Application.XmlMergePatch);
+                        action.Consumes(ApiMediaTypeNames.Application.JsonMergePatch,
+                            ApiMediaTypeNames.Application.XmlMergePatch,
+                            ApiMediaTypeNames.Application.JsonPatchJson,
+                            ApiMediaTypeNames.Application.JsonPatchXml);
                         break;
                     case ApiSupportedMediaTypes.ApplicationJson:
-                        action.Consumes(ApiMediaTypeNames.Application.JsonMergePatch);
+                        action.Consumes(ApiMediaTypeNames.Application.JsonMergePatch, ApiMediaTypeNames.Application.JsonPatchJson);
                         break;
                     case ApiSupportedMediaTypes.ApplicationXml:
-                        action.Consumes(ApiMediaTypeNames.Application.XmlMergePatch);
+                        action.Consumes(ApiMediaTypeNames.Application.XmlMergePatch, ApiMediaTypeNames.Application.JsonPatchXml);
                         break;
                     default:
                         throw new ArgumentOutOfRangeException();

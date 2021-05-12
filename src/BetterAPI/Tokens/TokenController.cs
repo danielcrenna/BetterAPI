@@ -9,21 +9,25 @@ using BetterAPI.Caching;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
 namespace BetterAPI.Tokens
 {
+    [ApiController]
     [DoNotHttpCache]
     public class TokenController : Controller
     {
         private readonly JwtSecurityTokenHandler _handler;
+        private readonly IStringLocalizer<TokenController> _localizer;
         private readonly Func<DateTimeOffset> _timestamps;
         private readonly IOptionsSnapshot<TokenOptions> _options;
         private readonly IEncryptionKeyStore _encryptionKeyStore;
 
-        public TokenController(Func<DateTimeOffset> timestamps, IEncryptionKeyStore encryptionKeyStore, IOptionsSnapshot<TokenOptions> options)
+        public TokenController(IStringLocalizer<TokenController> localizer, Func<DateTimeOffset> timestamps, IEncryptionKeyStore encryptionKeyStore, IOptionsSnapshot<TokenOptions> options)
         {
+            _localizer = localizer;
             _timestamps = timestamps;
             _options = options;
             _encryptionKeyStore = encryptionKeyStore;
@@ -32,32 +36,32 @@ namespace BetterAPI.Tokens
 
         [AllowAnonymous, HttpPost("tokens")]
         [Produces(MediaTypeNames.Application.Json)]
+        [Consumes(MediaTypeNames.Application.Json)]
         [ProducesResponseType(typeof(TokenResponseModel), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> GenerateToken([FromBody] TokenRequestModel model)
         {
             if (!TryValidateModel(model))
                 return BadRequest(ModelState);
 
             var issuedAt = _timestamps();
-            var expiresAt = issuedAt + TimeSpan.FromHours(1);
+            var expiresAt = issuedAt + _options.Value.Lifetime;
 
             var claims = new[]
             {
                 // https://tools.ietf.org/html/rfc7519#section-4.1.2
-                new Claim(JwtRegisteredClaimNames.Sub, model.Identity),
+                new Claim(JwtRegisteredClaimNames.Sub, model.Identity ?? string.Empty),
 
                 // https://tools.ietf.org/html/rfc7519#section-4.1.4
                 new Claim(JwtRegisteredClaimNames.Exp, expiresAt.ToUnixTimeSeconds().ToString()),
-
-                // https://tools.ietf.org/html/rfc7519#section-4.1.4
-                new Claim(JwtRegisteredClaimNames.Exp, expiresAt.ToUnixTimeSeconds().ToString()),
-
+                
                 // https://tools.ietf.org/html/rfc7519#section-4.1.6
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             };
 
-            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.Value.SigningKey));
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.Value?.SigningKey ?? throw new InvalidOperationException(
+                _localizer.GetString("Bearer authentication requires a valid signing key"))));
+
             var signing = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
             string token;

@@ -5,28 +5,36 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 using System;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using System.Security.Cryptography;
 
 namespace BetterAPI.Tokens
 {
     public class TokenOptions
     {
         public string? Realm { get; set; }
+
+        [Required]
         public string Issuer { get; set; }
+
+        [Required]
         public string Audience { get; set; }
-        public string SigningKey { get; set; }
+
+        [Required]
+        public string? SigningKey { get; set; }
+
+        [Required]
         public TokenFormat Format { get; set; }
-        
+
+        [Required]
+        public TimeSpan Lifetime { get; set; }
+
         public TokenOptions()
         {
-            var buffer = new byte[32];
-            using var random = RandomNumberGenerator.Create();
-            random.GetBytes(buffer);
-
-            SigningKey = Convert.ToBase64String(buffer);
             Issuer = GetDefaultServerUrl();
             Audience = Issuer;
+            Format = TokenFormat.JsonWebToken;
+            Lifetime = TimeSpan.FromHours(1);
         }
 
         /// <summary> Poll an environment variable to determine URLs, and choose the first HTTPS URL, if available. </summary>

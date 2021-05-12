@@ -40,7 +40,7 @@ namespace Demo.Tests
         public async Task Invalid_token_request_returns_bad_request()
         {
             var client = _factory.CreateClientNoRedirects();
-            var response = await client.PostAsJsonAsync("tokens", new TokenRequestModel { Identity = ""});
+            var response = await client.PostAsJsonAsync("tokens", new TokenRequestModel { Identity = "" });
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 

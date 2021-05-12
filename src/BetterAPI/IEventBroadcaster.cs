@@ -9,5 +9,6 @@ namespace BetterAPI
     public interface IEventBroadcaster
     {
         void Created<T>(T model);
+        void Updated<T>(T model);
     }
 }

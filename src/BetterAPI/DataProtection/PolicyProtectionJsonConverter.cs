@@ -9,6 +9,7 @@ using System.Security.Claims;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
+using BetterAPI.Paging;
 using BetterAPI.Reflection;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -20,7 +21,7 @@ namespace BetterAPI.DataProtection
     /// See: https://docs.microsoft.com/en-us/aspnet/core/security/authorization/policies?view=aspnetcore-5.0
     /// See: https://docs.microsoft.com/en-us/aspnet/core/security/authorization/iauthorizationpolicyprovider?view=aspnetcore-5.0
     /// </summary>
-    public sealed class PolicyProtectionJsonConverter : JsonConverter<object>
+    public sealed class PolicyProtectionJsonConverter<T> : JsonConverter<T>
     {
         private readonly IAuthorizationService _authorization;
         private readonly IHttpContextAccessor? _http;
@@ -36,7 +37,7 @@ namespace BetterAPI.DataProtection
             return true;
         }
 
-        public override object? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        public override T Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
             var optionsWithoutThis = new JsonSerializerOptions(options);
             if(!optionsWithoutThis.Converters.Remove(this))
@@ -46,7 +47,7 @@ namespace BetterAPI.DataProtection
 
             if (reader.TokenType != JsonTokenType.StartObject) throw new JsonException();
 
-            object data = Instancing.CreateInstance(typeToConvert);
+            var data = Activator.CreateInstance<T>();
 
             while (reader.Read())
             {
@@ -71,7 +72,7 @@ namespace BetterAPI.DataProtection
             throw new JsonException();
         }
 
-        public override async void Write(Utf8JsonWriter writer, object value, JsonSerializerOptions options)
+        public override async void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options)
         {
             var optionsWithoutThis = new JsonSerializerOptions(options);
             if(!optionsWithoutThis.Converters.Remove(this))

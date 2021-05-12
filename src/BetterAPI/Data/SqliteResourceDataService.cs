@@ -104,6 +104,11 @@ namespace BetterAPI.Data
             }
         }
 
+        public bool TryUpdate(T model)
+        {
+            throw new NotImplementedException();
+        }
+
         public bool TryDeleteById(Guid id, out T? deleted, out bool error)
         {
             throw new NotImplementedException();

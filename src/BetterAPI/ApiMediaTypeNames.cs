@@ -12,14 +12,17 @@ namespace BetterAPI
     {
         public static class Application
         {
-            public static readonly string Json = MediaTypeNames.Application.Json;
-            public static readonly string Xml = MediaTypeNames.Application.Xml;
+            public const string Json = MediaTypeNames.Application.Json;
+            public const string Xml = MediaTypeNames.Application.Xml;
 
-            public static readonly string ProblemJson = "application/problem+json";
-            public static readonly string ProblemXml = "application/problem+json";
+            public const string ProblemJson = "application/problem+json";
+            public const string ProblemXml = "application/problem+json";
 
-            public static readonly string JsonMergePatch = "application/json+merge-patch";
-            public static readonly string XmlMergePatch = "application/xml+merge-patch";
+            public const string JsonMergePatch = "application/json+merge-patch";
+            public const string XmlMergePatch = "application/xml+merge-patch";
+
+            public const string JsonPatchJson = "application/json-patch+json";
+            public const string JsonPatchXml = "application/json-patch+xml";
         }
     }
 }

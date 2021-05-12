@@ -8,6 +8,7 @@ using BetterAPI.Paging;
 using BetterAPI.Patch;
 using BetterAPI.Reflection;
 using BetterAPI.Sorting;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Localization;
@@ -46,11 +47,31 @@ namespace BetterAPI
             // See: https://github.com/microsoft/api-guidelines/blob/vNext/Guidelines.md#744-options-and-link-headers
             // OPTIONS allows a client to retrieve information about a resource,
             // at a minimum by returning the Allow header denoting the valid methods for this resource.
-            Response.Headers.TryAdd(HeaderNames.Allow, new StringValues(new[] { HttpMethods.Get, HttpMethods.Delete, HttpMethods.Post }));
+            Response.Headers.TryAdd(HeaderNames.Allow, new StringValues(new[]
+            {
+                HttpMethods.Get, 
+                HttpMethods.Delete, 
+                HttpMethods.Post,
+                HttpMethods.Put, 
+                HttpMethods.Patch
+            }));
+
+            // See: https://tools.ietf.org/html/rfc5789#section-3.1
+            // Accept-Patch should indicate all supported patch formats:
+            if (_options.Value.ApiFormats.HasFlagFast(ApiSupportedMediaTypes.ApplicationJson))
+            {
+                Response.Headers.Append(ApiHeaderNames.AcceptPatch, ApiMediaTypeNames.Application.JsonMergePatch);
+                Response.Headers.Append(ApiHeaderNames.AcceptPatch, ApiMediaTypeNames.Application.JsonPatchJson);
+            }
+            if (_options.Value.ApiFormats.HasFlagFast(ApiSupportedMediaTypes.ApplicationJson))
+            {
+                Response.Headers.Append(ApiHeaderNames.AcceptPatch, ApiMediaTypeNames.Application.XmlMergePatch);
+                Response.Headers.Append(ApiHeaderNames.AcceptPatch, ApiMediaTypeNames.Application.JsonPatchXml);
+            }
 
             // In addition, services SHOULD include a Link header (see RFC 5988) to point to documentation for the resource in question:
             // Link: <{help}>; rel="help"
-            Response.Headers.TryAdd(ApiHeaderNames.Link, $"<{Request.Scheme}://{Request.Host}/{Options.Value.OpenApiUiRoutePrefix?.TrimStart('/')}>; rel=\"help\"");
+            Response.Headers.TryAdd(ApiHeaderNames.Link, $"<{Request.Scheme}://{Request.Host}/{Options.Value.OpenApiUiRoutePrefix?.TrimStart('/')}/index.html#{typeof(T).Name}>; rel=\"help\"");
         }
 
         [Display(Description = "Returns all saved resources, with optional sorting, filtering, paging, shaping, and search criteria")]
@@ -235,23 +256,58 @@ namespace BetterAPI
             return Created($"{Request.Path}/{model.Id}", model);
         }
 
-        [HttpPatch("{id}")]
-        [Display(Description = "Updates a resource specified by its unique ID, using merge patch semantics.")]
-        public IActionResult MergePatch([FromRoute] Guid id, [FromBody] JsonMergePatch<T> model, CancellationToken cancellationToken)
+        [HttpPut("{id}")]
+        [Display(Description = "Updates an existing resource", Prompt = "An existing resource")]
+        public IActionResult Update([FromRoute] Guid id, [FromBody] T model, CancellationToken cancellationToken)
         {
-            if (!_service.TryGetById(id, out var resource, cancellationToken) || resource == default)
-                return NotFound();
-
-            ModelState.Clear();
-            model.ApplyTo(resource, ModelState);
-
             if (!TryValidateModel(model))
                 return BadRequest(ModelState);
 
-            // FIXME: Update
-            // FIXME: NotModified
+            var uninitialized = id.Equals(Guid.Empty);
+            if (uninitialized)
+            {
+                Response.Headers.TryAdd(HeaderNames.Location, $"{Request.Path}");
+                return NotFoundWithDetails("This resource's ID is uninitialized. Did you mean to create it?");
+            }
 
-            return Ok(resource);
+            // Save a database call if the server set the ID
+            if (!_service.TryGetById(id, out _, cancellationToken))
+            {
+                Response.Headers.TryAdd(HeaderNames.Location, $"{Request.Path}");
+                return NotFoundWithDetails("This resource doesn't exist. Did you mean to create it?");
+            }
+
+            if (!_service.TryUpdate(model))
+            {
+                Logger.LogError(ErrorEvents.ErrorSavingResource, _localizer.GetString("Updating resource {Model} failed to save to the underlying data store."), model);
+                return InternalServerErrorWithDetails("An unexpected error occurred saving this resource. An error was logged. Please try again later.");
+            }
+
+            _events.Updated(model);
+            return Ok(model);
+        }
+        
+        [HttpPatch("{id}")]
+        [Display(Description = "Updates a resource specified by its unique ID, using the provided merge format")]
+        public IActionResult Patch([FromRoute] Guid id, [FromBody] object model, [FromHeader(Name = ApiHeaderNames.Accept)] 
+            string contentType, CancellationToken cancellationToken)
+        {
+            if (contentType.Equals(ApiMediaTypeNames.Application.JsonMergePatch, StringComparison.OrdinalIgnoreCase) ||
+                contentType.Equals(ApiMediaTypeNames.Application.XmlMergePatch, StringComparison.OrdinalIgnoreCase))
+            {
+                return MergePatch(id, (JsonMergePatch<T>) model, cancellationToken);
+            }
+
+            if (contentType.Equals(ApiMediaTypeNames.Application.JsonPatchJson, StringComparison.OrdinalIgnoreCase) ||
+                contentType.Equals(ApiMediaTypeNames.Application.JsonPatchXml, StringComparison.OrdinalIgnoreCase))
+            {
+                return JsonPatch(id, (JsonPatch) model, cancellationToken);
+            }
+
+            return UnsupportedMediaTypeWithDetails(
+                "Patching a resource requires a valid PATCH format. " +
+                "You can obtain a list of available PATCH formats for this resource by making an OPTIONS " +
+                "request to the resource endpoint, and consulting the 'Accept-Patch' response header.");
         }
 
         [HttpDelete("{id}")]
@@ -275,6 +331,44 @@ namespace BetterAPI
             }
 
             return NotFoundWithDetails("There is no resource with ID {0} on this server.", id);
+        }
+
+        [NonAction]
+        private IActionResult MergePatch(Guid id, JsonMergePatch<T> model, CancellationToken cancellationToken)
+        {
+            if (!_service.TryGetById(id, out var resource, cancellationToken) || resource == default)
+                return NotFound();
+
+            ModelState.Clear();
+            model.ApplyTo(resource, ModelState);
+
+            if (!TryValidateModel(model))
+                return BadRequest(ModelState);
+
+            // FIXME: Update
+            // FIXME: NotModified
+
+            _events.Updated(resource);
+            return Ok(resource);
+        }
+
+        [NonAction]
+        public IActionResult JsonPatch([FromRoute] Guid id, [FromBody] JsonPatch model, CancellationToken cancellationToken)
+        {
+            if (!_service.TryGetById(id, out var resource, cancellationToken) || resource == default)
+                return NotFound();
+
+            ModelState.Clear();
+            // model.ApplyTo(resource, ModelState);
+
+            if (!TryValidateModel(model))
+                return BadRequest(ModelState);
+
+            // FIXME: Update
+            // FIXME: NotModified
+            
+            _events.Updated(resource);
+            return Ok(resource);
         }
     }
 }

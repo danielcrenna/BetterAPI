@@ -43,6 +43,8 @@ namespace BetterAPI
         internal static readonly string Status303SeeOtherString = StatusCodes.Status303SeeOther.ToString();
         internal static readonly string Status304NotModifiedString = StatusCodes.Status304NotModified.ToString();
         internal static readonly string Status400BadRequestString = StatusCodes.Status400BadRequest.ToString();
+        internal static readonly string Status401UnauthorizedString = StatusCodes.Status401Unauthorized.ToString();
+        internal static readonly string Status403ForbiddenString = StatusCodes.Status403Forbidden.ToString();
         internal static readonly string Status404NotFoundString = StatusCodes.Status404NotFound.ToString();
         internal static readonly string Status410GoneString = StatusCodes.Status410Gone.ToString();
         internal static readonly string Status412PreconditionFailedString = StatusCodes.Status412PreconditionFailed.ToString();
@@ -54,7 +56,7 @@ namespace BetterAPI
         internal static readonly string GetNextPage = nameof(GetNextPage);
         internal static readonly string Create = nameof(Create);
         internal static readonly string Update = nameof(Update);
-        internal static readonly string Merge = nameof(Merge);
+        internal static readonly string Patch = nameof(Patch);
         internal static readonly string Delete = nameof(Delete);
         internal static readonly string DeleteById = nameof(DeleteById);
     }

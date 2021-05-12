@@ -10,12 +10,14 @@ namespace BetterAPI
 {
     public static class ApiHeaderNames
     {
+        public static readonly string AcceptPatch = "Accept-Patch";
+
         public static readonly string Prefer = "Prefer";
         public static readonly string PreferenceApplied = "Preference-Applied";
 
+        public const string Accept = "Accept";
         public static readonly string ETag = HeaderNames.ETag;
         public static readonly string LastModified = HeaderNames.LastModified;
-
         public static readonly string IfNoneMatch = HeaderNames.IfNoneMatch;
         public static readonly string IfMatch = HeaderNames.IfMatch;
         public static readonly string IfUnmodifiedSince = HeaderNames.IfUnmodifiedSince;
@@ -25,7 +27,7 @@ namespace BetterAPI
 
         public static readonly string ServerTiming = "Server-Timing";
         public static readonly string TimingAllowOrigin = "Timing-Allow-Origin";
-        
+
         public static readonly string MockResponse = "X-Mock-Response";
     }
 }

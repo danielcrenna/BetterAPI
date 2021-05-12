@@ -21,5 +21,10 @@ namespace BetterAPI
         {
             _deltas.TryPushAdd<T>(model);
         }
+
+        public void Updated<T>(T model)
+        {
+            throw new System.NotImplementedException();
+        }
     }
 }

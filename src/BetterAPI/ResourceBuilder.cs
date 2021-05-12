@@ -7,13 +7,11 @@
 using System;
 using System.Collections.Generic;
 using BetterAPI.Data;
-using BetterAPI.Paging;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace BetterAPI
 {

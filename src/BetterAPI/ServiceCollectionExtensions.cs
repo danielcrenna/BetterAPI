@@ -16,6 +16,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using BetterAPI.Caching;
 using BetterAPI.Cors;
+using BetterAPI.DataProtection;
 using BetterAPI.DeltaQueries;
 using BetterAPI.Enveloping;
 using BetterAPI.Filtering;
@@ -30,10 +31,12 @@ using BetterAPI.Shaping;
 using BetterAPI.Sorting;
 using BetterAPI.Tokens;
 using BetterAPI.Versioning;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.Extensions.Options;
+using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace BetterAPI
@@ -132,6 +135,14 @@ namespace BetterAPI
                 var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
                 if(File.Exists(xmlPath))
                     o.IncludeXmlComments(xmlPath, true);
+
+                o.AddSecurityDefinition(JwtBearerDefaults.AuthenticationScheme, new OpenApiSecurityScheme
+                {
+                    Description = JwtBearerDefaults.AuthenticationScheme,
+                    In  = ParameterLocation.Header,
+                    Name = "Authorization",
+                    Type = SecuritySchemeType.ApiKey
+                });
             });
 
             return services;
