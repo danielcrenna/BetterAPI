@@ -92,6 +92,15 @@ namespace BetterAPI
             services.AddCollectionFiltering(configuration.GetSection(nameof(ApiOptions.Filter)));
             services.AddSearch(configuration.GetSection(nameof(ApiOptions.Search)));
             services.AddVersioning(configuration.GetSection(nameof(ApiOptions.Versioning)));
+            
+            // 
+            // Canonicalize with lowercase paths
+            services.AddRouting(o =>
+            {
+                o.AppendTrailingSlash = true;
+                o.LowercaseQueryStrings = false;
+                o.LowercaseUrls = true;
+            });
 
             var mvc = services.AddControllers(o =>
             {
