@@ -4,6 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
+using System.Security.Claims;
 using BetterAPI;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -17,17 +18,17 @@ namespace Demo
     {
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddApiResource(nameof(WeatherForecast), changeLog =>
+            services.AddChangeLog(builder =>
             {
-                changeLog.Add<WeatherForecast>();
-                changeLog.ShipVersion(ApiVersion.Default);
+                builder.AddResource<WeatherForecastV1>("WeatherForecast");
+                builder.ShipVersion(ApiVersion.Default);
             });
 
             services.AddAuthorization(o =>
             {
                 o.AddPolicy("TopSecret", builder =>
                 {
-                    builder.RequireAssertion(context => false);
+                    builder.RequireAssertion(context => context.User.HasClaim(ClaimTypes.NameIdentifier, "Foo"));
                 });
             });
         }

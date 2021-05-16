@@ -7,6 +7,8 @@
 using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 
 namespace BetterAPI.DataProtection
 {
@@ -15,18 +17,25 @@ namespace BetterAPI.DataProtection
     /// </summary>
     public sealed class PolicyProtectionJsonConverterFactory : JsonConverterFactory
     {
+        private readonly IAuthorizationService _authorization;
+        private readonly IHttpContextAccessor _accessor;
+
+        public PolicyProtectionJsonConverterFactory(IAuthorizationService authorization, IHttpContextAccessor accessor)
+        {
+            _authorization = authorization;
+            _accessor = accessor;
+        }
+
         public override bool CanConvert(Type typeToConvert)
         {
-            if (!typeToConvert.IsGenericType)
-                return false;
-            return true;
+            return typeof(IResource).IsAssignableFrom(typeToConvert);
         }
 
         public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options)
         {
-            var underlyingType = typeToConvert.GetGenericArguments()[0];
-            var converterType = typeof(PolicyProtectionJsonConverter<>).MakeGenericType(underlyingType) ?? throw new NullReferenceException();
-            JsonConverter converter = (JsonConverter) Activator.CreateInstance(converterType)! ?? throw new NullReferenceException();
+            // var underlyingType = typeToConvert.GetGenericArguments()[0];
+            var converterType = typeof(PolicyProtectionJsonConverter<>).MakeGenericType(typeToConvert) ?? throw new NullReferenceException();
+            JsonConverter converter = (JsonConverter) Activator.CreateInstance(converterType, _authorization, _accessor)! ?? throw new NullReferenceException();
             return converter;
         }
     }

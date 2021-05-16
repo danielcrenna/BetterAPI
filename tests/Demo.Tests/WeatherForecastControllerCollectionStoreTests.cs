@@ -15,7 +15,7 @@ using Xunit.Abstractions;
 namespace Demo.Tests
 {
     // ReSharper disable once UnusedMember.Global
-    public class WeatherForecastControllerCollectionStoreTests : GivenACollectionStore<MemoryResourceDataService<WeatherForecast>, WeatherForecast, Startup>
+    public class WeatherForecastControllerCollectionStoreTests : GivenACollectionStore<MemoryResourceDataService<WeatherForecastV1>, WeatherForecastV1, Startup>
     {
         public WeatherForecastControllerCollectionStoreTests(ITestOutputHelper output, WebApplicationFactory<Startup> factory) :
             base("/WeatherForecasts", output, factory)
@@ -27,12 +27,12 @@ namespace Demo.Tests
 
         public override SortClause AlternateSort()
         {
-            return new SortClause {Field = nameof(WeatherForecast.Summary), Direction = SortDirection.Descending};
+            return new SortClause {Field = nameof(WeatherForecastV1.Summary), Direction = SortDirection.Descending};
         }
 
-        public override void Populate(MemoryResourceDataService<WeatherForecast> service)
+        public override void Populate(MemoryResourceDataService<WeatherForecastV1> service)
         {
-            Assert.True(service.TryAdd(new WeatherForecast
+            Assert.True(service.TryAdd(new WeatherForecastV1
             {
                 Id = IdGreaterThanInsertedFirst,
                 Date = DateTime.Now,
@@ -40,7 +40,7 @@ namespace Demo.Tests
                 TemperatureC = 0
             }));
 
-            Assert.True(service.TryAdd(new WeatherForecast
+            Assert.True(service.TryAdd(new WeatherForecastV1
             {
                 Id = IdLessThanInsertedSecond,
                 Date = DateTime.Now,

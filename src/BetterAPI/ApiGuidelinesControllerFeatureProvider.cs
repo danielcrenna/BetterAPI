@@ -4,6 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -13,24 +14,24 @@ using Microsoft.AspNetCore.Mvc.Controllers;
 
 namespace BetterAPI
 {
-    /*
-      [Display(Description = "Manages operations for weather forecast resources")]
-      public class WeatherForecastController : ResourceController<WeatherForecast>
-      {
-          public WeatherForecastController(WeatherForecastService service, IEventBroadcaster events, IOptionsSnapshot<ApiOptions> options, ILogger<WeatherForecastController> logger) : 
-              base(service, events, options, logger) { }
-      }
-     */
-
     internal sealed class ApiGuidelinesControllerFeatureProvider : IApplicationFeatureProvider<ControllerFeature>
     {
+        private readonly ChangeLogBuilder _builder;
+
+        public ApiGuidelinesControllerFeatureProvider(ChangeLogBuilder builder)
+        {
+            _builder = builder;
+        }
+
         public void PopulateFeature(IEnumerable<ApplicationPart> parts, ControllerFeature feature)
         {
             AddResourceControllers(parts, feature);
         }
 
-        private static void AddResourceControllers(IEnumerable<ApplicationPart> parts, ControllerFeature feature)
+        private void AddResourceControllers(IEnumerable<ApplicationPart> parts, ControllerFeature feature)
         {
+            var resourceTypes = _builder.ResourceTypes ?? new HashSet<Type>(0);
+            
             foreach (var part in parts.OfType<AssemblyPart>())
             {
                 if (part.Assembly == typeof(ApiGuidelinesControllerFeatureProvider).Assembly)
@@ -39,7 +40,10 @@ namespace BetterAPI
                 foreach (var type in part.Assembly.GetTypes())
                 {
                     if (!typeof(IResource).IsAssignableFrom(type))
-                        continue;
+                        continue; // not a resource
+
+                    if (!resourceTypes.Contains(type))
+                        continue; // not in the change log
 
                     var hasController = false;
 
@@ -61,7 +65,9 @@ namespace BetterAPI
                     }
 
                     if (!hasController)
+                    {
                         feature.Controllers.Add(typeof(ResourceController<>).MakeGenericType(type).GetTypeInfo());
+                    }
                 }
             }
         }

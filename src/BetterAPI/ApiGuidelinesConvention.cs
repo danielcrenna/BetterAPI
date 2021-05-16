@@ -29,12 +29,14 @@ namespace BetterAPI
         IParameterModelConvention
     {
         private readonly TypeRegistry _registry;
+        private readonly ChangeLogBuilder _builder;
         private readonly IStringLocalizer<ApiGuidelinesConvention> _localizer;
         private readonly IOptions<ApiOptions> _options;
 
-        public ApiGuidelinesConvention(TypeRegistry registry, IStringLocalizer<ApiGuidelinesConvention> localizer, IOptions<ApiOptions> options)
+        public ApiGuidelinesConvention(TypeRegistry registry, ChangeLogBuilder builder, IStringLocalizer<ApiGuidelinesConvention> localizer, IOptions<ApiOptions> options)
         {
             _registry = registry;
+            _builder = builder;
             _localizer = localizer;
             _options = options;
         }
@@ -44,6 +46,16 @@ namespace BetterAPI
             foreach (var controller in application.Controllers)
             {
                 controller.ControllerName = controller.ControllerType.NormalizeResourceControllerName();
+
+                if (controller.ControllerType.IsGenericType)
+                {
+                    if (_builder.TryGetResourceName(controller.ControllerType.GetGenericArguments()[0],
+                        out var resourceName))
+                    {
+                        controller.ControllerName = resourceName;
+                    }
+                }
+
                 Apply(controller);
             }
         }
@@ -117,10 +129,14 @@ namespace BetterAPI
                     // created resource with return=minimal:
                     action.ProducesResponseType(StatusCodes.Status201Created);
 
-                    // tried to create a resource that already exists:
+                    // tried to create a resource that already exists, and the supplied resource was equivalent:
                     action.ProducesResponseType<ProblemDetails>(StatusCodes.Status303SeeOther);
 
-                    // invalid body:
+                    // client followed a redirect via 303 See Other, and retrieved the cacheable resource
+                    action.ProducesResponseType(StatusCodes.Status200OK);
+
+                    // invalid body
+                    // tried to create a resource that already exists, and the supplied resource was not equivalent
                     action.ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest);
 
                     // server failed to save resource:

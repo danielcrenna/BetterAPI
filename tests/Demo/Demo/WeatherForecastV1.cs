@@ -13,7 +13,7 @@ using BetterAPI.Validation;
 
 namespace Demo
 {
-    public class WeatherForecast : IResource
+    public class WeatherForecastV1 : IResource
     {
         [Required]
         [Display(Description = "The forecast's unique ID")]
@@ -37,6 +37,6 @@ namespace Demo
         public string? Summary { get; set; }
 
         [ProtectedByPolicy("TopSecret")]
-        public string SecretMessage { get; set; }
+        public string? SecretMessage { get; set; }
     }
 }

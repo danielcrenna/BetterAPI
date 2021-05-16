@@ -5,11 +5,9 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 using System;
-using System.Security.Claims;
+using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Threading;
-using BetterAPI.Paging;
 using BetterAPI.Reflection;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -34,18 +32,15 @@ namespace BetterAPI.DataProtection
 
         public override bool CanConvert(Type typeToConvert)
         {
-            return true;
+            return typeof(IResource).IsAssignableFrom(typeToConvert);
         }
 
         public override T Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
-            var optionsWithoutThis = new JsonSerializerOptions(options);
-            if(!optionsWithoutThis.Converters.Remove(this))
-                throw new JsonException();
-
             var writer = WriteAccessor.Create(typeToConvert, AccessorMemberTypes.Properties, AccessorMemberScope.Public, out var members);
 
-            if (reader.TokenType != JsonTokenType.StartObject) throw new JsonException();
+            if (reader.TokenType != JsonTokenType.StartObject)
+                throw new JsonException();
 
             var data = Activator.CreateInstance<T>();
 
@@ -58,13 +53,37 @@ namespace BetterAPI.DataProtection
                     throw new JsonException(); // fail: did not pass through previous property value
 
                 var key = reader.GetString();
-                
-                if (string.IsNullOrWhiteSpace(key) || !members.TryGetValue(key, out var member) || !member.CanWrite)
+                if (string.IsNullOrWhiteSpace(key))
                     continue;
 
-                var value = JsonSerializer.Deserialize(ref reader, member.Type, optionsWithoutThis);
+                var propertyName =  options.PropertyNamingPolicy?.ConvertName(key);
+                if (string.IsNullOrWhiteSpace(propertyName) || !members.TryGetValue(propertyName, out var member) ||
+                    !member.CanWrite)
+                {
+                    reader.Skip();
+                    continue;
+                }
 
-                if (!writer.TrySetValue(data, key, value!))
+                if (member.TryGetAttribute<ProtectedByPolicyAttribute>(out var attribute))
+                {
+                    var user =  _http.ResolveCurrentPrincipal();
+                    if (!user.Claims.Any())
+                    {
+                        reader.Skip();
+                        continue;
+                    }
+                                        
+                    // resource is set to null here, because we don't want to deserialize the protected property unless we need to
+                    var result = _authorization.AuthorizeAsync(user, null, attribute.PolicyName).ConfigureAwait(false).GetAwaiter().GetResult();
+                    if (!result.Succeeded)
+                    {
+                        reader.Skip();
+                        continue;
+                    }
+                }
+
+                var value = JsonSerializer.Deserialize(ref reader, member.Type, options);
+                if (!writer.TrySetValue(data, member.Name, value!))
                     throw new JsonException();
             }
 
@@ -74,10 +93,6 @@ namespace BetterAPI.DataProtection
 
         public override async void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options)
         {
-            var optionsWithoutThis = new JsonSerializerOptions(options);
-            if(!optionsWithoutThis.Converters.Remove(this))
-                throw new JsonException();
-
             var reader = ReadAccessor.Create(value, AccessorMemberTypes.Properties, AccessorMemberScope.Public, out var members);
 
             writer.WriteStartObject();
@@ -88,8 +103,9 @@ namespace BetterAPI.DataProtection
 
                 if (member.TryGetAttribute<ProtectedByPolicyAttribute>(out var attribute))
                 {
-                    var user = _http?.HttpContext?.User ?? Thread.CurrentPrincipal as ClaimsPrincipal ??
-                        ClaimsPrincipal.Current ?? throw new NullReferenceException();
+                    var user = _http.ResolveCurrentPrincipal();
+                    if (!user.Claims.Any())
+                        continue;
 
                     var result = await _authorization.AuthorizeAsync(user, value, attribute.PolicyName);
                     if (result.Succeeded)
@@ -105,12 +121,12 @@ namespace BetterAPI.DataProtection
             void WriteNameAndValue(AccessorMember member)
             {
                 // key:
-                var propertyName = optionsWithoutThis.PropertyNamingPolicy?.ConvertName(member.Name) ?? member.Name;
+                var propertyName = options.PropertyNamingPolicy?.ConvertName(member.Name) ?? member.Name;
                 writer.WritePropertyName(propertyName);
 
                 // value (can be null):
                 reader.TryGetValue(value, member.Name, out var item);
-                JsonSerializer.Serialize(writer, item, optionsWithoutThis);
+                JsonSerializer.Serialize(writer, item, options);
             }
         }
     }

@@ -8,7 +8,6 @@ using BetterAPI.Paging;
 using BetterAPI.Patch;
 using BetterAPI.Reflection;
 using BetterAPI.Sorting;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Localization;
@@ -234,11 +233,46 @@ namespace BetterAPI
                 }
 
             // Save a database call if the server set the ID
-            if (!uninitialized && _service.TryGetById(model.Id, out _, cancellationToken))
+            if (!uninitialized && _service.TryGetById(model.Id, out var other, cancellationToken))
             {
-                // See: https://tools.ietf.org/html/rfc7231#section-4.3.3
+                if (other != null)
+                {
+                    // FIXME: replace with a stable-sorted hash?
+                    var equivalent = true;
+                    var reads = ReadAccessor.Create(typeof(T), AccessorMemberTypes.Properties, AccessorMemberScope.Public, out var members);
+                    foreach (var member in members)
+                    {
+                        if (!member.CanRead)
+                            continue;
+
+                        if (!reads.TryGetValue(model, member.Name, out var left) ||
+                            !reads.TryGetValue(other, member.Name, out var right) || !left.Equals(right))
+                        {
+                            equivalent = false;
+                            break;
+                        }
+                    }
+
+                    if (equivalent)
+                    {
+                        // See: https://tools.ietf.org/html/rfc7231#section-4.3.3
+                        //
+                        //  If the result of processing a POST would be equivalent to a
+                        //  representation of an existing resource, an origin server MAY redirect
+                        //  the user agent to that resource by sending a 303 (See Other) response
+                        //  with the existing resource's identifier in the Location field.  This
+                        //  has the benefits of providing the user agent a resource identifier
+                        //  and transferring the representation via a method more amenable to
+                        //  shared caching, though at the cost of an extra request if the user
+                        //  agent does not already have the representation cached.
+                        //
+                        Response.Headers.TryAdd(HeaderNames.Location, $"{Request.Path}/{model.Id}");
+                        return SeeOtherWithDetails("This resource already exists. Did you mean to update it?");
+                    }
+                }
+
                 Response.Headers.TryAdd(HeaderNames.Location, $"{Request.Path}/{model.Id}");
-                return SeeOtherWithDetails("This resource already exists. Did you mean to update it?");
+                return BadRequestWithDetails("This resource already exists. Did you mean to update it?");
             }
 
             //

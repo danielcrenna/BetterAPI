@@ -21,11 +21,13 @@ namespace BetterAPI
     /// </summary>
     internal sealed class ApiGuidelinesModelProvider : IApplicationModelProvider
     {
+        private readonly ChangeLogBuilder _builder;
         private readonly IOptionsMonitor<ApiOptions> _options;
         private readonly IOptionsMonitor<RequestLocalizationOptions> _localization;
 
-        public ApiGuidelinesModelProvider(IOptionsMonitor<ApiOptions> options, IOptionsMonitor<RequestLocalizationOptions> localization)
+        public ApiGuidelinesModelProvider(ChangeLogBuilder builder, IOptionsMonitor<ApiOptions> options, IOptionsMonitor<RequestLocalizationOptions> localization)
         {
+            _builder = builder;
             _options = options;
             _localization = localization;
         }
@@ -70,11 +72,21 @@ namespace BetterAPI
             // Collections must be un-abbreviated and pluralized:
             // https://github.com/microsoft/api-guidelines/blob/vNext/Guidelines.md#93-collection-url-patterns
             //
-            var collectionName = actionModel.Controller.ControllerType.NormalizeResourceControllerName().Pluralize();
+            var controllerName = actionModel.Controller.ControllerType.NormalizeResourceControllerName();
+
+            if (actionModel.Controller.ControllerType.IsGenericType)
+            {
+                if (_builder.TryGetResourceName(actionModel.Controller.ControllerType.GetGenericArguments()[0],
+                    out var name))
+                {
+                    controllerName = name;
+                }
+            }
+
+            var collectionName = controllerName.Pluralize();
             
             if (_options.CurrentValue.Versioning.UseUrl)
             {
-
                 if (_localization.CurrentValue.SupportedCultures.Count > 1)
                 {
                     // [Route("v{version:apiVersion}/{resourceNamePlural}"]

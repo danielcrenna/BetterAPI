@@ -55,7 +55,7 @@ namespace BetterAPI
 
         protected IActionResult SeeOtherWithDetails(string details, params object[] arguments)
         {
-            return StatusCodeWithProblemDetails(StatusCodes.Status303SeeOther, "See Other", details, arguments);
+            return StatusCodeWithProblemDetails(StatusCodes.Status303SeeOther, "Redirect", details, arguments);
         }
 
         protected IActionResult UnsupportedMediaTypeWithDetails(string details, params object[] arguments)

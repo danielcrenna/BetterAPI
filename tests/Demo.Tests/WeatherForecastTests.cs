@@ -9,7 +9,7 @@ namespace Demo.Tests
         [Fact]
         public void Missing_summary_fails_validation()
         {
-            var forecast = new WeatherForecast();
+            var forecast = new WeatherForecastV1();
             var context = new ValidationContext(forecast);
             var results = new List<ValidationResult>();
             var valid = Validator.TryValidateObject(forecast, context, results, true);
@@ -22,7 +22,7 @@ namespace Demo.Tests
         [Fact]
         public void Invalid_summary_fails_validation()
         {
-            var forecast = new WeatherForecast {Summary = "Crunchy"};
+            var forecast = new WeatherForecastV1 {Summary = "Crunchy"};
             var context = new ValidationContext(forecast);
             var results = new List<ValidationResult>();
             var valid = Validator.TryValidateObject(forecast, context, results, true);

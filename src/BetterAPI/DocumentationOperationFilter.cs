@@ -16,7 +16,6 @@ using BetterAPI.Reflection;
 using Humanizer;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
@@ -89,7 +88,7 @@ namespace BetterAPI
             {
                 // FIXME:
                 // There doesn't seem to be a way to SwaggerUI to have both a description/example, and a default value,
-                // or a way to customize the Example value where it is only used as the UI's placeholder and doesn't
+                // or a way to customize the Example value where it is only used as the UIs placeholder and doesn't
                 // populate the field when "Try it out" is clicked:
                 // https://github.com/swagger-api/swagger-ui/issues/5776
 
@@ -227,7 +226,11 @@ namespace BetterAPI
                 {
                     if (response.Description == null || response.Description == _localizer.GetString("Success"))
                     {
-                        response.Description = _localizer.GetString("The operation succeeded, and there is additional content returned in the response.");
+                        if(operation.OperationId.StartsWith(Constants.Create))
+                            // This is to disambiguate when a client (i.e. SwaggerUI) follows a redirect and would receive a misleading documented action as a result.
+                            response.Description = _localizer.GetString("The client followed a redirect via 303 See Other, and retrieved the equivalent, cacheable resource.");
+                        else
+                            response.Description = _localizer.GetString("The operation succeeded, and there is additional content returned in the response.");
                     }
                 }
 
@@ -249,7 +252,7 @@ namespace BetterAPI
 
                 if (statusCode == Constants.Status303SeeOtherString)
                 {
-                    if (response.Description == null || response.Description == _localizer.GetString("See Other"))
+                    if (response.Description == null || response.Description == _localizer.GetString("Redirect"))
                     {
                         response.Description = _localizer.GetString("This resource already exists. Did you mean to update it?");
                     }

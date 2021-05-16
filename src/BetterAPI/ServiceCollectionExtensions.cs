@@ -104,7 +104,7 @@ namespace BetterAPI
             .AddApplicationPart(typeof(CacheController).Assembly)
             .AddXmlSupport();
 
-            // mvc.AddPolicyProtection();
+            services.AddPolicyProtection();
 
             // MVC configuration with dependencies:
             //
@@ -115,8 +115,7 @@ namespace BetterAPI
 
             mvc.ConfigureApplicationPartManager(x =>
             {
-                // FIXME: Implement me
-                x.FeatureProviders.Add(new ApiGuidelinesControllerFeatureProvider());
+                x.FeatureProviders.Add(new ApiGuidelinesControllerFeatureProvider(GetChangeLog(services)));
             });
 
             services.AddSingleton<IConfigureOptions<SwaggerGenOptions>, ConfigureSwaggerGenOptions>();
@@ -197,10 +196,20 @@ namespace BetterAPI
             return services;
         }
 
-        public static ChangeLogBuilder AddApiResource(this IServiceCollection services, string resourceName, Action<ChangeLogBuilder>? builderAction = default)
+        private static ChangeLogBuilder? _changeLogBuilder;
+
+        public static ChangeLogBuilder GetChangeLog(IServiceCollection services)
         {
-            var builder = new ChangeLogBuilder(resourceName, services);
+            _changeLogBuilder ??= new ChangeLogBuilder(services);
+            return _changeLogBuilder;
+        }
+
+        public static ChangeLogBuilder AddChangeLog(this IServiceCollection services, Action<ChangeLogBuilder>? builderAction = default)
+        {
+            var builder = GetChangeLog(services);
+            services.TryAddSingleton(builder);
             builderAction?.Invoke(builder);
+            builder.Build();
             return builder;
         }
     }

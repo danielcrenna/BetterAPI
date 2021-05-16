@@ -5,7 +5,6 @@ Code for articles about API design & implementation from https://daniel-crenna.m
 Articles:
 =========
 
-
  # License
 
  All source code is licensed under The Mozilla Public License 2.0.

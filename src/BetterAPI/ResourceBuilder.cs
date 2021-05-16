@@ -6,6 +6,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using BetterAPI.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,45 +18,64 @@ namespace BetterAPI
 {
     public sealed class ChangeLogBuilder
     {
-        private readonly string _resourceName;
-
         public IServiceCollection Services { get; }
 
-        private readonly IDictionary<ApiVersion, List<Type>> _versions;
+        private readonly Dictionary<string, Type> _pendingTypes;
+        private readonly IDictionary<ApiVersion, Dictionary<string, Type>> _versions;
 
-        public ChangeLogBuilder(string resourceName, IServiceCollection services)
+        internal ISet<Type>? ResourceTypes { get; private set; }
+
+        public ChangeLogBuilder(IServiceCollection services)
         {
-            _resourceName = resourceName;
-            _versions = new Dictionary<ApiVersion, List<Type>>();
+            _pendingTypes = new Dictionary<string, Type>();
+            _versions = new Dictionary<ApiVersion, Dictionary<string, Type>>();
             Services = services;
         }
 
-        public ChangeLogBuilder Add<T>() where T : class, IResource
+        public ChangeLogBuilder AddResource<T>(string? name = default) where T : class, IResource
         {
-            //Services.TryAddSingleton<MemoryResourceDataService<T>>();
-            //Services.TryAddSingleton<IResourceDataService<T>>(r => r.GetRequiredService<MemoryResourceDataService<T>>());
+            name ??= typeof(T).Name;
+            _pendingTypes[name] = typeof(T);
 
-            Services.TryAddSingleton(r => new SqliteResourceDataService<T>("resources.db", 1,
-                r.GetRequiredService<IStringLocalizer<SqliteResourceDataService<T>>>(),
-                r.GetRequiredService<ILogger<SqliteResourceDataService<T>>>()));
-
+            Services.TryAddSingleton(r => new SqliteResourceDataService<T>("resources.db", 1, r.GetRequiredService<IStringLocalizer<SqliteResourceDataService<T>>>(), r.GetRequiredService<ILogger<SqliteResourceDataService<T>>>()));
             Services.TryAddSingleton<IResourceDataService<T>>(r => r.GetRequiredService<SqliteResourceDataService<T>>());
             Services.TryAddTransient<IResourceDataService>(r => r.GetRequiredService<SqliteResourceDataService<T>>());
+
             return this;
         }
 
         public ChangeLogBuilder ShipVersion(ApiVersion version)
         {
-            if(!_versions.TryGetValue(version, out var list))
-                _versions.Add(version, list = new List<Type>());
-
+            if(!_versions.TryGetValue(version, out var manifest))
+                _versions.Add(version, manifest = new Dictionary<string, Type>());
+            foreach (var (k, v) in _pendingTypes)
+                manifest.Add(k, v);
+            _pendingTypes.Clear();
             return this;
         }
-
+        
         public void Build()
         {
             if (_versions.Count == 0)
                 ShipVersion(ApiVersion.Default);
+            ResourceTypes ??= _versions.SelectMany(x => x.Value.Values).Distinct().ToHashSet();
+        }
+
+        internal bool TryGetResourceName(Type type, out string? name)
+        {
+            foreach (var version in _versions)
+            {
+                foreach (var (key, value) in version.Value)
+                {
+                    if (value != type)
+                        continue;
+                    name = key;
+                    return true;
+                }
+            }
+
+            name = default;
+            return false;
         }
     }
 }
