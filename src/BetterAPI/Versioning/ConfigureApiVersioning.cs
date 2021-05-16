@@ -7,10 +7,12 @@ namespace BetterAPI.Versioning
 {
     internal sealed class ConfigureApiVersioning : IConfigureOptions<ApiVersioningOptions>
     {
+        private readonly ChangeLogBuilder _builder;
         private readonly IOptionsMonitor<ApiOptions> _options;
 
-        public ConfigureApiVersioning(IOptionsMonitor<ApiOptions> options)
+        public ConfigureApiVersioning(ChangeLogBuilder builder, IOptionsMonitor<ApiOptions> options)
         {
+            _builder = builder;
             _options = options;
         }
 
@@ -19,26 +21,24 @@ namespace BetterAPI.Versioning
             // Reporting api versions will return the headers "api-supported-versions" and "api-deprecated-versions"
             options.ReportApiVersions = true;
             options.ErrorResponses = new ProblemDetailsErrorResponseProvider();
-
             options.AssumeDefaultVersionWhenUnspecified = _options.CurrentValue.Versioning.AllowUnspecifiedVersions;
 
             ConfigureVersionReaders(options);
 
             // FIXME: default version could slide forward based on available versions by configuration?
-            options.DefaultApiVersion = new ApiVersion(1, 0);
-            
-            //options.Conventions.Controller<ValuesController>().HasApiVersion( 1, 0 );
+            options.DefaultApiVersion = ApiVersion.Default; // new ApiVersion(1, 0)
 
-            //options.Conventions.Controller<Values2Controller>()
-            //    .HasApiVersion( 2, 0 )
-            //    .HasApiVersion( 3, 0 )
-            //    .Action( c => c.GetV3( default ) ).MapToApiVersion( 3, 0 )
-            //    .Action( c => c.GetV3( default, default ) ).MapToApiVersion( 3, 0 );
+            foreach (var (version, manifest) in _builder.Versions)
+            {
+                foreach (var item in manifest)
+                {
+                    var controllerType = typeof(ResourceController<>).MakeGenericType(item.Value);
+                    var conventions = options.Conventions.Controller(controllerType);
+                    conventions.HasApiVersion(version);
 
-            //options.Conventions.Controller<HelloWorldController>()
-            //    .HasApiVersion( 1, 0 )
-            //    .HasApiVersion( 2, 0 )
-            //    .AdvertisesApiVersion( 3, 0 );
+                    // FIXME: implement cross-over versions when revisions don't include a resource?
+                }
+            }
         }
 
         private void ConfigureVersionReaders(ApiVersioningOptions options)

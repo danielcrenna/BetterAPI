@@ -7,6 +7,7 @@
 using System;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
@@ -15,11 +16,13 @@ namespace BetterAPI
 {
     public class ConfigureSwaggerGenOptions : IConfigureOptions<SwaggerGenOptions>
     {
+        private readonly IStringLocalizer<ConfigureSwaggerGenOptions> _localizer;
         private readonly IOptionsMonitor<ApiOptions> _options;
         readonly IApiVersionDescriptionProvider _provider;
 
-        public ConfigureSwaggerGenOptions(IOptionsMonitor<ApiOptions> options, IApiVersionDescriptionProvider provider)
+        public ConfigureSwaggerGenOptions(IStringLocalizer<ConfigureSwaggerGenOptions> localizer, IOptionsMonitor<ApiOptions> options, IApiVersionDescriptionProvider provider)
         {
+            _localizer = localizer;
             _options = options;
             _provider = provider;
         }
@@ -36,16 +39,17 @@ namespace BetterAPI
         {
             var info = new OpenApiInfo
             {
-                Title = _options.CurrentValue.ApiName,
+                Title = _localizer.GetString(_options.CurrentValue.ApiName),
                 Version = description.ApiVersion.ToString(),
-                Description = _options.CurrentValue.ApiDescription,
-                Contact = new OpenApiContact { Name = _options.CurrentValue.ApiContactName, Email =_options.CurrentValue.ApiContactEmail },
-                License = new OpenApiLicense { Name = "Mozilla Public License 2.0", Url = new Uri("https://opensource.org/licenses/MPL-2.0")}
+                Description = _localizer.GetString(_options.CurrentValue.ApiDescription),
+                Contact = new OpenApiContact { Name = _localizer.GetString(_options.CurrentValue.ApiContactName), Email = _localizer.GetString(_options.CurrentValue.ApiContactEmail) },
+                License = new OpenApiLicense { Name = _localizer.GetString("Mozilla Public License 2.0"), Url = new Uri("https://opensource.org/licenses/MPL-2.0")}
             };
 
             if (description.IsDeprecated)
             {
-                info.Description += " This API version has been deprecated.";
+                var deprecated = _localizer.GetString("[DEPRECATED]");
+                info.Description += " " + deprecated;
             }
 
             return info;

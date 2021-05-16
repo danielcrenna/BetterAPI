@@ -22,6 +22,9 @@ namespace Demo
             {
                 builder.AddResource<WeatherForecastV1>("WeatherForecast");
                 builder.ShipVersion(ApiVersion.Default);
+
+                builder.AddResource<WeatherForecastV2>("WeatherForecast");
+                builder.ShipVersion(new ApiVersion(1, 1));
             });
 
             services.AddAuthorization(o =>

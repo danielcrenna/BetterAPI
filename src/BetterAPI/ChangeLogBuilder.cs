@@ -6,6 +6,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using BetterAPI.Data;
 using Microsoft.AspNetCore.Mvc;
@@ -24,11 +25,14 @@ namespace BetterAPI
         private readonly IDictionary<ApiVersion, Dictionary<string, Type>> _versions;
 
         internal ISet<Type>? ResourceTypes { get; private set; }
+        internal IImmutableDictionary<ApiVersion, Dictionary<string, Type>> Versions { get; private set; }
 
         public ChangeLogBuilder(IServiceCollection services)
         {
             _pendingTypes = new Dictionary<string, Type>();
             _versions = new Dictionary<ApiVersion, Dictionary<string, Type>>();
+
+            Versions = _versions.ToImmutableDictionary();
             Services = services;
         }
 
@@ -58,7 +62,9 @@ namespace BetterAPI
         {
             if (_versions.Count == 0)
                 ShipVersion(ApiVersion.Default);
-            ResourceTypes ??= _versions.SelectMany(x => x.Value.Values).Distinct().ToHashSet();
+
+            ResourceTypes = _versions.SelectMany(x => x.Value.Values).Distinct().ToHashSet();
+            Versions = _versions.ToImmutableDictionary();
         }
 
         internal bool TryGetResourceName(Type type, out string? name)

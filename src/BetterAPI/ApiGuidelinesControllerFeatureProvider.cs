@@ -53,10 +53,6 @@ namespace BetterAPI
                         if (!controllerType.ImplementsGeneric(typeof(ResourceController<>)))
                             continue;
 
-                        controllerType = controllerType.BaseType;
-                        if (controllerType == default)
-                            continue;
-
                         var resourceType = controllerType.GetGenericArguments()[0];
                         if (resourceType != type)
                             continue;
