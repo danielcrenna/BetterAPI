@@ -185,7 +185,7 @@ namespace BetterAPI.Data
                 db.Execute(SqlBuilder.AfterInsertTriggerSql(viewName, _members, revision), transaction: t);
             }
             
-            foreach (var member in _members)
+            foreach (var member in _members.GetDiscreteFields())
             {
                 if (member.Name.Equals(nameof(IResource.Id)))
                 {
@@ -212,7 +212,8 @@ namespace BetterAPI.Data
         private void InsertRecord(T resource, int revision, IDbConnection db, IDbTransaction t)
         {
             var sequence = GetNextSequence(revision, db, t);
-            var hash = SqlBuilder.InsertSql(resource, _reads, _members, revision, sequence, out string sql);
+            var viewName = GetResourceName();
+            var hash = SqlBuilder.InsertSql(resource, viewName, _reads, _members, revision, sequence, out string sql);
             db.Execute(sql, hash, t);
         }
 

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
 using System.Text.RegularExpressions;
 using BetterAPI.Reflection;
 using BetterAPI.Sorting;
@@ -18,6 +17,8 @@ namespace BetterAPI.Data
 
             return Pooling.StringBuilderPool.Scoped(sb =>
             {
+                var fields = members.GetDiscreteFields();
+
                 sb.Append("CREATE");
                 if (fts)
                 {
@@ -55,7 +56,7 @@ namespace BetterAPI.Data
                 }
 
                 sb.Append('(');
-                for (var i = 0; i < members.Count; i++)
+                for (var i = 0; i < fields.Length; i++)
                 {
                     if (i != 0)
                     {
@@ -63,7 +64,7 @@ namespace BetterAPI.Data
                         sb.Append(' ');
                     }
 
-                    var column = members[i];
+                    var column = fields[i];
                     sb.Append('"');
                     sb.Append(column.Name);
                     sb.Append('"');
@@ -133,6 +134,8 @@ namespace BetterAPI.Data
         {
             return Pooling.StringBuilderPool.Scoped(sb =>
             {
+                var fields = members.GetDiscreteFields();
+
                 sb.Append("CREATE TRIGGER IF NOT EXISTS ");
                 sb.Append('"');
                 sb.Append(resource);
@@ -159,7 +162,7 @@ namespace BetterAPI.Data
                 sb.Append("rowid");
                 sb.Append(',');
                 sb.Append(' ');
-                for (var i = 0; i < members.Count; i++)
+                for (var i = 0; i < fields.Length; i++)
                 {
                     if (i != 0)
                     {
@@ -167,7 +170,7 @@ namespace BetterAPI.Data
                         sb.Append(' ');
                     }
 
-                    var column = members[i];
+                    var column = fields[i];
                     sb.Append('"');
                     sb.Append(column.Name);
                     sb.Append('"');
@@ -181,7 +184,7 @@ namespace BetterAPI.Data
                 sb.Append("new.Sequence");
                 sb.Append(',');
                 sb.Append(' ');
-                for (var i = 0; i < members.Count; i++)
+                for (var i = 0; i < fields.Length; i++)
                 {
                     if (i != 0)
                     {
@@ -189,7 +192,7 @@ namespace BetterAPI.Data
                         sb.Append(' ');
                     }
 
-                    var column = members[i];
+                    var column = fields[i];
                     sb.Append("new");
                     sb.Append('.');
                     sb.Append(column.Name);
@@ -278,15 +281,6 @@ namespace BetterAPI.Data
             });
         }
 
-        private static AccessorMember[] GetDiscreteFields(this AccessorMembers members)
-        {
-            // remove resource members, as these have their own tables
-            return members.Where(x => 
-                    !typeof(IResource).IsAssignableFrom(x.Type) && // other resources
-                    (x.Type == typeof(string) || !x.Type.ImplementsGeneric(typeof(IEnumerable<>))) // collections
-            ).ToArray();
-        }
-
         public static string CreateIndexSql(string resource, AccessorMember member, int revision, bool unique)
         {
             return Pooling.StringBuilderPool.Scoped(sb =>
@@ -328,7 +322,7 @@ namespace BetterAPI.Data
 
         #region DML
 
-        public static Dictionary<string, object> InsertSql<T>(T resource, ITypeReadAccessor reads, AccessorMembers members, int revision, long? sequence, out string sql)
+        public static Dictionary<string, object> InsertSql<T>(T resource, string resourceName, ITypeReadAccessor reads, AccessorMembers members, int revision, long? sequence, out string sql)
         {
             if (resource == null)
                 throw new NullReferenceException();
@@ -337,34 +331,36 @@ namespace BetterAPI.Data
 
             sql = Pooling.StringBuilderPool.Scoped(sb =>
             {
+                var fields = members.GetDiscreteFields();
+
                 sb.Append("INSERT INTO '");
-                sb.Append(reads.Type.Name);
+                sb.Append(resourceName);
                 sb.Append("_V");
                 sb.Append(revision);
                 sb.Append("' (");
-                for (var i = 0; i < members.Count; i++)
+                for (var i = 0; i < fields.Length; i++)
                 {
                     if (i != 0)
                         sb.Append(", ");
-                    var column = members[i];
+                    var column = fields[i];
                     sb.Append("\"");
                     sb.Append(column.Name);
                     sb.Append("\"");
                 }
 
                 sb.Append(", \"Sequence\") VALUES (");
-                for (var i = 0; i < members.Count; i++)
+                for (var i = 0; i < fields.Length; i++)
                 {
                     if (i != 0)
                         sb.Append(", ");
-                    var column = members[i];
+                    var column = fields[i];
                     sb.Append(":");
                     sb.Append(column.Name);
                 }
 
                 sb.Append(", :Sequence)");
 
-                foreach (var member in members)
+                foreach (var member in fields)
                 {
                     if (!member.CanRead)
                         continue;
