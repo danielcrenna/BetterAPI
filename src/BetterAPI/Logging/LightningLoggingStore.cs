@@ -10,6 +10,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using BetterAPI.Data;
+using BetterAPI.Data.Lmdb;
 using LightningDB;
 using Microsoft.Extensions.Logging;
 

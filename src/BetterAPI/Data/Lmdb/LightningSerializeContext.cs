@@ -10,7 +10,7 @@ using System.IO;
 using BetterAPI.Localization;
 using LightningDB;
 
-namespace BetterAPI.Data
+namespace BetterAPI.Data.Lmdb
 {
     internal static class LightningSerializeContext
     {

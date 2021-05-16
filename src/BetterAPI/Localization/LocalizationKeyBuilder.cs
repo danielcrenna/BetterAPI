@@ -6,6 +6,7 @@
 
 using System.Text;
 using BetterAPI.Data;
+using BetterAPI.Data.Lmdb;
 
 namespace BetterAPI.Localization
 {

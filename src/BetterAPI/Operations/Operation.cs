@@ -4,9 +4,10 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
-namespace BetterAPI
+namespace BetterAPI.Operations
 {
-    public interface IResourceController<T> where T : class, IResource
+    public sealed class Operation
     {
+
     }
 }

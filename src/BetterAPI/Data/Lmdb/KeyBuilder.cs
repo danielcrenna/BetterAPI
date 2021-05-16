@@ -13,7 +13,7 @@ using BetterAPI.Reflection;
 using Microsoft.Extensions.Logging;
 using WyHash;
 
-namespace BetterAPI.Data
+namespace BetterAPI.Data.Lmdb
 {
     public static class KeyBuilder
     {

@@ -13,7 +13,7 @@ using BetterAPI.Reflection;
 using LightningDB;
 using Microsoft.Extensions.Logging;
 
-namespace BetterAPI.Data
+namespace BetterAPI.Data.Lmdb
 {
     internal abstract class LightningDataStore : IDisposable
     {

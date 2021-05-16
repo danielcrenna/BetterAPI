@@ -19,9 +19,9 @@ using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 
-namespace BetterAPI.Data
+namespace BetterAPI.Data.Sqlite
 {
-    public sealed class SqliteResourceDataService<T> : IResourceDataService<T>
+    public sealed class SqliteResourceDataService<T> : Sqlite, IResourceDataService<T>
         where T : class, IResource
     {
         private readonly int _revision;
@@ -38,11 +38,6 @@ namespace BetterAPI.Data
         public bool SupportsTop => true;
         public bool SupportsShaping => true;
         public bool SupportsSearch => true;
-
-        static SqliteResourceDataService()
-        {
-            SqlMapper.AddTypeHandler(new GuidTypeHandler());
-        }
 
         public SqliteResourceDataService(string filePath, int revision, ChangeLogBuilder builder, IStringLocalizer<SqliteResourceDataService<T>> localizer, ILogger<SqliteResourceDataService<T>> logger)
         {
@@ -63,16 +58,16 @@ namespace BetterAPI.Data
 
             var db = OpenConnection();
             var viewName = GetResourceName();
-            var orderBy = SqlBuilder.OrderBySql(query);
+            var orderBy = SqliteBuilder.OrderBySql(query);
 
-            var sql = SqlBuilder.SelectSql(viewName, _members, query, out var hasWhere);
-            var pageSql = sql + SqlBuilder.PageSql(query, viewName, orderBy, hasWhere);
+            var sql = SqliteBuilder.SelectSql(viewName, _members, query, out var hasWhere);
+            var pageSql = sql + SqliteBuilder.PageSql(query, viewName, orderBy, hasWhere);
             IEnumerable<T> result = db.Query<T>(pageSql);
 
             if (!query.CountTotalRows)
                 return result;
 
-            var countSql = SqlBuilder.CountSql(sql, orderBy);
+            var countSql = SqliteBuilder.CountSql(sql, orderBy);
             var total = db.QuerySingle<int>(countSql);
             query.TotalRows = total;
 
@@ -83,7 +78,7 @@ namespace BetterAPI.Data
         {
             var db = OpenConnection();
             var viewName = GetResourceName();
-            var result = db.QuerySingleOrDefault<T?>(SqlBuilder.GetById(viewName), new { Id = id });
+            var result = db.QuerySingleOrDefault<T?>(SqliteBuilder.GetById(viewName), new { Id = id });
             resource = result;
             return resource != default;
         }
@@ -145,7 +140,7 @@ namespace BetterAPI.Data
         {
             var viewName = GetResourceName();
 
-            var tableInfoList = db.Query<TableInfo>(SqlBuilder.GetTableInfo(), new {name = $"{viewName}%"}, t)
+            var tableInfoList = db.Query<SqliteTableInfo>(SqliteBuilder.GetTableInfo(), new {name = $"{viewName}%"}, t)
                 .Where(x => !x.name.Contains("_Search"))
                 .AsList();
 
@@ -178,11 +173,11 @@ namespace BetterAPI.Data
         {
             var viewName = GetResourceName();
 
-            db.Execute(SqlBuilder.CreateTableSql(viewName, _members, revision, false), transaction: t);
+            db.Execute(SqliteBuilder.CreateTableSql(viewName, _members, revision, false), transaction: t);
 
             if (SupportsSearch)
             {
-                db.Execute(SqlBuilder.AfterInsertTriggerSql(viewName, _members, revision), transaction: t);
+                db.Execute(SqliteBuilder.AfterInsertTriggerSql(viewName, _members, revision), transaction: t);
             }
             
             foreach (var member in _members.GetDiscreteFields())
@@ -200,20 +195,20 @@ namespace BetterAPI.Data
 
             if (SupportsSearch)
             {
-                db.Execute(SqlBuilder.CreateTableSql(viewName, _members, revision, true), transaction: t);
+                db.Execute(SqliteBuilder.CreateTableSql(viewName, _members, revision, true), transaction: t);
             }
         }
 
         private void IndexMember(IDbConnection db, IDbTransaction t, int revision, AccessorMember member, bool unique)
         {
-            db.Execute(SqlBuilder.CreateIndexSql(GetResourceName(), member, revision, unique), transaction: t);
+            db.Execute(SqliteBuilder.CreateIndexSql(GetResourceName(), member, revision, unique), transaction: t);
         }
         
         private void InsertRecord(T resource, int revision, IDbConnection db, IDbTransaction t)
         {
             var sequence = GetNextSequence(revision, db, t);
             var viewName = GetResourceName();
-            var hash = SqlBuilder.InsertSql(resource, viewName, _reads, _members, revision, sequence, out string sql);
+            var hash = SqliteBuilder.InsertSql(resource, viewName, _reads, _members, revision, sequence, out string sql);
             db.Execute(sql, hash, t);
         }
 
@@ -223,14 +218,14 @@ namespace BetterAPI.Data
 
             var viewName = GetResourceName();
 
-            var sequence = db.QuerySingleOrDefault<long?>(SqlBuilder.GetMaxSequence(viewName, revision),
+            var sequence = db.QuerySingleOrDefault<long?>(SqliteBuilder.GetMaxSequence(viewName, revision),
                 transaction: t);
 
             // account for the corner case of multiple revisions before the first insertion
             while (previous != 1 && !sequence.HasValue)
             {
                 sequence = db.QuerySingleOrDefault<long?>(
-                    SqlBuilder.GetMaxSequence(viewName, previous),
+                    SqliteBuilder.GetMaxSequence(viewName, previous),
                     transaction: t);
 
                 previous--;
@@ -241,11 +236,11 @@ namespace BetterAPI.Data
             return nextSequence;
         }
         
-        private void RebuildView(IDbConnection db, IDbTransaction t, IEnumerable<TableInfo> tableInfoList, int revision)
+        private void RebuildView(IDbConnection db, IDbTransaction t, IEnumerable<SqliteTableInfo> tableInfoList, int revision)
         {
             var viewName = GetResourceName();
-            db.Execute(SqlBuilder.DropViewSql(viewName), transaction: t);
-            db.Execute(SqlBuilder.CreateViewSql(viewName, _members, revision, tableInfoList), transaction: t);
+            db.Execute(SqliteBuilder.DropViewSql(viewName), transaction: t);
+            db.Execute(SqliteBuilder.CreateViewSql(viewName, _members, revision, tableInfoList), transaction: t);
         }
 
         private IDbConnection OpenConnection()

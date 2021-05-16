@@ -66,10 +66,10 @@ namespace BetterAPI.Reflection
         private Dictionary<string, AccessorMember> NameToMember { get; }
 
         public AccessorMember this[string name] => NameToMember[name];
+        public IEnumerable<string> Names => NameToMember.Keys;
         public AccessorMember this[int index] => Members[index];
 
         public int Count => NameToMember.Count;
-        public IEnumerable<string> Names => NameToMember.Keys;
 
         public IEnumerator<AccessorMember> GetEnumerator()
         {

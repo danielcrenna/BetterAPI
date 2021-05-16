@@ -4,9 +4,14 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
-namespace BetterAPI
+namespace BetterAPI.Data.Sqlite
 {
-    public interface IResourceController<T> where T : class, IResource
+    public struct SqliteTableInfo
     {
+        // ReSharper disable once InconsistentNaming
+        public string name;
+
+        // ReSharper disable once InconsistentNaming
+        public string sql;
     }
 }

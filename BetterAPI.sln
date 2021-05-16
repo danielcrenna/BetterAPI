@@ -21,9 +21,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BetterAPI.Tests", "tests\Be
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BetterAPI.SourceGenerators", "src\BetterAPI.SourceGenerators\BetterAPI.SourceGenerators.csproj", "{A2980A04-C765-4CC0-95F5-51E0603ABA99}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BetterAPI.Reflection", "src\BetterAPI.Reflection\BetterAPI.Reflection.csproj", "{6D72F12A-4314-4C11-B5F0-FCF1FF56A730}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BetterAPI.Reflection", "src\BetterAPI.Reflection\BetterAPI.Reflection.csproj", "{6D72F12A-4314-4C11-B5F0-FCF1FF56A730}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BetterAPI.Primitives", "src\BetterAPI.Primitives\BetterAPI.Primitives.csproj", "{7CE94066-D6FD-46D1-9F06-9E53EAEB85CD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BetterAPI.Primitives", "src\BetterAPI.Primitives\BetterAPI.Primitives.csproj", "{7CE94066-D6FD-46D1-9F06-9E53EAEB85CD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BetterAPI.Serialization", "src\BetterAPI.Serialization\BetterAPI.Serialization.csproj", "{2FB5C1F3-3239-48AC-ACFB-D7A50168C3F0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -63,6 +65,10 @@ Global
 		{7CE94066-D6FD-46D1-9F06-9E53EAEB85CD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7CE94066-D6FD-46D1-9F06-9E53EAEB85CD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7CE94066-D6FD-46D1-9F06-9E53EAEB85CD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2FB5C1F3-3239-48AC-ACFB-D7A50168C3F0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2FB5C1F3-3239-48AC-ACFB-D7A50168C3F0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2FB5C1F3-3239-48AC-ACFB-D7A50168C3F0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2FB5C1F3-3239-48AC-ACFB-D7A50168C3F0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

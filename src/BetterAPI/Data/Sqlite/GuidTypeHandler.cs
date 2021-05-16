@@ -8,7 +8,7 @@ using System;
 using System.Data;
 using Dapper;
 
-namespace BetterAPI.Data
+namespace BetterAPI.Data.Sqlite
 {
     internal sealed class GuidTypeHandler : SqlMapper.TypeHandler<Guid>
     {

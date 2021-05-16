@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Threading;
 using BetterAPI.Data;
+using BetterAPI.Data.Lmdb;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 

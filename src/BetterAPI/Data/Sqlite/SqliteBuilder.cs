@@ -1,14 +1,116 @@
-﻿using System;
+﻿// Copyright (c) Daniel Crenna. All rights reserved.
+// 
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, you can obtain one at http://mozilla.org/MPL/2.0/.
+
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Text.RegularExpressions;
 using BetterAPI.Reflection;
 using BetterAPI.Sorting;
 
-namespace BetterAPI.Data
+namespace BetterAPI.Data.Sqlite
 {
-    internal static class SqlBuilder
+    internal static class SqliteBuilder
     {
+        #region DML
+
+        public static Dictionary<string, object> InsertSql<T>(T resource, string resourceName, ITypeReadAccessor reads,
+            AccessorMembers members, int revision, long? sequence, out string sql)
+        {
+            if (resource == null)
+                throw new NullReferenceException();
+
+            var hash = new Dictionary<string, object> {{"Sequence", sequence!}};
+
+            sql = Pooling.StringBuilderPool.Scoped(sb =>
+            {
+                var fields = members.GetDiscreteFields();
+
+                sb.Append("INSERT INTO '");
+                sb.Append(resourceName);
+                sb.Append("_V");
+                sb.Append(revision);
+                sb.Append("' (");
+                for (var i = 0; i < fields.Length; i++)
+                {
+                    if (i != 0)
+                        sb.Append(", ");
+                    var column = fields[i];
+                    sb.Append("\"");
+                    sb.Append(column.Name);
+                    sb.Append("\"");
+                }
+
+                sb.Append(", \"Sequence\") VALUES (");
+                for (var i = 0; i < fields.Length; i++)
+                {
+                    if (i != 0)
+                        sb.Append(", ");
+                    var column = fields[i];
+                    sb.Append(":");
+                    sb.Append(column.Name);
+                }
+
+                sb.Append(", :Sequence)");
+
+                foreach (var member in fields)
+                {
+                    if (!member.CanRead)
+                        continue;
+                    if (reads.TryGetValue(resource, member.Name, out var value))
+                        hash.Add(member.Name, value);
+                }
+            });
+
+            return hash;
+        }
+
+        #endregion
+
+        private static Dictionary<string, (string, string)> BuildSqlHash(SqliteTableInfo tableInfo)
+        {
+            var clauses = Regex.Replace(tableInfo.sql, @"[^\(]+\(([^\)]+)\)", "$1",
+                RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace | RegexOptions.Compiled);
+
+            var columns = clauses[1..]
+                .Split(',', StringSplitOptions.RemoveEmptyEntries);
+
+            var sqlHash = new Dictionary<string, (string, string)>(StringComparer.OrdinalIgnoreCase);
+            foreach (var column in columns)
+            {
+                var pair = column.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                var name = pair[0].Trim('\"');
+                var type = pair[1];
+                var defaultValue = pair[3];
+                sqlHash.Add(name, (type, defaultValue));
+            }
+
+            return sqlHash;
+        }
+
+        private static string ResolveColumnTypeToDbType(AccessorMember member)
+        {
+            var type = member.Type.Name.ToUpperInvariant();
+            return type switch
+            {
+                "INT" => "INTEGER",
+                "STRING" => "TEXT",
+                _ => "BLOB"
+            };
+        }
+
+        private static string? ResolveColumnDefaultValue(AccessorMember member)
+        {
+            if (!member.TryGetAttribute(out DefaultValueAttribute defaultValue) || defaultValue.Value == default)
+                return "NULL";
+
+            var type = member.Type.Name.ToUpperInvariant();
+            return type == "STRING" ? $"\"{defaultValue.Value}\"" : defaultValue.Value?.ToString();
+        }
+
         #region DDL
 
         public static string CreateTableSql(string resource, AccessorMembers members, int revision, bool fts)
@@ -123,10 +225,7 @@ namespace BetterAPI.Data
                 // https://www.sqlite.org/vtab.html
                 // SEE: "2.1.3. WITHOUT ROWID Virtual Tables"
                 // This should be possible since we have a single PK, but it crashes
-                if (!fts)
-                {
-                    sb.Append(" WITHOUT ROWID");
-                }
+                if (!fts) sb.Append(" WITHOUT ROWID");
             });
         }
 
@@ -209,12 +308,13 @@ namespace BetterAPI.Data
             return $"DROP VIEW IF EXISTS \"{resource}\"";
         }
 
-        public static string CreateViewSql(string resource, AccessorMembers members, int revision, IEnumerable<TableInfo> tableInfoList)
+        public static string CreateViewSql(string resource, AccessorMembers members, int revision,
+            IEnumerable<SqliteTableInfo> tableInfoList)
         {
             return Pooling.StringBuilderPool.Scoped(sb =>
             {
                 var fields = members.GetDiscreteFields();
-                
+
                 sb.Append("CREATE VIEW \"");
                 sb.Append(resource);
                 sb.Append("\" (");
@@ -320,60 +420,6 @@ namespace BetterAPI.Data
 
         #endregion
 
-        #region DML
-
-        public static Dictionary<string, object> InsertSql<T>(T resource, string resourceName, ITypeReadAccessor reads, AccessorMembers members, int revision, long? sequence, out string sql)
-        {
-            if (resource == null)
-                throw new NullReferenceException();
-
-            var hash = new Dictionary<string, object> {{"Sequence", sequence!}};
-
-            sql = Pooling.StringBuilderPool.Scoped(sb =>
-            {
-                var fields = members.GetDiscreteFields();
-
-                sb.Append("INSERT INTO '");
-                sb.Append(resourceName);
-                sb.Append("_V");
-                sb.Append(revision);
-                sb.Append("' (");
-                for (var i = 0; i < fields.Length; i++)
-                {
-                    if (i != 0)
-                        sb.Append(", ");
-                    var column = fields[i];
-                    sb.Append("\"");
-                    sb.Append(column.Name);
-                    sb.Append("\"");
-                }
-
-                sb.Append(", \"Sequence\") VALUES (");
-                for (var i = 0; i < fields.Length; i++)
-                {
-                    if (i != 0)
-                        sb.Append(", ");
-                    var column = fields[i];
-                    sb.Append(":");
-                    sb.Append(column.Name);
-                }
-
-                sb.Append(", :Sequence)");
-
-                foreach (var member in fields)
-                {
-                    if (!member.CanRead)
-                        continue;
-                    if (reads.TryGetValue(resource, member.Name, out var value))
-                        hash.Add(member.Name, value);
-                }
-            });
-
-            return hash;
-        }
-
-        #endregion
-
         #region Queries
 
         public static string GetById(string resource)
@@ -453,7 +499,7 @@ namespace BetterAPI.Data
                 sb.Append(')');
             });
         }
-        
+
         public static string PageSql(ResourceQuery query, string viewName, string orderBy, bool hasWhere)
         {
             // Perf: Using OFFSET forces skip-reading records, so we'll settle with a sub-select
@@ -492,7 +538,7 @@ namespace BetterAPI.Data
                 else
                 {
                     var count = 0;
-                    foreach(var field in query.Fields)
+                    foreach (var field in query.Fields)
                     {
                         if (!members.TryGetValue(field, out var member))
                             continue;
@@ -516,6 +562,7 @@ namespace BetterAPI.Data
                     sb.Append('_');
                     sb.Append("Search");
                 }
+
                 sb.Append('"');
             });
         }
@@ -536,7 +583,7 @@ namespace BetterAPI.Data
                         sb.Append('"');
                         sb.Append(' ');
                         sb.Append(direction == SortDirection.Descending ? "DESC" : "ASC");
-                    
+
                         count++;
 
                         if (count < query.Sorting.Count)
@@ -547,46 +594,5 @@ namespace BetterAPI.Data
         }
 
         #endregion
-
-        private static Dictionary<string, (string, string)> BuildSqlHash(TableInfo tableInfo)
-        {
-            var clauses = Regex.Replace(tableInfo.sql, @"[^\(]+\(([^\)]+)\)", "$1",
-                RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace | RegexOptions.Compiled);
-
-            var columns = clauses[1..]
-                .Split(',', StringSplitOptions.RemoveEmptyEntries);
-
-            var sqlHash = new Dictionary<string, (string, string)>(StringComparer.OrdinalIgnoreCase);
-            foreach (var column in columns)
-            {
-                var pair = column.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                var name = pair[0].Trim('\"');
-                var type = pair[1];
-                var defaultValue = pair[3];
-                sqlHash.Add(name, (type, defaultValue));
-            }
-
-            return sqlHash;
-        }
-
-        private static string ResolveColumnTypeToDbType(AccessorMember member)
-        {
-            var type = member.Type.Name.ToUpperInvariant();
-            return type switch
-            {
-                "INT" => "INTEGER",
-                "STRING" => "TEXT",
-                _ => "BLOB"
-            };
-        }
-
-        private static string? ResolveColumnDefaultValue(AccessorMember member)
-        {
-            if(!member.TryGetAttribute(out DefaultValueAttribute defaultValue) || defaultValue.Value == default)
-                return "NULL";
-
-            var type = member.Type.Name.ToUpperInvariant();
-            return type == "STRING" ? $"\"{defaultValue.Value}\"" : defaultValue.Value?.ToString();
-        }
     }
 }

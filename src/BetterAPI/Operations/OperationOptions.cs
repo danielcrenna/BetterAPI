@@ -4,7 +4,7 @@
     {
         /// <summary>
         /// Indicates the default amount of time an operation suggests clients retry. This value appears in the Retry-After
-        /// response header. This value is used when an operation it not otherwise configured with a custom retry time, or
+        /// response header. This value is used when an operation is not otherwise configured with a custom retry time, or
         /// has deterministic time completion.
         /// <seealso href="https://github.com/microsoft/api-guidelines/blob/vNext/Guidelines.md#1329-retry-after"/>
         /// </summary>
@@ -30,5 +30,16 @@
         /// <seealso href="https://github.com/microsoft/api-guidelines/blob/vNext/Guidelines.md#133-retention-policy-for-operation-results"/>
         /// </summary>
         public bool DeleteExpiredTombstones { get; set; } = true;
+
+        /// <summary>
+        ///     The number of threads available for performing tasks; default is 0.
+        ///     A value of 0 defaults to the number of logical processors.
+        /// </summary>
+        public int Concurrency { get; set; } = 0;
+
+        /// <summary>
+        ///     The time to delay before checking for available tasks in the backing store. Default is 10 seconds.
+        /// </summary>
+        public int SleepIntervalSeconds { get; set; } = 10;
     }
 }

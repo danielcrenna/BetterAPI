@@ -1,4 +1,10 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿// Copyright (c) Daniel Crenna. All rights reserved.
+// 
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, you can obtain one at http://mozilla.org/MPL/2.0/.
+
+using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using System.Linq;
 
@@ -8,8 +14,6 @@ namespace BetterAPI.Validation
     {
         private readonly object[] _oneOf;
 
-        public string[] OneOfStrings { get; }
-
         public OneOfAttribute(params object[] oneOf)
         {
             _oneOf = oneOf.OrderBy(x => x).ToArray();
@@ -17,8 +21,19 @@ namespace BetterAPI.Validation
             ErrorMessage = "{0} is not one of: {1}";
         }
 
-        protected override ValidationResult? IsValid(object? value, ValidationContext validationContext) => _oneOf.Contains(value) ? ValidationResult.Success : new ValidationResult(FormatErrorMessage(value?.ToString()));
+        public string[] OneOfStrings { get; }
 
-        public override string FormatErrorMessage(string? name) => string.Format(CultureInfo.CurrentCulture, ErrorMessageString, new object[] { name!, string.Join(", ", _oneOf) });
+        protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
+        {
+            return _oneOf.Contains(value)
+                ? ValidationResult.Success
+                : new ValidationResult(FormatErrorMessage(value?.ToString()));
+        }
+
+        public override string FormatErrorMessage(string? name)
+        {
+            return string.Format(CultureInfo.CurrentCulture, ErrorMessageString,
+                new object[] {name!, string.Join(", ", _oneOf)});
+        }
     }
 }

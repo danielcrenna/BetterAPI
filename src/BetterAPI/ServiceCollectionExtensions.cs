@@ -24,6 +24,7 @@ using BetterAPI.Metrics;
 using BetterAPI.Paging;
 using BetterAPI.Prefer;
 using BetterAPI.Localization;
+using BetterAPI.Operations;
 using BetterAPI.Patch;
 using BetterAPI.RateLimiting;
 using BetterAPI.Search;
@@ -58,21 +59,25 @@ namespace BetterAPI
             services.AddOptions();
             services.Configure<ApiOptions>(configuration);
 
-            // Add core services:
+            // Core services:
             //
             services.AddTimestamps();
-            services.AddEventServices();
             services.TryAddSingleton<TypeRegistry>();
             services.TryAddSingleton<ApiRouter>();
             services.AddMetrics(o =>
             {
                 o.AddServerTiming();
             });
-            
+
+            // Background services:
+            //
+            services.AddApiLocalization();
+            services.AddLongRunningOperations();
+            services.AddEventServices();
+
             // Each feature is available bespoke or bundled here by convention, and order matters:
             //
             services.AddCors(configuration.GetSection(nameof(ApiOptions.Cors)));
-            services.AddApiLocalization();
             services.AddRateLimiting(configuration.GetSection(nameof(ApiOptions.RateLimiting)));
             services.AddTokens(configuration.GetSection(nameof(ApiOptions.Tokens)));
             services.AddDeltaQueries(configuration.GetSection(nameof(ApiOptions.DeltaQueries)));
@@ -81,7 +86,6 @@ namespace BetterAPI
             services.AddPrefer(configuration.GetSection(nameof(ApiOptions.Prefer)));
             services.AddHttpCaching(configuration.GetSection(nameof(ApiOptions.Cache)));
             
-            // 
             // Ensure proper order for outside-in filters:
             // See: https://github.com/microsoft/api-guidelines/blob/vNext/Guidelines.md#99-compound-collection-operations
             //
@@ -93,8 +97,8 @@ namespace BetterAPI
             services.AddSearch(configuration.GetSection(nameof(ApiOptions.Search)));
             services.AddVersioning(configuration.GetSection(nameof(ApiOptions.Versioning)));
             
-            // 
             // Canonicalize with lowercase paths
+            //
             services.AddRouting(o =>
             {
                 o.AppendTrailingSlash = true;
