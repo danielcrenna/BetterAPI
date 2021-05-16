@@ -30,7 +30,7 @@ namespace BetterAPI.Operations.Internal
         /// <param name="scheduler"></param>
         /// <returns></returns>
         public static IObservable<T> AsContinuousObservable<T>(this Func<T> @delegate, TimeSpan? interval = null,
-            TaskScheduler scheduler = null)
+            TaskScheduler? scheduler = default)
         {
             scheduler ??= TaskScheduler.Default;
 
@@ -50,7 +50,7 @@ namespace BetterAPI.Operations.Internal
         /// <param name="scheduler"></param>
         /// <returns></returns>
         public static IObservable<T> AsContinuousObservable<T>(this Func<IEnumerable<T>> @delegate,
-            TimeSpan? interval = null, TaskScheduler scheduler = null)
+            TimeSpan? interval = null, TaskScheduler? scheduler = default)
         {
             scheduler ??= TaskScheduler.Default;
 
@@ -93,7 +93,7 @@ namespace BetterAPI.Operations.Internal
         /// <param name="scheduler"></param>
         /// <returns></returns>
         public static IObservable<T> AsContinuousObservable<T>(this Func<CancellationToken, T> @delegate,
-            TimeSpan? interval = null, TaskScheduler scheduler = null)
+            TimeSpan? interval = null, TaskScheduler? scheduler = default)
         {
             scheduler ??= TaskScheduler.Default;
 

@@ -23,16 +23,16 @@ namespace BetterAPI.Operations.Internal
         private readonly bool _internal;
         private readonly Stopwatch _uptime;
 
-        private Task _background;
-        private Func<T, bool> _backlogConsumer;
+        private Task? _background;
+        private Func<T, bool>? _backlogConsumer;
         private BlockingCollection<T> _buffer;
-        private CancellationTokenSource _cancel;
+        private CancellationTokenSource? _cancel;
 
         private Func<T, bool> _consumer;
-        private Action<Exception> _errorConsumer;
+        private Action<Exception>? _errorConsumer;
 
         private int _sent;
-        private Action<T> _undeliverableConsumer;
+        private Action<T>? _undeliverableConsumer;
         private int _undelivered;
 
         public PushQueue(IObservable<T> source) : this()
@@ -81,6 +81,12 @@ namespace BetterAPI.Operations.Internal
             _undeliverableConsumer = m => { };
         }
 
+        // ReSharper disable once EmptyDestructor
+        ~PushQueue()
+        {
+
+        }
+
         public int MaxDegreeOfParallelism { get; set; }
 
         public TimeSpan Uptime => _uptime.Elapsed;
@@ -95,15 +101,15 @@ namespace BetterAPI.Operations.Internal
 
         public bool Running { get; private set; }
 
-        public Action OnStarted { get; set; }
+        public Action? OnStarted { get; set; }
 
-        public Action OnStopped { get; set; }
+        public Action? OnStopped { get; set; }
 
-        public RetryPolicy RetryPolicy { get; set; }
+        public RetryPolicy? RetryPolicy { get; set; }
 
-        public RateLimitPolicy RateLimitPolicy { get; set; }
+        public RateLimitPolicy? RateLimitPolicy { get; set; }
 
-        public Func<T, ulong> HashFunction => x => ValueHash.ComputeHash(x);
+        public Func<T, ulong?> HashFunction => x => ValueHash.ComputeHash(x);
 
         public void Dispose()
         {
@@ -156,7 +162,7 @@ namespace BetterAPI.Operations.Internal
                 throw new InvalidOperationException("You cannot subscribe the buffer while stopping");
 
             func.AsContinuousObservable(interval)
-                .Subscribe(Produce, e => { _errorConsumer?.Invoke(e); }, () => { }, _cancel.Token);
+                .Subscribe(Produce, e => { _errorConsumer?.Invoke(e); }, () => { }, _cancel?.Token ?? CancellationToken.None);
         }
 
         public void Produce(IObservable<T> observable)
@@ -164,7 +170,7 @@ namespace BetterAPI.Operations.Internal
             if (_buffer.IsAddingCompleted)
                 throw new InvalidOperationException("You cannot subscribe the buffer while stopping");
 
-            observable.Subscribe(Produce, e => { _errorConsumer?.Invoke(e); }, () => { }, _cancel.Token);
+            observable.Subscribe(Produce, e => { _errorConsumer?.Invoke(e); }, () => { }, _cancel?.Token ?? CancellationToken.None);
         }
 
         public void Produce(IObservable<IList<T>> observable)
@@ -172,7 +178,7 @@ namespace BetterAPI.Operations.Internal
             if (_buffer.IsAddingCompleted)
                 throw new InvalidOperationException("You cannot subscribe the buffer while stopping");
 
-            observable.Subscribe(Produce, e => { _errorConsumer?.Invoke(e); }, () => { }, _cancel.Token);
+            observable.Subscribe(Produce, e => { _errorConsumer?.Invoke(e); }, () => { }, _cancel?.Token ?? CancellationToken.None);
         }
 
         public void Produce(IObservable<IObservable<T>> observable)
@@ -180,7 +186,7 @@ namespace BetterAPI.Operations.Internal
             if (_buffer.IsAddingCompleted)
                 throw new InvalidOperationException("You cannot subscribe the buffer while stopping");
 
-            observable.Subscribe(Produce, e => { _errorConsumer?.Invoke(e); }, () => { }, _cancel.Token);
+            observable.Subscribe(Produce, e => { _errorConsumer?.Invoke(e); }, () => { }, _cancel?.Token ?? CancellationToken.None);
         }
 
         public void Attach(Func<T, bool> consumer)
@@ -242,8 +248,8 @@ namespace BetterAPI.Operations.Internal
 
             _empty.Release();
 
-            _cancel.Cancel();
-            _cancel.Token.WaitHandle.WaitOne();
+            _cancel?.Cancel();
+            _cancel?.Token.WaitHandle.WaitOne();
         }
 
         private void HandleBacklog(T message)
@@ -288,31 +294,28 @@ namespace BetterAPI.Operations.Internal
             if (RetryPolicy != null) _attempts.Remove(HashMessage(message));
         }
 
-        protected void Dispose(bool disposing)
+        private void Dispose(bool disposing)
         {
-            if (!disposing) return;
+            if (!disposing)
+                return;
 
-            if (Running) Stop();
+            if (Running)
+                Stop();
 
             if (_background != null && _background.IsCompleted)
                 _background?.Dispose();
             _background = null;
+
             _cancel?.Dispose();
             _cancel = null;
-        }
-
-        public void Restart(bool immediate = false)
-        {
-            Stop(immediate);
-
-            Start(immediate);
         }
 
         private void RequisitionBackgroundTask()
         {
             var options = new ParallelOptions
             {
-                MaxDegreeOfParallelism = MaxDegreeOfParallelism, CancellationToken = _cancel.Token
+                MaxDegreeOfParallelism = MaxDegreeOfParallelism, 
+                CancellationToken = _cancel?.Token ?? CancellationToken.None
             };
 
             _background = Task.Run(() =>
@@ -335,8 +338,7 @@ namespace BetterAPI.Operations.Internal
             if (RateLimitPolicy != null && RateLimitPolicy.Enabled)
             {
                 // Convert the outgoing blocking collection into a rate limited observable, then feed a new blocking queue with it
-                var sequence = _buffer.AsRateLimitedObservable(RateLimitPolicy.Occurrences, RateLimitPolicy.TimeUnit,
-                    _cancel.Token);
+                var sequence = _buffer.AsRateLimitedObservable(RateLimitPolicy.Occurrences, RateLimitPolicy.TimeUnit, _cancel?.Token ?? CancellationToken.None);
                 source = new BlockingCollection<T>();
                 sequence.Subscribe(source.Add, exception => { }, () => { });
             }
@@ -354,7 +356,7 @@ namespace BetterAPI.Operations.Internal
             try
             {
                 while (!_buffer.IsCompleted)
-                    if (_buffer.TryTake(out var message, -1, _cancel.Token))
+                    if (_buffer.TryTake(out var message, -1, _cancel?.Token ?? CancellationToken.None))
                         HandleBacklog(message);
             }
             finally
@@ -450,7 +452,9 @@ namespace BetterAPI.Operations.Internal
 
         private ulong HashMessage(T message)
         {
-            return HashFunction?.Invoke(message) ?? (ulong) message.GetHashCode();
+            if (message != null)
+                return HashFunction.Invoke(message) ?? (ulong) message.GetHashCode();
+            return default;
         }
 
         private int IncrementAttempts(ulong hash)

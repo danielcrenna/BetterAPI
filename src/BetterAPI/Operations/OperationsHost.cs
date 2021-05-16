@@ -58,14 +58,19 @@ namespace BetterAPI.Operations
             options.OnChange(OnOptionsChanged);
         }
 
+        // ReSharper disable once EmptyDestructor
+        ~OperationsHost()
+        {
+
+        }
+
         private int ResolveConcurrency()
         {
             return _options.CurrentValue.Concurrency == 0
                 ? Environment.ProcessorCount
                 : _options.CurrentValue.Concurrency;
         }
-
-
+        
         public void Start(bool immediate, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -101,6 +106,7 @@ namespace BetterAPI.Operations
             Start(false);
         }
 
+        
         public void Dispose()
         {
             Dispose(true);

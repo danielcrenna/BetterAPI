@@ -22,7 +22,7 @@ namespace BetterAPI.Serialization
                     }, 0);
         }
 
-        public static ulong ComputeHash(object instance, IObjectSerializer objectSerializer = null,
+        public static ulong? ComputeHash(object instance, IObjectSerializer objectSerializer = null,
             IStringSerializer stringSerializer = null, ITypeResolver typeResolver = null,
             IValueHashProvider valueHashProvider = null, ulong? seed = null)
         {
@@ -35,7 +35,7 @@ namespace BetterAPI.Serialization
                 : ComputeHash(objectSerializer.ToBuffer(instance, typeResolver), valueHashProvider, seed);
         }
 
-        public static ulong ComputeHash(ReadOnlySpan<byte> buffer, IValueHashProvider valueHashProvider = null,
+        public static ulong? ComputeHash(ReadOnlySpan<byte> buffer, IValueHashProvider valueHashProvider = null,
             ulong? seed = null)
         {
             return buffer == null

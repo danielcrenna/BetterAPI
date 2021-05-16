@@ -141,6 +141,30 @@ namespace BetterAPI.Operations.Internal
             }
         }
 
+        private class BlockingCollectionPartitioner<T> : Partitioner<T>
+        {
+            private readonly BlockingCollection<T> _collection;
+
+            internal BlockingCollectionPartitioner(BlockingCollection<T> collection)
+            {
+                _collection = collection ?? throw new ArgumentNullException(nameof(collection));
+            }
+
+            public override bool SupportsDynamicPartitions => true;
+
+            public override IList<IEnumerator<T>> GetPartitions(int partitionCount)
+            {
+                var dynamicPartitioner = GetDynamicPartitions();
+
+                return Enumerable.Range(0, partitionCount).Select(_ => dynamicPartitioner.GetEnumerator()).ToArray();
+            }
+
+            public override IEnumerable<T> GetDynamicPartitions()
+            {
+                return _collection.GetConsumingEnumerable();
+            }
+        }
+
         // Original source from: http://www.pennedobjects.com/2010/10/better-rate-limiting-with-dot-net/
         internal class Throttle : IDisposable
         {
@@ -168,7 +192,7 @@ namespace BetterAPI.Operations.Internal
                 GC.SuppressFinalize(this);
             }
 
-            private void ExitTimerCallback(object state)
+            private void ExitTimerCallback(object? state)
             {
                 int exitTime;
                 while (_exitTimes.TryPeek(out exitTime) && unchecked(exitTime - Environment.TickCount) <= 0)
@@ -188,14 +212,11 @@ namespace BetterAPI.Operations.Internal
 
             public bool WaitToProceed(int millisecondsTimeout)
             {
-                var entered = _semaphore.Wait(millisecondsTimeout);
-                if (entered)
-                {
-                    var exitTime = unchecked(Environment.TickCount + TimeUnitMilliseconds);
-                    _exitTimes.Enqueue(exitTime);
-                }
-
-                return entered;
+                if (!_semaphore.Wait(millisecondsTimeout))
+                    return false;
+                var exitTime = unchecked(Environment.TickCount + TimeUnitMilliseconds);
+                _exitTimes.Enqueue(exitTime);
+                return true;
             }
 
             public bool WaitToProceed(TimeSpan timeout)
@@ -215,30 +236,6 @@ namespace BetterAPI.Operations.Internal
                 _semaphore.Dispose();
                 _exitTimer.Dispose();
                 _isDisposed = true;
-            }
-        }
-
-        private class BlockingCollectionPartitioner<T> : Partitioner<T>
-        {
-            private readonly BlockingCollection<T> _collection;
-
-            internal BlockingCollectionPartitioner(BlockingCollection<T> collection)
-            {
-                _collection = collection ?? throw new ArgumentNullException(nameof(collection));
-            }
-
-            public override bool SupportsDynamicPartitions => true;
-
-            public override IList<IEnumerator<T>> GetPartitions(int partitionCount)
-            {
-                var dynamicPartitioner = GetDynamicPartitions();
-
-                return Enumerable.Range(0, partitionCount).Select(_ => dynamicPartitioner.GetEnumerator()).ToArray();
-            }
-
-            public override IEnumerable<T> GetDynamicPartitions()
-            {
-                return _collection.GetConsumingEnumerable();
             }
         }
     }

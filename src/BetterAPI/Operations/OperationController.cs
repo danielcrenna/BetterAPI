@@ -1,4 +1,7 @@
-﻿using BetterAPI.Enveloping;
+﻿using System;
+using System.Threading;
+using System.Threading.Tasks;
+using BetterAPI.Enveloping;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BetterAPI.Operations
@@ -17,9 +20,24 @@ namespace BetterAPI.Operations
         /// </summary>
         /// <returns></returns>
         [HttpGet("operations")]
-        public IActionResult Get()
+        public async Task<IActionResult> Get(CancellationToken cancellationToken)
         {
-            return Ok(new Envelope<OperationStatus>());
+            var operations = await _store.GetAsync(cancellationToken);
+            return Ok(operations);
+        }
+
+        /// <summary>
+        /// <see href="https://github.com/microsoft/api-guidelines/blob/vNext/Guidelines.md#1324-operations-resource"/>
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("operations/{id}")]
+        public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
+        {
+            var operation = await _store.GetByIdAsync(id, cancellationToken);
+            if (operation == default)
+                return NotFound();
+
+            return Ok(operation);
         }
     }
 }

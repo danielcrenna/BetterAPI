@@ -5,53 +5,44 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 using System;
-using System.IO;
-using Microsoft.Data.Sqlite;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using BetterAPI.Data;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 
 namespace BetterAPI.Operations
 {
-    public class SqliteOperationStore : IOperationStore
+    public class ResourceDataServiceOperationStore : IOperationStore
     {
-        private readonly IStringLocalizer<SqliteOperationStore> _localizer;
-        private readonly ILogger<SqliteOperationStore> _logger;
+        private readonly IResourceDataService<Operation> _service;
+        private readonly IStringLocalizer<ResourceDataServiceOperationStore> _localizer;
+        private readonly ILogger<ResourceDataServiceOperationStore> _logger;
 
-        public SqliteOperationStore(string filePath, IStringLocalizer<SqliteOperationStore> localizer, ILogger<SqliteOperationStore> logger)
+        public ResourceDataServiceOperationStore(
+            IResourceDataService<Operation> service,
+            IStringLocalizer<ResourceDataServiceOperationStore> localizer, 
+            ILogger<ResourceDataServiceOperationStore> logger)
         {
+            _service = service;
             _localizer = localizer;
             _logger = logger;
-            CreateIfNotExists(filePath);
-            FilePath = filePath;
         }
 
-        public string FilePath { get; }
-
-        private void CreateIfNotExists(string filePath)
+        public Task<IEnumerable<Operation>> GetAsync(CancellationToken cancellationToken)
         {
-            var baseDirectory = Path.GetDirectoryName(filePath);
-            if (!string.IsNullOrWhiteSpace(baseDirectory))
-                Directory.CreateDirectory(baseDirectory);
-
-            var db = new SqliteConnection($"Data Source={filePath}");
-            db.Open();
-            var t = db.BeginTransaction();
-
-            try
-            {
-                Visit(db, t);
-                t.Commit(); 
-            }
-            catch (Exception e)
-            {
-                t.Rollback();
-                _logger.LogError(ErrorEvents.ErrorSavingResource, e, _localizer.GetString("Error creating operations table in SQLite"));
-            }
+            var query = new ResourceQuery();
+            var operations = _service.Get(query, cancellationToken);
+            return Task.FromResult(operations);
         }
 
-        private void Visit(SqliteConnection db, SqliteTransaction transaction)
+        public Task<Operation?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
         {
-            
+            if (_service.TryGetById(id, out var operation, cancellationToken))
+                return Task.FromResult(operation);
+
+            return Task.FromResult((Operation?) null);
         }
     }
 }

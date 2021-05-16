@@ -33,10 +33,9 @@ namespace BetterAPI
     /// </summary>
     internal sealed class DocumentationOperationFilter : IOperationFilter
     {
-        // FIXME: We need to rebuild the swagger document if the options change
         private readonly TypeRegistry _registry;
         private readonly IStringLocalizer<DocumentationOperationFilter> _localizer;
-        private readonly IResourceDataService _service;
+        private readonly IResourceDataService _service; // FIXME: this currently only refers to the first service added; it could be different!
         private readonly IOptionsMonitor<ApiOptions> _options;
         private readonly ILogger<DocumentationOperationFilter> _logger;
 
