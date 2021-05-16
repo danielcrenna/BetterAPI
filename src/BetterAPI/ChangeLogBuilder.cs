@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using BetterAPI.Data;
+using BetterAPI.Reflection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -35,16 +36,27 @@ namespace BetterAPI
             Versions = _versions.ToImmutableDictionary();
             Services = services;
         }
-
+        
         public ChangeLogBuilder AddResource<T>(string? name = default) where T : class, IResource
         {
             name ??= typeof(T).Name;
             _pendingTypes[name] = typeof(T);
 
-            Services.TryAddSingleton(r => new SqliteResourceDataService<T>("resources.db", 1, r.GetRequiredService<IStringLocalizer<SqliteResourceDataService<T>>>(), r.GetRequiredService<ILogger<SqliteResourceDataService<T>>>()));
+            // get the revision number for this type
+            var revision = 1;
+            foreach (var version in _versions)
+            {
+                foreach (var item in version.Value)
+                {
+                    if (item.Key.Equals(name, StringComparison.OrdinalIgnoreCase))
+                        revision++;
+                }
+            }
+
+            Services.TryAddSingleton(r => new SqliteResourceDataService<T>("resources.db", revision, r.GetRequiredService<ChangeLogBuilder>(), r.GetRequiredService<IStringLocalizer<SqliteResourceDataService<T>>>(), r.GetRequiredService<ILogger<SqliteResourceDataService<T>>>()));
             Services.TryAddSingleton<IResourceDataService<T>>(r => r.GetRequiredService<SqliteResourceDataService<T>>());
             Services.TryAddTransient<IResourceDataService>(r => r.GetRequiredService<SqliteResourceDataService<T>>());
-
+            
             return this;
         }
 

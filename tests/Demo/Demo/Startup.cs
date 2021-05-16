@@ -23,7 +23,9 @@ namespace Demo
                 builder.AddResource<WeatherForecastV1>("WeatherForecast");
                 builder.ShipVersion(ApiVersion.Default);
 
+                // FIXME: auto-add or throw if we don't add the dependent Reporter resource
                 builder.AddResource<WeatherForecastV2>("WeatherForecast");
+                builder.AddResource<ReporterV1>("Reporter"); 
                 builder.ShipVersion(new ApiVersion(1, 1));
             });
 

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using BetterAPI.Reflection;
@@ -71,6 +72,7 @@ namespace BetterAPI.Data
 
                     if (!fts)
                     {
+                        sb.Append(' ');
                         sb.Append(ResolveColumnTypeToDbType(column));
                         sb.Append(' ');
                         sb.Append("DEFAULT");
@@ -210,25 +212,27 @@ namespace BetterAPI.Data
         {
             return Pooling.StringBuilderPool.Scoped(sb =>
             {
+                var fields = members.GetDiscreteFields();
+                
                 sb.Append("CREATE VIEW \"");
                 sb.Append(resource);
                 sb.Append("\" (");
-                for (var i = 0; i < members.Count; i++)
+                for (var i = 0; i < fields.Length; i++)
                 {
                     if (i != 0)
                         sb.Append(", ");
-                    var column = members[i];
+                    var column = fields[i];
                     sb.Append("\"");
                     sb.Append(column.Name);
                     sb.Append("\"");
                 }
 
                 sb.Append(", \"Sequence\") AS SELECT ");
-                for (var i = 0; i < members.Count; i++)
+                for (var i = 0; i < fields.Length; i++)
                 {
                     if (i != 0)
                         sb.Append(", ");
-                    var column = members[i];
+                    var column = fields[i];
                     sb.Append("\"");
                     sb.Append(column.Name);
                     sb.Append("\"");
@@ -246,7 +250,7 @@ namespace BetterAPI.Data
 
                     sb.Append("UNION SELECT ");
                     var j = 0;
-                    foreach (var column in members)
+                    foreach (var column in fields)
                     {
                         if (j != 0)
                             sb.Append(", ");
@@ -274,6 +278,15 @@ namespace BetterAPI.Data
 
                 sb.Append(" ORDER BY \"Sequence\" ASC ");
             });
+        }
+
+        private static AccessorMember[] GetDiscreteFields(this AccessorMembers members)
+        {
+            // remove resource members, as these have their own tables
+            return members.Where(x => 
+                    !typeof(IResource).IsAssignableFrom(x.Type) && // other resources
+                    (x.Type == typeof(string) || !x.Type.ImplementsGeneric(typeof(IEnumerable<>))) // collections
+            ).ToArray();
         }
 
         public static string CreateIndexSql(string resource, AccessorMember member, int revision, bool unique)

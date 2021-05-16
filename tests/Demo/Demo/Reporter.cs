@@ -16,7 +16,5 @@ namespace Demo
 
         [Required]
         public string? Name { get; set; }
-
-        public DateTimeOffset CreatedAt { get; set; }
     }
 }

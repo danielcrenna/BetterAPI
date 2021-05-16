@@ -25,6 +25,7 @@ namespace BetterAPI.Data
         where T : class, IResource
     {
         private readonly int _revision;
+        private readonly ChangeLogBuilder _builder;
         private readonly IStringLocalizer<SqliteResourceDataService<T>> _localizer;
         private readonly ILogger<SqliteResourceDataService<T>> _logger;
         private readonly AccessorMembers _members;
@@ -43,9 +44,10 @@ namespace BetterAPI.Data
             SqlMapper.AddTypeHandler(new GuidTypeHandler());
         }
 
-        public SqliteResourceDataService(string filePath, int revision, IStringLocalizer<SqliteResourceDataService<T>> localizer, ILogger<SqliteResourceDataService<T>> logger)
+        public SqliteResourceDataService(string filePath, int revision, ChangeLogBuilder builder, IStringLocalizer<SqliteResourceDataService<T>> localizer, ILogger<SqliteResourceDataService<T>> logger)
         {
             _revision = revision;
+            _builder = builder;
             _localizer = localizer;
             _logger = logger;
             _reads = ReadAccessor.Create(typeof(T), AccessorMemberTypes.Properties, AccessorMemberScope.Public, out _members);
@@ -60,10 +62,10 @@ namespace BetterAPI.Data
             Debug.Assert(query.PageSize.HasValue);
 
             var db = OpenConnection();
-            var viewName = _reads.Type.Name;
+            var viewName = GetResourceName();
             var orderBy = SqlBuilder.OrderBySql(query);
 
-            var sql = SqlBuilder.SelectSql(_reads.Type.Name, _members, query, out var hasWhere);
+            var sql = SqlBuilder.SelectSql(viewName, _members, query, out var hasWhere);
             var pageSql = sql + SqlBuilder.PageSql(query, viewName, orderBy, hasWhere);
             IEnumerable<T> result = db.Query<T>(pageSql);
 
@@ -76,11 +78,12 @@ namespace BetterAPI.Data
 
             return result;
         }
-
+        
         public bool TryGetById(Guid id, out T? resource, CancellationToken cancellationToken)
         {
             var db = OpenConnection();
-            var result = db.QuerySingleOrDefault<T?>(SqlBuilder.GetById(_reads.Type.Name), new { Id = id });
+            var viewName = GetResourceName();
+            var result = db.QuerySingleOrDefault<T?>(SqlBuilder.GetById(viewName), new { Id = id });
             resource = result;
             return resource != default;
         }
@@ -140,7 +143,9 @@ namespace BetterAPI.Data
 
         private void Visit(IDbConnection db, IDbTransaction t)
         {
-            var tableInfoList = db.Query<TableInfo>(SqlBuilder.GetTableInfo(), new {name = $"{_reads.Type.Name}%"}, t)
+            var viewName = GetResourceName();
+
+            var tableInfoList = db.Query<TableInfo>(SqlBuilder.GetTableInfo(), new {name = $"{viewName}%"}, t)
                 .Where(x => !x.name.Contains("_Search"))
                 .AsList();
 
@@ -164,18 +169,20 @@ namespace BetterAPI.Data
                 if (_revision <= revision)
                     return;
 
-                CreateTableRevision(db, t, revision);
-                RebuildView(db, t, tableInfoList, revision);
+                CreateTableRevision(db, t, _revision);
+                RebuildView(db, t, tableInfoList, _revision);
             }
         }
 
         private void CreateTableRevision(IDbConnection db, IDbTransaction t, int revision)
         {
-            db.Execute(SqlBuilder.CreateTableSql(_reads.Type.Name, _members, revision, false), transaction: t);
+            var viewName = GetResourceName();
+
+            db.Execute(SqlBuilder.CreateTableSql(viewName, _members, revision, false), transaction: t);
 
             if (SupportsSearch)
             {
-                db.Execute(SqlBuilder.AfterInsertTriggerSql(_reads.Type.Name, _members, revision), transaction: t);
+                db.Execute(SqlBuilder.AfterInsertTriggerSql(viewName, _members, revision), transaction: t);
             }
             
             foreach (var member in _members)
@@ -193,13 +200,13 @@ namespace BetterAPI.Data
 
             if (SupportsSearch)
             {
-                db.Execute(SqlBuilder.CreateTableSql(_reads.Type.Name, _members, revision, true), transaction: t);
+                db.Execute(SqlBuilder.CreateTableSql(viewName, _members, revision, true), transaction: t);
             }
         }
 
         private void IndexMember(IDbConnection db, IDbTransaction t, int revision, AccessorMember member, bool unique)
         {
-            db.Execute(SqlBuilder.CreateIndexSql(_reads.Type.Name, member, revision, unique), transaction: t);
+            db.Execute(SqlBuilder.CreateIndexSql(GetResourceName(), member, revision, unique), transaction: t);
         }
         
         private void InsertRecord(T resource, int revision, IDbConnection db, IDbTransaction t)
@@ -213,14 +220,16 @@ namespace BetterAPI.Data
         {
             var previous = revision == 1 ? 1 : revision - 1;
 
-            var sequence = db.QuerySingleOrDefault<long?>(SqlBuilder.GetMaxSequence(_reads.Type.Name, revision),
+            var viewName = GetResourceName();
+
+            var sequence = db.QuerySingleOrDefault<long?>(SqlBuilder.GetMaxSequence(viewName, revision),
                 transaction: t);
 
             // account for the corner case of multiple revisions before the first insertion
             while (previous != 1 && !sequence.HasValue)
             {
                 sequence = db.QuerySingleOrDefault<long?>(
-                    SqlBuilder.GetMaxSequence(_reads.Type.Name, previous),
+                    SqlBuilder.GetMaxSequence(viewName, previous),
                     transaction: t);
 
                 previous--;
@@ -233,8 +242,9 @@ namespace BetterAPI.Data
         
         private void RebuildView(IDbConnection db, IDbTransaction t, IEnumerable<TableInfo> tableInfoList, int revision)
         {
-            db.Execute(SqlBuilder.DropViewSql(_reads.Type.Name), transaction: t);
-            db.Execute(SqlBuilder.CreateViewSql(_reads.Type.Name, _members, revision, tableInfoList), transaction: t);
+            var viewName = GetResourceName();
+            db.Execute(SqlBuilder.DropViewSql(viewName), transaction: t);
+            db.Execute(SqlBuilder.CreateViewSql(viewName, _members, revision, tableInfoList), transaction: t);
         }
 
         private IDbConnection OpenConnection()
@@ -242,6 +252,14 @@ namespace BetterAPI.Data
             var db = new SqliteConnection($"Data Source={FilePath}");
             db.Open();
             return db;
+        }
+        
+        private string GetResourceName()
+        {
+            if(_builder.TryGetResourceName(_reads.Type, out var resourceName) && resourceName != default)
+                return resourceName;
+
+            return _reads.Type.Name;
         }
     }
 }
