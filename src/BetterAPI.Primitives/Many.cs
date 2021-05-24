@@ -8,19 +8,19 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace BetterAPI.Enveloping
+namespace BetterAPI
 {
-    public class Envelope<T> : IEnveloped, IEnumerable<T>
+    public class Many<T> : IEnveloped, IEnumerable<T>
     {
         private static readonly IEnumerable<T> EmptyEnumerable = Enumerable.Empty<T>();
         private static readonly IEnumerator<T> EmptyEnumerator = EmptyEnumerable.GetEnumerator();
         
-        public Envelope()
+        public Many()
         {
             Value = Enumerable.Empty<T>().ToList();
         }
 
-        public Envelope(IEnumerable<T> value)
+        public Many(IEnumerable<T> value)
         {
             Value = value?.ToList();
         }

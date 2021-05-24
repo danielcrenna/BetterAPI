@@ -94,7 +94,7 @@ namespace BetterAPI
                     if (_registry.TryGetValue(action.Controller.ControllerName, out var controllerType) && controllerType != default)
                     {
                         // FIXME: @nextLink, @deltaLink, should be present, too
-                        var collectionType = typeof(Envelope<>).MakeGenericType(controllerType);
+                        var collectionType = typeof(Many<>).MakeGenericType(controllerType);
 
                         // get resource collection with return=representation:
                         action.ProducesResponseType(collectionType, StatusCodes.Status200OK); 
@@ -109,7 +109,7 @@ namespace BetterAPI
                     if (_registry.TryGetValue(action.Controller.ControllerName, out var controllerType) && controllerType != default)
                     {
                         // FIXME: @nextLink, @deltaLink, should be present, too
-                        var collectionType = typeof(Envelope<>).MakeGenericType(controllerType);
+                        var collectionType = typeof(Many<>).MakeGenericType(controllerType);
 
                         // get resource collection with return=representation:
                         action.ProducesResponseType(collectionType, StatusCodes.Status200OK); 

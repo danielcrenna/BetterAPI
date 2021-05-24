@@ -84,7 +84,7 @@ namespace BetterAPI.Testing
             response.ShouldHaveHeader(HeaderNames.ETag);
             response.ShouldHaveContentHeader(HeaderNames.LastModified);
 
-            var model = await response.Content.ReadFromJsonAsync<Envelope<TModel>>();
+            var model = await response.Content.ReadFromJsonAsync<Many<TModel>>();
             Assert.NotNull(model ?? throw new NullReferenceException());
 
             var ordered = model.Value.ToList();
@@ -117,7 +117,7 @@ namespace BetterAPI.Testing
             response.ShouldHaveHeader(HeaderNames.ETag);
             response.ShouldHaveContentHeader(HeaderNames.LastModified);
 
-            var model = await response.Content.ReadFromJsonAsync<Envelope<TModel>>();
+            var model = await response.Content.ReadFromJsonAsync<Many<TModel>>();
             Assert.NotNull(model ?? throw new NullReferenceException());
 
             var ordered = model.Value.ToList();
@@ -138,7 +138,7 @@ namespace BetterAPI.Testing
             response.ShouldHaveHeader(HeaderNames.ETag);
             response.ShouldHaveContentHeader(HeaderNames.LastModified);
 
-            var model = await response.Content.ReadFromJsonAsync<Envelope<TModel>>();
+            var model = await response.Content.ReadFromJsonAsync<Many<TModel>>();
             Assert.NotNull(model ?? throw new NullReferenceException());
 
             var ordered = model.Value.ToList();

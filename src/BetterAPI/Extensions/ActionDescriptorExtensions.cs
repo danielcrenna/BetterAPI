@@ -45,7 +45,7 @@ namespace BetterAPI.Extensions
             {
                 if (!producesResponseType.Type.ImplementsGeneric(typeof(IEnumerable<>)) && 
                     // FIXME: only here because ApiGuidelinesConvention adds it for examples
-                    !producesResponseType.Type.ImplementsGeneric(typeof(Envelope<>)))
+                    !producesResponseType.Type.ImplementsGeneric(typeof(Many<>)))
                     continue;
 
                 underlyingType = producesResponseType.Type.GetGenericArguments()[0];
@@ -61,7 +61,7 @@ namespace BetterAPI.Extensions
             // NOTE: descriptor.EndpointMetadata does not contain any filters that were added dynamically
             foreach (var producesResponseType in descriptor.FilterDescriptors.Select(x => x.Filter).OfType<ProducesResponseTypeAttribute>())
             {
-                if (producesResponseType.Type.ImplementsGeneric(typeof(IEnumerable<>)) || producesResponseType.Type.ImplementsGeneric(typeof(Envelope<>)))
+                if (producesResponseType.Type.ImplementsGeneric(typeof(IEnumerable<>)) || producesResponseType.Type.ImplementsGeneric(typeof(Many<>)))
                 {
                     underlyingType = producesResponseType.Type.GetGenericArguments()[0];
                     return true;

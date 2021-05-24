@@ -37,7 +37,7 @@ namespace BetterAPI.Shaping
             if (reader.TokenType != JsonTokenType.StartObject) throw new JsonException();
 
             T data;
-            if (typeof(T).ImplementsGeneric(typeof(Envelope<>)))
+            if (typeof(T).ImplementsGeneric(typeof(Many<>)))
             {
                 // FIXME: Instancing can't handle nested generic types, so we have to use manual reflection here
                 //        until it is resolved.

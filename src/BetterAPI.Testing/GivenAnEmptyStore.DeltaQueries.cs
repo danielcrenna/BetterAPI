@@ -35,7 +35,7 @@ namespace BetterAPI.Testing
 
             // i.e.: {"values":[],"@deltaLink":"..."}
             var options = _factory.Services.GetRequiredService<JsonSerializerOptions>();
-            var body = await response.Content.ReadFromJsonAsync<DeltaAnnotated<Envelope<TModel>>>(options);
+            var body = await response.Content.ReadFromJsonAsync<DeltaAnnotated<Many<TModel>>>(options);
             Assert.NotNull(body.DeltaLink);
             Assert.NotEmpty(body.DeltaLink);
         }

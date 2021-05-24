@@ -1,0 +1,43 @@
+﻿@page "/changelog"
+@inject HttpClient Http
+
+<h1>Change Log</h1>
+
+@if (_changes == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+        <tr>
+            <th>Version</th>
+            <th>Resource</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var (version, resources) in _changes)
+        {
+            foreach (var resource in resources)
+            {
+                <tr>
+                    <td>@version</td>
+                    <td>@resource</td>
+                </tr>
+            }
+        }
+        </tbody>
+    </table>
+}
+
+@code {
+    private Dictionary<string, List<string>> _changes;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var response = await Http.GetFromJsonAsync<One<Dictionary<string, List<string>>>>("api/changelog");
+        _changes = response?.Value;
+        Console.WriteLine(_changes?.Count + " changes loaded.");
+    }
+}

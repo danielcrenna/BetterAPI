@@ -61,7 +61,7 @@ namespace BetterAPI.Testing
             // there are no resources from which we can determine a modified date
             response.ShouldNotHaveContentHeader(HeaderNames.LastModified);
 
-            var body = await response.Content.ReadFromJsonAsync<Envelope<TModel>>() ??
+            var body = await response.Content.ReadFromJsonAsync<Many<TModel>>() ??
                        throw new NullReferenceException();
             Assert.Empty(body.Value);
         }

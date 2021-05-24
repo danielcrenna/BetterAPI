@@ -10,15 +10,15 @@ using BetterAPI.Enveloping;
 
 namespace BetterAPI.Paging
 {
-    public sealed class CountEnvelope<T> : Envelope<T>
+    public sealed class CountMany<T> : Many<T>
     {
-        public CountEnvelope()
+        public CountMany()
         {
             Value = Enumerable.Empty<T>().ToList();
             MaxItems = 0;
         }
 
-        public CountEnvelope(IEnumerable<T> value, int maxItems)
+        public CountMany(IEnumerable<T> value, int maxItems)
         {
             Value = value?.ToList();
             MaxItems = maxItems;

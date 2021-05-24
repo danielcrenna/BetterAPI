@@ -4,7 +4,10 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
-namespace BetterAPI.Enveloping
+namespace BetterAPI
 {
-    public interface IEnveloped { }
+    public class One<T> where T : class
+    {
+        public T? Value { get; set; }
+    }
 }

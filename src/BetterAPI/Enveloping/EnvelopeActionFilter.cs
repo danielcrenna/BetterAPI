@@ -25,7 +25,7 @@ namespace BetterAPI.Enveloping
                 var body = executed.GetResultBody(result, out var settable);
                 if (settable && !(body is IEnveloped) && !(body is IShaped))
                 {
-                    var type = typeof(Envelope<>).MakeGenericType(collectionType!);
+                    var type = typeof(Many<>).MakeGenericType(collectionType!);
                     var envelope = Activator.CreateInstance(type, body);
                     result.Value = envelope;
                 }
