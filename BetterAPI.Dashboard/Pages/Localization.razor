@@ -1,0 +1,43 @@
+﻿@page "/i18n"
+@inject HttpClient Http
+
+<h1>Translations</h1>
+
+@if (_translations == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+        <tr>
+            <th>Culture</th>
+            <th>Scope</th>
+            <th>Key</th>
+            <th>Value</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var translation in _translations)
+        {
+            <tr>
+                <td>@translation.Culture</td>
+                <td>@translation.Scope</td>
+                <td>@translation.Key</td>
+                <td>@translation.Value</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+
+@code {
+    private LocalizationViewModel[] _translations;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _translations = await Http.GetFromJsonAsync<LocalizationViewModel[]>("api/localization/all");
+        Console.WriteLine(_translations?.Length + " translations loaded.");
+    }
+}

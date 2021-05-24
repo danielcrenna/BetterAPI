@@ -25,7 +25,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BetterAPI.Reflection", "src
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BetterAPI.Primitives", "src\BetterAPI.Primitives\BetterAPI.Primitives.csproj", "{7CE94066-D6FD-46D1-9F06-9E53EAEB85CD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BetterAPI.Serialization", "src\BetterAPI.Serialization\BetterAPI.Serialization.csproj", "{2FB5C1F3-3239-48AC-ACFB-D7A50168C3F0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BetterAPI.Serialization", "src\BetterAPI.Serialization\BetterAPI.Serialization.csproj", "{2FB5C1F3-3239-48AC-ACFB-D7A50168C3F0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BetterAPI.Dashboard", "BetterAPI.Dashboard\BetterAPI.Dashboard.csproj", "{3C88B060-50CD-4997-8EE0-9F502CEC2496}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -69,6 +71,10 @@ Global
 		{2FB5C1F3-3239-48AC-ACFB-D7A50168C3F0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2FB5C1F3-3239-48AC-ACFB-D7A50168C3F0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2FB5C1F3-3239-48AC-ACFB-D7A50168C3F0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3C88B060-50CD-4997-8EE0-9F502CEC2496}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3C88B060-50CD-4997-8EE0-9F502CEC2496}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3C88B060-50CD-4997-8EE0-9F502CEC2496}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3C88B060-50CD-4997-8EE0-9F502CEC2496}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

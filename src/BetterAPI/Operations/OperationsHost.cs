@@ -64,20 +64,13 @@ namespace BetterAPI.Operations
 
         }
 
-        private int ResolveConcurrency()
-        {
-            return _options.CurrentValue.Concurrency == 0
-                ? Environment.ProcessorCount
-                : _options.CurrentValue.Concurrency;
-        }
-        
         public void Start(bool immediate, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            
-            _logger.LogInformation(_localizer.GetString("Starting operations host"));
 
-            _scheduler ??= new QueuedTaskScheduler(ResolveConcurrency());
+            var concurrency = ResolveConcurrency();
+            _logger.LogInformation(_localizer.GetString("Starting operations host with {Concurrency} concurrent threads"), concurrency);
+            _scheduler ??= new QueuedTaskScheduler(concurrency);
 
             //_background.Produce(EnqueueTasks, TimeSpan.FromSeconds(_options.CurrentValue.SleepIntervalSeconds));
             //_background.Start(immediate);
@@ -106,6 +99,12 @@ namespace BetterAPI.Operations
             Start(false);
         }
 
+        private int ResolveConcurrency()
+        {
+            return _options.CurrentValue.Concurrency == 0
+                ? Environment.ProcessorCount
+                : _options.CurrentValue.Concurrency;
+        }
         
         public void Dispose()
         {

@@ -1,0 +1,35 @@
+﻿@*https://getbootstrap.com/docs/5.0/components/alerts/*@
+
+<div class="alert @GetAlertCss()" role="alert">
+    @ChildContent
+    @if (Model.Dismissable)
+    {
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close" @onclick="Closing">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    }
+</div>
+
+@code
+{
+    [Parameter] public AlertViewModel Model { get; set; }
+    [Parameter] public RenderFragment ChildContent { get; set; }
+    [Parameter] public EventCallback<MouseEventArgs> Closing { get; set; }
+
+    public string GetAlertCss()
+    {
+        return Model.Type switch
+        {
+            AlertType.Primary => "alert-primary",
+            AlertType.Secondary => "alert-secondary",
+            AlertType.Success => "alert-success",
+            AlertType.Danger => "alert-danger",
+            AlertType.Warning => "alert-warning",
+            AlertType.Info => "alert-info",
+            AlertType.Light => "alert-light",
+            AlertType.Dark => "alert-dark",
+            _ => throw new ArgumentOutOfRangeException()
+        };
+    }
+}
+

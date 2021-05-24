@@ -237,7 +237,7 @@ namespace BetterAPI
             {
                 if (other != null)
                 {
-                    // FIXME: replace with a stable-sorted hash?
+                    // FIXME: replace with a ValueHash
                     var equivalent = true;
                     var reads = ReadAccessor.Create(typeof(T), AccessorMemberTypes.Properties, AccessorMemberScope.Public, out var members);
                     foreach (var member in members)
@@ -301,7 +301,7 @@ namespace BetterAPI
             if (uninitialized)
             {
                 Response.Headers.TryAdd(HeaderNames.Location, $"{Request.Path}");
-                return NotFoundWithDetails("This resource's ID is uninitialized. Did you mean to create it?");
+                return BadRequest("This resource's ID is uninitialized. Did you mean to create it?");
             }
 
             // Save a database call if the server set the ID

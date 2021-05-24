@@ -65,6 +65,15 @@ namespace BetterAPI.Localization
             return Ok(models);
         }
 
+        [HttpGet("all")]
+        [ProducesResponseType(typeof(IEnumerable<LocalizationViewModel>), StatusCodes.Status200OK)]
+        public IActionResult GetAll(CancellationToken cancellationToken)
+        {
+            var all = _store.GetAllTranslations(cancellationToken);
+            var models = all.Select(x => new LocalizationViewModel(x.Culture, x.Scope, x.Key, x.Value));
+            return Ok(models);
+        }
+
         //text/x-gettext-translation
     }
 }
