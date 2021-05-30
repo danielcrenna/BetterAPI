@@ -1,0 +1,50 @@
+﻿@page "/logs"
+@using BetterAPI.Logging
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@inject HttpClient Http
+
+<h1>Logs</h1>
+
+@if (_logs == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Event</th>
+            <th>Level</th>
+            <th>Message</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var entry in _logs)
+        {
+            <tr>
+                <td>@entry.Id</td>
+                <td>@entry.EventId</td>
+                <td>@entry.LogLevel</td>
+                <td>@entry.Message</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<LoggingEntryViewModel> _logs;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var json = await Http.GetStringAsync("api/logs");
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+        var model = JsonSerializer.Deserialize<List<LoggingEntryViewModel>>(json, options);
+        _logs = model;
+        Console.WriteLine(_logs?.Count + " logs loaded.");
+    }
+}

@@ -20,6 +20,7 @@ using BetterAPI.DataProtection;
 using BetterAPI.DeltaQueries;
 using BetterAPI.Enveloping;
 using BetterAPI.Filtering;
+using BetterAPI.HealthChecks;
 using BetterAPI.Metrics;
 using BetterAPI.Paging;
 using BetterAPI.Prefer;
@@ -68,6 +69,7 @@ namespace BetterAPI
             {
                 o.AddServerTiming();
             });
+            services.AddApiHealthChecks();
 
             // Background services:
             //

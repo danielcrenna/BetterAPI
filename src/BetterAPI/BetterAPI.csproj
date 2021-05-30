@@ -23,7 +23,6 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.1.3" />
     <PackageReference Include="Humanizer.Core" Version="2.8.26" />
     <PackageReference Include="LightningDB" Version="0.13.0" />
-    <PackageReference Include="WyHash" Version="1.0.4" />
   </ItemGroup>
 
   <ItemGroup>

@@ -32,12 +32,14 @@ namespace BetterAPI.Logging
                 {
                     if (@operator == FilterOperator.Equal)
                     {
-                        return Ok(_store.GetByData(name, value, cancellationToken));
+                        return Ok(_store.GetByKeyAndValue(name, value, cancellationToken));
                     }
                 }
             }
 
-            return Ok(_store.Get(cancellationToken));
+            var entries = _store.Get(cancellationToken);
+
+            return Ok(entries);
         }
     }
 }

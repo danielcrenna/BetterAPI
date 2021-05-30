@@ -1,0 +1,12 @@
+﻿@page "/config"
+@inject IConfiguration Configuration
+
+<h1>Server List</h1>
+<ul>
+    @foreach (var (key, value) in Configuration.GetSection("ServerList").AsEnumerable())
+    {
+        @if (string.IsNullOrWhiteSpace(value))
+            continue;
+        <li>@value</li>
+    }
+</ul>

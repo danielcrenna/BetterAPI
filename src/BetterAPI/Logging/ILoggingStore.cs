@@ -6,7 +6,7 @@ namespace BetterAPI.Logging
     public interface ILoggingStore
     {
         IEnumerable<LoggingEntry> Get(CancellationToken cancellationToken = default);
-        IEnumerable<LoggingEntry> GetByData(string key, CancellationToken cancellationToken = default);
-        IEnumerable<LoggingEntry> GetByData(string key, string? value, CancellationToken cancellationToken = default);
+        IEnumerable<LoggingEntry> GetByKey(string key, CancellationToken cancellationToken = default);
+        IEnumerable<LoggingEntry> GetByKeyAndValue(string key, string? value, CancellationToken cancellationToken = default);
     }
 }

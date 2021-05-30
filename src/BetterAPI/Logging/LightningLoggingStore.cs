@@ -107,12 +107,12 @@ namespace BetterAPI.Logging
             return GetByKey(KeyBuilder.GetAllLogEntriesKey(), cancellationToken);
         }
         
-        public IEnumerable<LoggingEntry> GetByData(string key, CancellationToken cancellationToken = default)
+        public IEnumerable<LoggingEntry> GetByKey(string key, CancellationToken cancellationToken = default)
         {
             return GetByKey(KeyBuilder.BuildLogByDataKey(key), cancellationToken);
         }
 
-        public IEnumerable<LoggingEntry> GetByData(string key, string? value, CancellationToken cancellationToken = default)
+        public IEnumerable<LoggingEntry> GetByKeyAndValue(string key, string? value, CancellationToken cancellationToken = default)
         {
             return GetByKey(KeyBuilder.BuildLogByDataKey(key, value), cancellationToken);
         }

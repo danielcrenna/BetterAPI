@@ -13,16 +13,17 @@ namespace BetterAPI
     public class Many<T> : IEnveloped, IEnumerable<T>
     {
         private static readonly IEnumerable<T> EmptyEnumerable = Enumerable.Empty<T>();
+        private static readonly List<T> EmptyList = EmptyEnumerable.ToList();
         private static readonly IEnumerator<T> EmptyEnumerator = EmptyEnumerable.GetEnumerator();
         
         public Many()
         {
-            Value = Enumerable.Empty<T>().ToList();
+            Value = EmptyList;
         }
 
-        public Many(IEnumerable<T> value)
+        public Many(IEnumerable<T>? value)
         {
-            Value = value?.ToList();
+            Value = value?.AsList();
         }
 
         public List<T>? Value { get; set; }

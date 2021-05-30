@@ -86,7 +86,7 @@ namespace BetterAPI.SourceGenerators
             bool capitalize = true; // capitalize first character
             foreach (var c in message)
             {
-                if (c == '"' || c == '\'' || c == '(' || c == ')' || c == '[' || c == ']' || c == ',' || c == '/' ||
+                if (c == '"' || c == '\'' || c == ':' || c == '(' || c == ')' || c == '[' || c == ']' || c == ',' || c == '/' ||
                     c == '\\' || c == '=')
                     continue; // ignore insignificant punctuation
 
