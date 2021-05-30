@@ -15,6 +15,7 @@ using Microsoft.Extensions.Options;
 
 namespace BetterAPI.Metrics
 {
+    [Route("api/metrics")]
     public class MetricsController : Controller
     {
         private readonly IOptionsSnapshot<MetricsOptions> _options;
@@ -26,7 +27,7 @@ namespace BetterAPI.Metrics
             _options = options;
         }
 
-        [HttpGet("api/metrics")]
+        [HttpGet]
         public async Task<IActionResult> GetAsync()
         {
             var timeout = TimeSpan.FromSeconds(_options.Value.SampleTimeoutSeconds);

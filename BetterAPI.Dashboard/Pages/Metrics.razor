@@ -1,0 +1,28 @@
+﻿@page "/metrics"
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@inject HttpClient Http
+@inject IConfiguration Configuration
+
+<h1>Metrics</h1>
+
+@if (_metrics == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    @_metrics
+}
+
+@code {
+    private string _metrics;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var json = await Http.GetStringAsync("api/metrics");
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+        _metrics = json;
+    }
+}
