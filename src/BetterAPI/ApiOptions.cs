@@ -6,9 +6,9 @@
 
 using System.ComponentModel.DataAnnotations;
 using BetterAPI.Caching;
-using BetterAPI.Cors;
 using BetterAPI.DeltaQueries;
 using BetterAPI.Filtering;
+using BetterAPI.Guidelines.Cors;
 using BetterAPI.Paging;
 using BetterAPI.Prefer;
 using BetterAPI.RateLimiting;

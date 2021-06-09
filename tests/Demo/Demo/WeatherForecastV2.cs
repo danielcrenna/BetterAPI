@@ -5,9 +5,11 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 using System.Collections.Generic;
+using BetterAPI;
 
 namespace Demo
 {
+    [ResourceName("WeatherForecast")]
     public class WeatherForecastV2 : WeatherForecastV1
     {
         public List<ReporterV1> Reporters { get; set; }

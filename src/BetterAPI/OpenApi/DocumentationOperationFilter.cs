@@ -26,7 +26,7 @@ using Microsoft.OpenApi.Expressions;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
-namespace BetterAPI
+namespace BetterAPI.OpenApi
 {
     /// <summary>
     ///     Provides extended OpenAPI documentation and annotations for middleware-provided features.
@@ -64,10 +64,10 @@ namespace BetterAPI
             DocumentSchemas(context);
         }
         
-        private static void DocumentAuthentication(OpenApiOperation operation)
+        private void DocumentAuthentication(OpenApiOperation operation)
         {
-            operation.Responses.Add(Constants.Status401UnauthorizedString, new OpenApiResponse { Description = "Unauthorized" });
-            operation.Responses.Add(Constants.Status403ForbiddenString, new OpenApiResponse { Description = "Forbidden" });
+            operation.Responses.Add(Constants.Status401UnauthorizedString, new OpenApiResponse { Description = _localizer.GetString("Unauthorized") });
+            operation.Responses.Add(Constants.Status403ForbiddenString, new OpenApiResponse { Description = _localizer.GetString("Forbidden") });
             var scheme = new OpenApiSecurityScheme
             {
                 Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = JwtBearerDefaults.AuthenticationScheme }
@@ -225,11 +225,10 @@ namespace BetterAPI
                 {
                     if (response.Description == null || response.Description == _localizer.GetString("Success"))
                     {
-                        if(operation.OperationId.StartsWith(Constants.Create))
-                            // This is to disambiguate when a client (i.e. SwaggerUI) follows a redirect and would receive a misleading documented action as a result.
-                            response.Description = _localizer.GetString("The client followed a redirect via 303 See Other, and retrieved the equivalent, cacheable resource.");
-                        else
-                            response.Description = _localizer.GetString("The operation succeeded, and there is additional content returned in the response.");
+                        // This is to disambiguate when a client (i.e. SwaggerUI) follows a redirect and would receive a misleading documented action as a result.
+                        response.Description = _localizer.GetString(operation.OperationId.StartsWith(Constants.Create)
+                            ? "The client followed a redirect via 303 See Other, and retrieved the equivalent, cacheable resource."
+                            : "The operation succeeded, and there is additional content returned in the response.");
                     }
                 }
 

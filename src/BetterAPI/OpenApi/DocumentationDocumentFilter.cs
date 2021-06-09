@@ -8,6 +8,8 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Reflection;
+using BetterAPI.Http;
 using BetterAPI.Reflection;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.Extensions.Localization;
@@ -16,7 +18,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
-namespace BetterAPI
+namespace BetterAPI.OpenApi
 {
     /// <summary>
     /// Provides group-level (i.e. controller-level by default) documentation based on DisplayAttribute.
@@ -72,23 +74,43 @@ namespace BetterAPI
 
                 var controllerType = descriptor.ControllerTypeInfo;
                 if (!controllerType.TryGetAttribute<DisplayAttribute>(true, out var display))
-                    continue;
-
+                {
+                    if (controllerType.ImplementsGeneric(typeof(ResourceController<>)))
+                    {
+                        // look for a DisplayAttribute on the underlying resource type
+                        controllerType = controllerType.AsType().GetGenericArguments()[0].GetTypeInfo();
+                        if (!controllerType.TryGetAttribute(true, out display) || display == null)
+                            continue;
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException(
+                            _localizer.GetString("All surfaced controllers must provide a DisplayAttribute, but '{ControllerType}' does not.", controllerType.Name));
+                    }
+                }
+                
                 var tag = new OpenApiTag();
 
-                var name = display.GetGroupName() ?? descriptor.ControllerName;
+                var name = display.GetGroupName() ?? GetSubstituteGroupName(descriptor);
                 if (!string.IsNullOrWhiteSpace(name))
                     tag.Name = _localizer.GetString(name);
 
                 var summary = display.GetDescription();
                 if (!string.IsNullOrWhiteSpace(summary))
-                {
                     tag.Description = _localizer.GetString(summary);
-                }
 
                 if (!swaggerDoc.Tags.Any(x => x.Name.Equals(tag.Name, StringComparison.OrdinalIgnoreCase)))
                     swaggerDoc.Tags.Add(tag);
             }
+        }
+
+        private static string GetSubstituteGroupName(ControllerActionDescriptor descriptor)
+        {
+            var controllerType = descriptor.ControllerTypeInfo;
+            if (controllerType.TryGetAttribute<InternalControllerAttribute>(true, out var @internal))
+                return string.IsNullOrWhiteSpace(@internal.GroupName) ? @internal.GroupName : descriptor.ControllerName;
+
+            return descriptor.ControllerName;
         }
     }
 }

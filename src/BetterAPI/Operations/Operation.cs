@@ -10,6 +10,7 @@ using BetterAPI.Caching;
 
 namespace BetterAPI.Operations
 {
+    [InternalResource]
     public sealed class Operation : IResource
     {
         [Required]

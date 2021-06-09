@@ -10,9 +10,11 @@ using System.Data;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using BetterAPI.Caching;
+using BetterAPI.ChangeLog;
 using BetterAPI.Reflection;
 using Dapper;
 using Microsoft.Data.Sqlite;
@@ -25,7 +27,7 @@ namespace BetterAPI.Data.Sqlite
         where T : class, IResource
     {
         private readonly int _revision;
-        private readonly ChangeLogBuilder _builder;
+        private readonly ChangeLogBuilder _changeLog;
         private readonly IStringLocalizer<SqliteResourceDataService<T>> _localizer;
         private readonly ILogger<SqliteResourceDataService<T>> _logger;
         private readonly AccessorMembers _members;
@@ -39,10 +41,10 @@ namespace BetterAPI.Data.Sqlite
         public bool SupportsShaping => true;
         public bool SupportsSearch => true;
 
-        public SqliteResourceDataService(string filePath, int revision, ChangeLogBuilder builder, IStringLocalizer<SqliteResourceDataService<T>> localizer, ILogger<SqliteResourceDataService<T>> logger)
+        public SqliteResourceDataService(string filePath, int revision, ChangeLogBuilder changeLog, IStringLocalizer<SqliteResourceDataService<T>> localizer, ILogger<SqliteResourceDataService<T>> logger)
         {
             _revision = revision;
-            _builder = builder;
+            _changeLog = changeLog;
             _localizer = localizer;
             _logger = logger;
             _reads = ReadAccessor.Create(typeof(T), AccessorMemberTypes.Properties, AccessorMemberScope.Public, out _members);
@@ -142,14 +144,13 @@ namespace BetterAPI.Data.Sqlite
 
             var tableInfoList = db.Query<SqliteTableInfo>(SqliteBuilder.GetTableInfo(), new {name = $"{viewName}%"}, t)
                 .Where(x => !x.name.Contains("_Search"))
-                .AsList();
+                .AsList() ?? throw new NullReferenceException();
 
             int revision;
             if (tableInfoList.Count == 0)
             {
                 revision = 1;
-                CreateTableRevision(db, t, revision);
-                RebuildView(db, t, tableInfoList, revision);
+                Visit(db, t, revision, tableInfoList);
             }
             else
             {
@@ -165,22 +166,34 @@ namespace BetterAPI.Data.Sqlite
                     return;
 
                 CreateTableRevision(db, t, _revision);
+                CreateThroughTableRevisions(db, t, _revision);
                 RebuildView(db, t, tableInfoList, _revision);
             }
+        }
+
+        private void Visit(IDbConnection db, IDbTransaction t, int revision, IEnumerable<SqliteTableInfo> tableInfoList)
+        {
+            CreateTableRevision(db, t, revision);
+            CreateThroughTableRevisions(db, t, revision);
+            RebuildView(db, t, tableInfoList, revision);
         }
 
         private void CreateTableRevision(IDbConnection db, IDbTransaction t, int revision)
         {
             var viewName = GetResourceName();
 
-            db.Execute(SqliteBuilder.CreateTableSql(viewName, _members, revision, false), transaction: t);
+            {
+                var sql = SqliteBuilder.CreateTableSql(viewName, _members, revision, false);
+                db.Execute(sql, transaction: t);
+            }
 
             if (SupportsSearch)
             {
-                db.Execute(SqliteBuilder.AfterInsertTriggerSql(viewName, _members, revision), transaction: t);
+                var sql = SqliteBuilder.AfterInsertTriggerSql(viewName, _members, revision);
+                db.Execute(sql, transaction: t);
             }
             
-            foreach (var member in _members.GetDiscreteFields())
+            foreach (var member in _members.GetValueTypeFields())
             {
                 if (member.Name.Equals(nameof(IResource.Id)))
                 {
@@ -195,13 +208,46 @@ namespace BetterAPI.Data.Sqlite
 
             if (SupportsSearch)
             {
-                db.Execute(SqliteBuilder.CreateTableSql(viewName, _members, revision, true), transaction: t);
+                var sql = SqliteBuilder.CreateTableSql(viewName, _members, revision, true);
+                db.Execute(sql, transaction: t);
+            }
+        }
+
+        private void CreateThroughTableRevisions(IDbConnection db, IDbTransaction t, int revision)
+        {
+            var viewName = GetResourceName();
+            
+            // Versioning:
+            //
+            // - Find the API version for the current resource revision
+            // - For any embedded resource collections, find the revision for this API version
+
+            var version = _changeLog.GetApiVersionForResourceAndRevision(viewName, revision);
+            
+            foreach (var member in _members)
+            {
+                if (!member.Type.ImplementsGeneric(typeof(IEnumerable<>)) || !member.Type.IsGenericType)
+                    continue; // not a collection
+
+                var arguments = member.Type.GetGenericArguments();
+                var embeddedCollectionType = arguments[0];
+
+                if (!typeof(IResource).IsAssignableFrom(embeddedCollectionType))
+                    continue; // not a resource collection
+
+                if (!_changeLog.TryGetResourceNameForType(embeddedCollectionType, out var embeddedViewName) || embeddedViewName == default)
+                    embeddedViewName = embeddedCollectionType.Name;
+
+                var embeddedViewRevision = _changeLog.GetRevisionForResourceAndVersion(embeddedViewName, version);
+                var sql = SqliteBuilder.CreateThroughTableSql(viewName, revision, embeddedViewName, embeddedViewRevision);
+                db.Execute(sql, transaction: t);
             }
         }
 
         private void IndexMember(IDbConnection db, IDbTransaction t, int revision, AccessorMember member, bool unique)
         {
-            db.Execute(SqliteBuilder.CreateIndexSql(GetResourceName(), member, revision, unique), transaction: t);
+            var sql = SqliteBuilder.CreateIndexSql(GetResourceName(), member, revision, unique);
+            db.Execute(sql, transaction: t);
         }
         
         private void InsertRecord(T resource, int revision, IDbConnection db, IDbTransaction t)
@@ -252,7 +298,7 @@ namespace BetterAPI.Data.Sqlite
         
         private string GetResourceName()
         {
-            if(_builder.TryGetResourceName(_reads.Type, out var resourceName) && resourceName != default)
+            if(_changeLog.TryGetResourceNameForType(_reads.Type, out var resourceName) && resourceName != default)
                 return resourceName;
 
             return _reads.Type.Name;

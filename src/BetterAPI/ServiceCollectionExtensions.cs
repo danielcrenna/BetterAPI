@@ -4,8 +4,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
-using System;
-using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.Json;
@@ -15,16 +13,19 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using BetterAPI.Caching;
-using BetterAPI.Cors;
+using BetterAPI.ChangeLog;
 using BetterAPI.DataProtection;
 using BetterAPI.DeltaQueries;
 using BetterAPI.Enveloping;
 using BetterAPI.Filtering;
+using BetterAPI.Guidelines.Cors;
 using BetterAPI.HealthChecks;
+using BetterAPI.Identity;
 using BetterAPI.Metrics;
 using BetterAPI.Paging;
 using BetterAPI.Prefer;
 using BetterAPI.Localization;
+using BetterAPI.OpenApi;
 using BetterAPI.Operations;
 using BetterAPI.Patch;
 using BetterAPI.RateLimiting;
@@ -33,13 +34,10 @@ using BetterAPI.Shaping;
 using BetterAPI.Sorting;
 using BetterAPI.Tokens;
 using BetterAPI.Versioning;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.Extensions.Options;
-using Microsoft.OpenApi.Models;
-using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace BetterAPI
 {
@@ -76,10 +74,11 @@ namespace BetterAPI
             services.AddApiLocalization();
             services.AddLongRunningOperations();
             services.AddEventServices();
+            services.AddApiIdentity();
 
             // Each feature is available bespoke or bundled here by convention, and order matters:
             //
-            services.AddCors(configuration.GetSection(nameof(ApiOptions.Cors)));
+            services.AddGuidelinesCors(configuration.GetSection(nameof(ApiOptions.Cors)));
             services.AddRateLimiting(configuration.GetSection(nameof(ApiOptions.RateLimiting)));
             services.AddTokens(configuration.GetSection(nameof(ApiOptions.Tokens)));
             services.AddDeltaQueries(configuration.GetSection(nameof(ApiOptions.DeltaQueries)));
@@ -116,6 +115,7 @@ namespace BetterAPI
                 var outputFormatter = o.OutputFormatters.OfType<SystemTextJsonOutputFormatter>().First();
                 outputFormatter.SupportedMediaTypes.Add(ApiMediaTypeNames.Application.JsonMergePatch);
             })
+            .AddControllersAsServices() // necessary to enable embedded collection aliased method
             .AddApplicationPart(typeof(CacheController).Assembly)
             .AddXmlSupport();
 
@@ -130,34 +130,10 @@ namespace BetterAPI
 
             mvc.ConfigureApplicationPartManager(x =>
             {
-                x.FeatureProviders.Add(new ApiGuidelinesControllerFeatureProvider(GetChangeLog(services)));
+                x.FeatureProviders.Add(new ApiGuidelinesControllerFeatureProvider(services.GetChangeLog()));
             });
 
-            services.AddSingleton<IConfigureOptions<SwaggerGenOptions>, ConfigureSwaggerGenOptions>();
-            services.AddSwaggerGen(o =>
-            {
-                o.OperationFilter<VersioningOperationFilter>();
-                o.DocumentFilter<DocumentationDocumentFilter>();
-                o.OperationFilter<DocumentationOperationFilter>();
-                o.SchemaFilter<DocumentationSchemaFilter>();
-
-                // Set the comments path for the Swagger JSON and UI.
-                // See: https://docs.microsoft.com/en-us/aspnet/core/tutorials/getting-started-with-swashbuckle?view=aspnetcore-5.0&tabs=visual-studio#xml-comments
-                //
-                var assemblyName = assembly?.GetName().Name;
-                var xmlFile = $"{assemblyName}.xml";
-                var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-                if(File.Exists(xmlPath))
-                    o.IncludeXmlComments(xmlPath, true);
-
-                o.AddSecurityDefinition(JwtBearerDefaults.AuthenticationScheme, new OpenApiSecurityScheme
-                {
-                    Description = JwtBearerDefaults.AuthenticationScheme,
-                    In  = ParameterLocation.Header,
-                    Name = "Authorization",
-                    Type = SecuritySchemeType.ApiKey
-                });
-            });
+            services.AddOpenApi(assembly);
 
             return services;
         }
@@ -173,17 +149,6 @@ namespace BetterAPI
                 outputFormatter.WriterSettings.NamespaceHandling = NamespaceHandling.OmitDuplicates;
             });
             return builder;
-        }
-
-        /// <summary>
-        ///     Adds timestamp generation for services that require them. The default implementation is the local server's wall time.
-        /// </summary>
-        /// <param name="services"></param>
-        /// <returns></returns>
-        public static IServiceCollection AddTimestamps(this IServiceCollection services)
-        {
-            services.TryAdd(ServiceDescriptor.Singleton<Func<DateTimeOffset>>(r => () => DateTimeOffset.Now));
-            return services;
         }
 
         public static IServiceCollection AddSerializerOptions(this IServiceCollection services)
@@ -209,23 +174,6 @@ namespace BetterAPI
         {
             services.TryAddSingleton<IEventBroadcaster, DefaultEventBroadcaster>();
             return services;
-        }
-
-        private static ChangeLogBuilder? _changeLogBuilder;
-
-        public static ChangeLogBuilder GetChangeLog(IServiceCollection services)
-        {
-            _changeLogBuilder ??= new ChangeLogBuilder(services);
-            return _changeLogBuilder;
-        }
-
-        public static ChangeLogBuilder AddChangeLog(this IServiceCollection services, Action<ChangeLogBuilder>? builderAction = default)
-        {
-            var builder = GetChangeLog(services);
-            services.TryAddSingleton(builder);
-            builderAction?.Invoke(builder);
-            builder.Build();
-            return builder;
         }
     }
 }

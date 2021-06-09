@@ -12,13 +12,13 @@ using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
-namespace BetterAPI
+namespace BetterAPI.OpenApi
 {
     public class ConfigureSwaggerGenOptions : IConfigureOptions<SwaggerGenOptions>
     {
         private readonly IStringLocalizer<ConfigureSwaggerGenOptions> _localizer;
         private readonly IOptionsMonitor<ApiOptions> _options;
-        readonly IApiVersionDescriptionProvider _provider;
+        private readonly IApiVersionDescriptionProvider _provider;
 
         public ConfigureSwaggerGenOptions(IStringLocalizer<ConfigureSwaggerGenOptions> localizer, IOptionsMonitor<ApiOptions> options, IApiVersionDescriptionProvider provider)
         {

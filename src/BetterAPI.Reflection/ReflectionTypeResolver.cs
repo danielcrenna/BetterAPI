@@ -35,9 +35,7 @@ namespace BetterAPI.Reflection
                 _skipRuntimeAssemblies = _skipRuntimeAssemblies.Concat(skipRuntimeAssemblies).ToArray();
         }
 
-        public ReflectionTypeResolver() : this(AppDomain.CurrentDomain.GetAssemblies(), null)
-        {
-        }
+        public ReflectionTypeResolver() : this(AppDomain.CurrentDomain.GetAssemblies(), null) { }
 
         public Type FindByFullName(string typeName)
         {
@@ -46,59 +44,6 @@ namespace BetterAPI.Reflection
                     return type;
 
             return null;
-        }
-
-        public Type FindFirstByName(string name)
-        {
-            foreach (var type in _loadedTypes.Value)
-                if (type.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
-                    return type;
-            return null;
-        }
-
-        public Type FindFirstByMethodName(string methodName)
-        {
-            foreach (var method in _loadedMethods.Value)
-                if (method.Name.Equals(methodName, StringComparison.OrdinalIgnoreCase))
-                    return method.DeclaringType;
-            return null;
-        }
-
-        public IEnumerable<Type> FindByMethodName(string methodName)
-        {
-            var methods = _loadedMethods.Value;
-
-            foreach (var m in methods)
-                if (m.Name.Equals(methodName, StringComparison.OrdinalIgnoreCase))
-                    yield return m.DeclaringType;
-        }
-
-        public IEnumerable<Type> FindByInterface<TInterface>()
-        {
-            return FindByInterface(typeof(TInterface));
-        }
-
-        public IEnumerable<Type> FindByInterface(Type interfaceType)
-        {
-            foreach (var type in _loadedTypes.Value)
-            {
-                var info = type.GetTypeInfo();
-                foreach (var @interface in info.ImplementedInterfaces)
-                    if (interfaceType == @interface)
-                        yield return type;
-            }
-        }
-
-        public IEnumerable<Type> FindByParent<T>()
-        {
-            return FindByParent(typeof(T));
-        }
-
-        public IEnumerable<Type> FindByParent(Type parentType)
-        {
-            foreach (var type in _loadedTypes.Value)
-                if (type.IsSubclassOf(parentType))
-                    yield return type;
         }
 
         private IEnumerable<MethodInfo> LoadMethods()

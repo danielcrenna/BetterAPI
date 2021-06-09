@@ -10,7 +10,7 @@ namespace BetterAPI.Versioning
 {
     public sealed class VersioningOptions
     {
-        public bool AllowUnspecifiedVersions { get; set; } = true;
+        public bool AssumeDefaultVersionWhenUnspecified { get; set; } = true;
         public bool UseUrl { get; set; } = true;
         public bool UseQueryString { get; set; } = true;
         public bool UseHeader { get; set; } = true;

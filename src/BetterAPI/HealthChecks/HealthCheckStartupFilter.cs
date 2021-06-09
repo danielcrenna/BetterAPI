@@ -22,8 +22,16 @@ namespace BetterAPI.HealthChecks
             var report = _service.CheckHealthAsync(r => r.Tags.Contains("startup")).GetAwaiter().GetResult();
 
             return report.Status == HealthStatus.Unhealthy
-                ? throw new ApplicationException(_localizer.GetString("Application failed to start due to failing startup health checks."))
+                ? ThrowOnUnhealthyCheck(report)
                 : next;
+        }
+
+        private Action<IApplicationBuilder> ThrowOnUnhealthyCheck(HealthReport report)
+        {
+            var exception = new ApplicationException(_localizer.GetString("Application failed to start due to failing startup health checks."));
+            foreach(var (key, value) in report.Entries)
+                exception.Data?.Add(key, value.Description);
+            throw exception;
         }
     }
 }

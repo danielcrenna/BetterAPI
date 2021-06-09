@@ -1,11 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
 using System.Net.Mime;
 using System.Security.Claims;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using BetterAPI.Caching;
+using BetterAPI.Data;
+using BetterAPI.Http;
+using BetterAPI.Http.Throttling;
+using BetterAPI.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -15,35 +22,48 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace BetterAPI.Tokens
 {
-    [ApiController]
+    [InternalController]
+    [Display(Name = "Tokens", Description = "Provides API tokens for protected operations.")]
     [DoNotHttpCache]
     public class TokenController : Controller
     {
         private readonly JwtSecurityTokenHandler _handler;
         private readonly IStringLocalizer<TokenController> _localizer;
         private readonly Func<DateTimeOffset> _timestamps;
+        private readonly IResourceDataService<User> _users;
         private readonly IOptionsSnapshot<TokenOptions> _options;
         private readonly IEncryptionKeyStore _encryptionKeyStore;
 
-        public TokenController(IStringLocalizer<TokenController> localizer, Func<DateTimeOffset> timestamps, IEncryptionKeyStore encryptionKeyStore, IOptionsSnapshot<TokenOptions> options)
+        public TokenController(IStringLocalizer<TokenController> localizer, 
+            Func<DateTimeOffset> timestamps, 
+            IResourceDataService<User> users,
+            IEncryptionKeyStore encryptionKeyStore, 
+            IOptionsSnapshot<TokenOptions> options)
         {
             _localizer = localizer;
             _timestamps = timestamps;
+            _users = users;
             _options = options;
             _encryptionKeyStore = encryptionKeyStore;
             _handler = new JwtSecurityTokenHandler();
         }
 
         [AllowAnonymous, HttpPost("tokens")]
+        [AllowAnonymousThrottle]
         [Produces(MediaTypeNames.Application.Json)]
         [Consumes(MediaTypeNames.Application.Json)]
         [ProducesResponseType(typeof(TokenResponseModel), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> GenerateToken([FromBody] TokenRequestModel model)
+        public async Task<IActionResult> GenerateToken([FromBody] TokenRequestModel model, CancellationToken cancellationToken)
         {
             if (!TryValidateModel(model))
                 return BadRequest(ModelState);
-
+            
+            var query = new ResourceQuery();
+            var user = _users.Get(query, cancellationToken).SingleOrDefault();
+            if (user == default)
+                return Unauthorized();
+            
             var issuedAt = _timestamps();
             var expiresAt = issuedAt + _options.Value.Lifetime;
 

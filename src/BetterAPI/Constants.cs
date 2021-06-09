@@ -51,13 +51,15 @@ namespace BetterAPI
         internal static readonly string Status413PayloadTooLargeString = StatusCodes.Status413PayloadTooLarge.ToString();
         internal static readonly string Status500InternalServerErrorString = StatusCodes.Status500InternalServerError.ToString();
 
-        internal static readonly string Get = nameof(Get);
-        internal static readonly string GetById = nameof(GetById);
-        internal static readonly string GetNextPage = nameof(GetNextPage);
-        internal static readonly string Create = nameof(Create);
-        internal static readonly string Update = nameof(Update);
-        internal static readonly string Patch = nameof(Patch);
-        internal static readonly string Delete = nameof(Delete);
-        internal static readonly string DeleteById = nameof(DeleteById);
+        internal static readonly string Get = nameof(ResourceController<IResource>.Get);
+        internal static readonly string GetById = nameof(ResourceController<IResource>.GetById);
+        internal static readonly string GetEmbedded = nameof(ResourceController<IResource>.GetEmbedded);
+        internal static readonly string GetNextPage =  nameof(ResourceController<IResource>.GetNextPage);
+        internal static readonly string Create = nameof(ResourceController<IResource>.Create);
+        internal static readonly string Update = nameof(ResourceController<IResource>.Update);
+        internal static readonly string Patch = nameof(ResourceController<IResource>.Patch);
+
+        internal static readonly string Delete = nameof(Delete); // FIXME: there is no "DeleteWhere"
+        internal static readonly string DeleteById = nameof(ResourceController<IResource>.DeleteById);
     }
 }

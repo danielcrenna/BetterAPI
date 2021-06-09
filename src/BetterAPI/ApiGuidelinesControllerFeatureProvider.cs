@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using BetterAPI.ChangeLog;
 using BetterAPI.Reflection;
 using Microsoft.AspNetCore.Mvc.ApplicationParts;
 using Microsoft.AspNetCore.Mvc.Controllers;
@@ -37,33 +38,44 @@ namespace BetterAPI
                 if (part.Assembly == typeof(ApiGuidelinesControllerFeatureProvider).Assembly)
                     continue;
 
-                foreach (var type in part.Assembly.GetTypes())
+                AddUserDefinedResourceController(feature, part, resourceTypes);
+            }
+        }
+
+        private static void AddUserDefinedResourceController(ControllerFeature feature, AssemblyPart part, ISet<Type> resourceTypes)
+        {
+            foreach (var type in part.Assembly.GetTypes())
+            {
+                if (type.HasAttribute<InternalResourceAttribute>())
+                    continue; // prevent user accidentally surfacing internal resources in their changelog (minor potential exploit)
+
+                if (!typeof(IResource).IsAssignableFrom(type))
+                    continue; // not a resource
+
+                if (!resourceTypes.Contains(type))
+                    continue; // not in the change log
+
+                var hasController = false;
+
+                foreach (var controller in feature.Controllers)
                 {
-                    if (!typeof(IResource).IsAssignableFrom(type))
-                        continue; // not a resource
+                    var controllerType = controller.AsType();
+                    if (!controllerType.ImplementsGeneric(typeof(ResourceController<>)))
+                        continue; // not a resource controller
 
-                    if (!resourceTypes.Contains(type))
-                        continue; // not in the change log
+                    if (!controllerType.IsGenericType)
+                        continue; // an internal resource controller with a closed type
 
-                    var hasController = false;
+                    var resourceType = controllerType.GetGenericArguments()[0];
+                    if (resourceType != type)
+                        continue;
+                    hasController = true;
+                    break;
+                }
 
-                    foreach (var controller in feature.Controllers)
-                    {
-                        var controllerType = controller.AsType();
-                        if (!controllerType.ImplementsGeneric(typeof(ResourceController<>)))
-                            continue;
-
-                        var resourceType = controllerType.GetGenericArguments()[0];
-                        if (resourceType != type)
-                            continue;
-                        hasController = true;
-                        break;
-                    }
-
-                    if (!hasController)
-                    {
-                        feature.Controllers.Add(typeof(ResourceController<>).MakeGenericType(type).GetTypeInfo());
-                    }
+                if (!hasController)
+                {
+                    feature.Controllers.Add(typeof(ResourceController<>).MakeGenericType(type).GetTypeInfo());
                 }
             }
         }

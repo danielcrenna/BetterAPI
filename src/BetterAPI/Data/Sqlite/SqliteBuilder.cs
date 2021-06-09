@@ -27,7 +27,7 @@ namespace BetterAPI.Data.Sqlite
 
             sql = Pooling.StringBuilderPool.Scoped(sb =>
             {
-                var fields = members.GetDiscreteFields();
+                var fields = members.GetValueTypeFields();
 
                 sb.Append("INSERT INTO '");
                 sb.Append(resourceName);
@@ -119,7 +119,7 @@ namespace BetterAPI.Data.Sqlite
 
             return Pooling.StringBuilderPool.Scoped(sb =>
             {
-                var fields = members.GetDiscreteFields();
+                var fields = members.GetValueTypeFields();
 
                 sb.Append("CREATE");
                 if (fts)
@@ -229,11 +229,81 @@ namespace BetterAPI.Data.Sqlite
             });
         }
 
+        public static string CreateThroughTableSql(string parent, int parentRevision, string child, int childRevision)
+        {
+            // See: https://sqlite.org/fts5.html
+
+            return Pooling.StringBuilderPool.Scoped(sb =>
+            {
+                sb.Append("CREATE");
+                sb.Append(' ');
+                sb.Append("TABLE");
+                sb.Append(' ');
+                sb.Append("IF NOT EXISTS");
+                sb.Append(' ');
+                sb.Append('"');
+                sb.Append("Through");
+                sb.Append('_');
+                sb.Append(parent);
+                sb.Append("_V");
+                sb.Append(parentRevision);
+                sb.Append('_');
+                sb.Append(child);
+                sb.Append("_V");
+                sb.Append(childRevision);
+                sb.Append('"');
+                sb.Append(' ');
+                sb.Append('(');
+
+                sb.Append('"');
+                sb.Append(parent);
+                sb.Append("Id");
+                sb.Append('"');
+                sb.Append(' ');
+                sb.Append("BLOB");
+                sb.Append(' ');
+                sb.Append("DEFAULT");
+                sb.Append(' ');
+                sb.Append("NULL");
+                
+                sb.Append(',');
+                sb.Append(' ');
+
+                sb.Append('"');
+                sb.Append(child);
+                sb.Append("Id");
+                sb.Append('"');
+                sb.Append(' ');
+                sb.Append("BLOB");
+                sb.Append(' ');
+                sb.Append("DEFAULT");
+                sb.Append(' ');
+                sb.Append("NULL");
+
+                // See: https://www.sqlite.org/lang_createtable.html#rowid
+                // - "INTEGER PRIMARY KEY" is faster when explicit
+                // - don't use ROWID, as our sequence spans multiple tables, and ROWID uses AUTO INCREMENT
+                sb.Append(',');
+                sb.Append(' ');
+                sb.Append('"');
+                sb.Append("Sequence");
+                sb.Append('"');
+                sb.Append(' ');
+                sb.Append("INTEGER PRIMARY KEY");
+                sb.Append(')');
+
+                // https://www.sqlite.org/vtab.html
+                // SEE: "2.1.3. WITHOUT ROWID Virtual Tables"
+                // This should be possible since we have a single PK, but it crashes
+                sb.Append(" WITHOUT ROWID");
+            });
+        }
+
         public static string AfterInsertTriggerSql(string resource, AccessorMembers members, int revision)
         {
             return Pooling.StringBuilderPool.Scoped(sb =>
             {
-                var fields = members.GetDiscreteFields();
+                var fields = members.GetValueTypeFields();
 
                 sb.Append("CREATE TRIGGER IF NOT EXISTS ");
                 sb.Append('"');
@@ -313,7 +383,7 @@ namespace BetterAPI.Data.Sqlite
         {
             return Pooling.StringBuilderPool.Scoped(sb =>
             {
-                var fields = members.GetDiscreteFields();
+                var fields = members.GetValueTypeFields();
 
                 sb.Append("CREATE VIEW \"");
                 sb.Append(resource);

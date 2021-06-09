@@ -13,6 +13,8 @@ using BetterAPI.Validation;
 
 namespace Demo
 {
+    [ResourceName("WeatherForecast")]
+    [Display(Description = "A weather forecast.")]
     public class WeatherForecastV1 : IResource
     {
         [Required]

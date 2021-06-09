@@ -5,6 +5,7 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 using System.Linq;
+using BetterAPI.ChangeLog;
 using BetterAPI.DataProtection;
 using BetterAPI.Reflection;
 using Microsoft.AspNetCore.Authorization;
@@ -12,7 +13,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
-namespace BetterAPI
+namespace BetterAPI.OpenApi
 {
     internal sealed class DocumentationSchemaFilter : ISchemaFilter
     {
@@ -48,7 +49,7 @@ namespace BetterAPI
                 }
             }
 
-            if (_builder.TryGetResourceName(context.Type, out var name))
+            if (_builder.TryGetResourceNameForType(context.Type, out var name))
             {
                 schema.Title = name;
             }

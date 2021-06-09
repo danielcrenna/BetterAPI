@@ -8,6 +8,6 @@ namespace BetterAPI.Tokens
 {
     public class TokenResponseModel
     {
-        public string Token { get; set; }
+        public string? Token { get; set; }
     }
 }

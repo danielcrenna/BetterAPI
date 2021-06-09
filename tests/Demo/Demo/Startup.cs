@@ -5,10 +5,9 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 using System.Security.Claims;
-using BetterAPI;
+using BetterAPI.ChangeLog;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -20,13 +19,15 @@ namespace Demo
         {
             services.AddChangeLog(builder =>
             {
-                builder.AddResource<WeatherForecastV1>("WeatherForecast");
-                builder.ShipVersion(ApiVersion.Default);
+                // allows omitting child resources from the version graph
+                builder.AddMissingResources(); 
 
-                // FIXME: auto-add or throw if we don't add the dependent Reporter resource
-                builder.AddResource<WeatherForecastV2>("WeatherForecast");
-                builder.AddResource<ReporterV1>("Reporter"); 
-                builder.ShipVersion(new ApiVersion(1, 1));
+                builder.AddResource<WeatherForecastV1>();
+                builder.ShipVersionOne();
+                
+                // has child resource ReporterV1
+                builder.AddResource<WeatherForecastV2>(); 
+                builder.ShipNextMinorVersion();
             });
 
             services.AddAuthorization(o =>

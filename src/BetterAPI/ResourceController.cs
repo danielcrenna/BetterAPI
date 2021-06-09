@@ -4,6 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
+using System.Threading;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Localization;
@@ -13,7 +14,7 @@ using Microsoft.Extensions.Options;
 namespace BetterAPI
 {
     [ApiController]
-    public abstract class ResourceController : ControllerBase
+    public abstract class ResourceController : Controller
     {
         private readonly IStringLocalizer<ResourceController> _localizer;
 

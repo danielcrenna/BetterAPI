@@ -6,7 +6,7 @@
 
 using System;
 using BetterAPI.Caching;
-using BetterAPI.Enveloping;
+using BetterAPI.ChangeLog;
 using BetterAPI.Extensions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -49,7 +49,7 @@ namespace BetterAPI
 
                 if (controller.ControllerType.IsGenericType)
                 {
-                    if (_builder.TryGetResourceName(controller.ControllerType.GetGenericArguments()[0],
+                    if (_builder.TryGetResourceNameForType(controller.ControllerType.GetGenericArguments()[0],
                         out var resourceName))
                     {
                         controller.ControllerName = resourceName;
@@ -89,7 +89,7 @@ namespace BetterAPI
                     }
                 }
 
-                if (action.ActionName.Equals(Constants.Get, StringComparison.OrdinalIgnoreCase))
+                if (action.ActionName.Equals(Constants.Get, StringComparison.OrdinalIgnoreCase) || action.ActionName.Equals(Constants.GetEmbedded, StringComparison.OrdinalIgnoreCase))
                 {
                     if (_registry.TryGetValue(action.Controller.ControllerName, out var controllerType) && controllerType != default)
                     {

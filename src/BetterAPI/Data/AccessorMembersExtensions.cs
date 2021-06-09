@@ -12,13 +12,33 @@ namespace BetterAPI.Data
 {
     internal static class AccessorMembersExtensions
     {
-        public static AccessorMember[] GetDiscreteFields(this AccessorMembers members)
+        /// <summary>
+        /// Returns only fields fit to store along with the resource (value types, and not resources or non-value collections).
+        /// </summary>
+        /// <param name="members"></param>
+        /// <returns></returns>
+        public static AccessorMember[] GetValueTypeFields(this AccessorMembers members)
         {
-            // remove resource members, as these have their own tables
-            return members.Where(x => 
-                    !typeof(IResource).IsAssignableFrom(x.Type) && // other resources
-                    (x.Type == typeof(string) || !x.Type.ImplementsGeneric(typeof(IEnumerable<>))) // collections
-            ).ToArray();
+            return members.Where(x => !IsChildResource(x) && IsValueType(x)).ToArray();
+        }
+
+        private static bool IsValueType(AccessorMember x)
+        {
+            if (IsValueCollection(x))
+                return true; // value collection
+
+            return !x.Type.ImplementsGeneric(typeof(IEnumerable<>));
+        }
+
+        private static bool IsValueCollection(AccessorMember x)
+        {
+            return x.Type == typeof(byte[]) || x.Type == typeof(string);
+        }
+        
+        private static bool IsChildResource(AccessorMember x)
+        {
+            // other resources
+            return typeof(IResource).IsAssignableFrom(x.Type);
         }
     }
 }

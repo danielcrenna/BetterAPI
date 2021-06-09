@@ -10,6 +10,7 @@ using BetterAPI;
 
 namespace Demo
 {
+    [ResourceName("Reporter")]
     public class ReporterV1 : IResource
     {
         public Guid Id { get; set; }

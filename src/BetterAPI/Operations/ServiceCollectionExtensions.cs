@@ -1,6 +1,5 @@
 ﻿using System;
 using BetterAPI.Data;
-using BetterAPI.Data.Sqlite;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -25,12 +24,9 @@ namespace BetterAPI.Operations
                 services.Configure(configureAction);
             }
             services.TryAddSingleton<OperationsHost>();
-            services.TryAddEnumerable(ServiceDescriptor.Singleton(typeof(IHostedService), typeof(OperationsHostedService)));
+            services.TryAddEnumerable(ServiceDescriptor.Singleton(typeof(IHostedService), typeof(OperationsHostedService)));            
 
-            // create a resource-based sub-system for operations
-            services.TryAddSingleton(r => new SqliteResourceDataService<Operation>("operations.db", 1, r.GetRequiredService<ChangeLogBuilder>(), r.GetRequiredService<IStringLocalizer<SqliteResourceDataService<Operation>>>(), r.GetRequiredService<ILogger<SqliteResourceDataService<Operation>>>()));
-            services.TryAddSingleton<IResourceDataService<Operation>>(r => r.GetRequiredService<SqliteResourceDataService<Operation>>());
-            services.TryAddTransient<IResourceDataService>(r => r.GetRequiredService<SqliteResourceDataService<Operation>>());
+            services.AddResourceStore<Operation>(1);
 
             // create an operations host that operates against operation resources
             services.TryAddSingleton<IOperationStore>(r => new ResourceDataServiceOperationStore(

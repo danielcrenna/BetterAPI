@@ -13,6 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="libsodium" Version="1.0.18" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="5.0.5" />
     <PackageReference Include="Microsoft.AspNetCore.JsonPatch" Version="5.0.5" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Versioning.ApiExplorer" Version="5.0.0" />
@@ -26,9 +27,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\BetterAPI.Guidelines\BetterAPI.Guidelines\BetterAPI.Guidelines.csproj" />
+    <ProjectReference Include="..\BetterAPI.Http\BetterAPI.Http\BetterAPI.Http.csproj" PrivateAssets="all" />
+    <ProjectReference Include="..\BetterAPI.Reflection\BetterAPI.Reflection.csproj" PrivateAssets="all" />
+    <ProjectReference Include="..\BetterAPI.Serialization\BetterAPI.Serialization.csproj" PrivateAssets="all" />
+
     <ProjectReference Include="..\BetterAPI.Primitives\BetterAPI.Primitives.csproj" />
-    <ProjectReference Include="..\BetterAPI.Reflection\BetterAPI.Reflection.csproj" />
-    <ProjectReference Include="..\BetterAPI.Serialization\BetterAPI.Serialization.csproj" />
     <ProjectReference Include="..\BetterAPI.SourceGenerators\BetterAPI.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 

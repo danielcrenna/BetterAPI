@@ -6,7 +6,9 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using BetterAPI.ChangeLog;
 using BetterAPI.Extensions;
+using BetterAPI.Http;
 using Humanizer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Mvc;
@@ -36,12 +38,14 @@ namespace BetterAPI
         {
             foreach (var controller in context.Result.Controllers)
             {
-                if (!IsApiController(controller))
+                var isInternal = IsInternalController(controller);
+
+                if (!IsApiController(controller) && !isInternal)
                     continue;
 
                 foreach (var action in controller.Actions)
                 {
-                    TryAddCollectionRoute(action);
+                    TryAddCollectionRoute(action, isInternal);
                 }
             }
         }
@@ -64,50 +68,84 @@ namespace BetterAPI
             return assemblyAttributes.OfType<IApiBehaviorMetadata>().Any();
         }
 
-        private void TryAddCollectionRoute(ActionModel actionModel)
+        private static bool IsInternalController(ICommonModel controller)
+        {
+            return controller.Attributes.OfType<InternalControllerAttribute>().Any();
+        }
+
+        private void TryAddCollectionRoute(ActionModel actionModel, bool isInternal)
         {
             if (IsAttributeRouted(actionModel.Controller.Selectors) || IsAttributeRouted(actionModel.Selectors))
-                return;
+                return; // don't change a route if one is explicitly provided on the controller or its action
 
             // Collections must be un-abbreviated and pluralized:
             // https://github.com/microsoft/api-guidelines/blob/vNext/Guidelines.md#93-collection-url-patterns
             //
-            var controllerName = actionModel.Controller.ControllerType.NormalizeResourceControllerName();
+            var resourceName = actionModel.Controller.ControllerType.NormalizeResourceControllerName();
 
             if (actionModel.Controller.ControllerType.IsGenericType)
             {
-                if (_builder.TryGetResourceName(actionModel.Controller.ControllerType.GetGenericArguments()[0],
-                    out var name))
+                var resourceType = actionModel.Controller.ControllerType.GetGenericArguments()[0];
+                if (_builder.TryGetResourceNameForType(resourceType, out var name))
                 {
-                    controllerName = name;
+                    resourceName = name;
                 }
             }
 
-            var collectionName = controllerName.Pluralize();
-            
-            if (_options.CurrentValue.Versioning.UseUrl)
+            var collectionName = resourceName.Pluralize();
+
+            AddCollectionRoutes(actionModel, isInternal, collectionName);
+        }
+
+        private void AddCollectionRoutes(ActionModel actionModel, bool isInternal, string collectionName)
+        {
+            if (isInternal)
             {
                 if (_localization.CurrentValue.SupportedCultures.Count > 1)
                 {
-                    // [Route("v{version:apiVersion}/{resourceNamePlural}"]
-                    var route = new RouteAttribute($"{{culture}}/v{{version:apiVersion}}/{collectionName}");
+                    // [Route("api/{culture}/v{version:apiVersion}/{resourceNamePlural}"]
+                    var template = $"api/{{culture}}/{collectionName}";
+                    var route = new RouteAttribute(template);
                     var selector = new SelectorModel {AttributeRouteModel = new AttributeRouteModel(route)};
                     actionModel.Controller.Selectors.Add(selector);
                 }
 
                 {
-                    // [Route("v{version:apiVersion}/{resourceNamePlural}"]
-                    var route = new RouteAttribute($"v{{version:apiVersion}}/{collectionName}");
+                    // [Route("api/{resourceNamePlural}"]
+                    var template = $"api/{collectionName}";
+                    var route = new RouteAttribute(template);
                     var selector = new SelectorModel {AttributeRouteModel = new AttributeRouteModel(route)};
                     actionModel.Controller.Selectors.Add(selector);
                 }
             }
-
+            else
             {
-                // [Route("{resourceNamePlural}")]
-                var route = new RouteAttribute(collectionName);
-                var selector = new SelectorModel {AttributeRouteModel = new AttributeRouteModel(route)};
-                actionModel.Controller.Selectors.Add(selector);
+                if (_options.CurrentValue.Versioning.UseUrl)
+                {
+                    if (_localization.CurrentValue.SupportedCultures.Count > 1)
+                    {
+                        // [Route("{culture}/v{version:apiVersion}/{resourceNamePlural}"]
+                        var template = $"{{culture}}/v{{version:apiVersion}}/{collectionName}";
+                        var route = new RouteAttribute(template);
+                        var selector = new SelectorModel {AttributeRouteModel = new AttributeRouteModel(route)};
+                        actionModel.Controller.Selectors.Add(selector);
+                    }
+
+                    {
+                        // [Route("v{version:apiVersion}/{resourceNamePlural}"]
+                        var template = $"v{{version:apiVersion}}/{collectionName}";
+                        var route = new RouteAttribute(template);
+                        var selector = new SelectorModel {AttributeRouteModel = new AttributeRouteModel(route)};
+                        actionModel.Controller.Selectors.Add(selector);
+                    }
+                }
+
+                {
+                    // [Route("{resourceNamePlural}")]
+                    var route = new RouteAttribute(collectionName);
+                    var selector = new SelectorModel {AttributeRouteModel = new AttributeRouteModel(route)};
+                    actionModel.Controller.Selectors.Add(selector);
+                }
             }
         }
 

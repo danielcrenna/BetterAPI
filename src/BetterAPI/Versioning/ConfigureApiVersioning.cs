@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using BetterAPI.ChangeLog;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Versioning;
 using Microsoft.Extensions.Options;
@@ -21,7 +22,7 @@ namespace BetterAPI.Versioning
             // Reporting api versions will return the headers "api-supported-versions" and "api-deprecated-versions"
             options.ReportApiVersions = true;
             options.ErrorResponses = new ProblemDetailsErrorResponseProvider();
-            options.AssumeDefaultVersionWhenUnspecified = _options.CurrentValue.Versioning.AllowUnspecifiedVersions;
+            options.AssumeDefaultVersionWhenUnspecified = _options.CurrentValue.Versioning.AssumeDefaultVersionWhenUnspecified;
 
             ConfigureVersionReaders(options);
 
@@ -35,8 +36,6 @@ namespace BetterAPI.Versioning
                     var controllerType = typeof(ResourceController<>).MakeGenericType(item.Value);
                     var conventions = options.Conventions.Controller(controllerType);
                     conventions.HasApiVersion(version);
-
-                    // FIXME: implement cross-over versions when revisions don't include a resource?
                 }
             }
         }

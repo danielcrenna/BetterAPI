@@ -8,11 +8,12 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
+using BetterAPI.Guidelines.Cors;
 using BetterAPI.Localization;
 using BetterAPI.Metrics;
+using BetterAPI.OpenApi;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
@@ -31,9 +32,7 @@ namespace BetterAPI
             {
                 // FIXME: this is likely only needed with the test server
                 AppendDateHeaderIfNotPresent(app, context);
-
                 app.AddServerHeader(context);
-
                 await next.Invoke();
             });
             
@@ -58,23 +57,8 @@ namespace BetterAPI
                           throw new InvalidOperationException(
                               "You must call AddApiGuidelines in ConfigureServices, before calling UseApiGuidelines in Configure");
 
-            app.UseCors();
-            app.UseSwagger(o => { o.RouteTemplate = options.Value.OpenApiSpecRouteTemplate; });
-            app.UseSwaggerUI(c =>
-            {
-                c.EnableDeepLinking();
-                c.RoutePrefix = options.Value.OpenApiUiRoutePrefix?.TrimStart('/');
-
-                var provider = app.ApplicationServices.GetRequiredService<IApiVersionDescriptionProvider>();
-                foreach (var description in provider.ApiVersionDescriptions)
-                {
-                    var url = options.Value.OpenApiSpecRouteTemplate?.Replace("{documentname}", description.GroupName);
-                    if (url != null && !url.StartsWith('/'))
-                        url = url.Insert(0, "/");
-
-                    c.SwaggerEndpoint(url, $"{options.Value.ApiName} {description.GroupName}");
-                }
-            });
+            app.UseApiCors();
+            app.UseOpenApi(options);
 
             return app;
         }

@@ -5,12 +5,15 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using BetterAPI.Http;
 using Microsoft.AspNetCore.Mvc;
 
-namespace BetterAPI
+namespace BetterAPI.ChangeLog
 {
-    [Route("api/changelog")]
+    [InternalController]
+    [Display(Name = "Changes", Description = "Provides operational changes declared in the application's change log.")]
     public class ChangeLogController : Controller
     {
         private readonly ChangeLogBuilder _builder;
@@ -20,7 +23,8 @@ namespace BetterAPI
             _builder = builder;
         }
 
-        public IActionResult GetChangeLog()
+        [HttpGet]
+        public IActionResult Get()
         {
             var changes = _builder.Versions.ToDictionary(kv => kv.Key.ToString(), kv => (IEnumerable<string>) kv.Value.Keys);
             return Ok(new {Value = changes});

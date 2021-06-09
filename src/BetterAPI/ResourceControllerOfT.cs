@@ -3,11 +3,14 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Threading;
 using BetterAPI.Caching;
+using BetterAPI.ChangeLog;
 using BetterAPI.Data;
+using BetterAPI.Extensions;
 using BetterAPI.Paging;
 using BetterAPI.Patch;
 using BetterAPI.Reflection;
 using BetterAPI.Sorting;
+using Humanizer;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Localization;
@@ -19,29 +22,36 @@ using Microsoft.Net.Http.Headers;
 namespace BetterAPI
 {
     [FormatFilter]
-    public class ResourceController<T> : ResourceController, IResourceController<T> 
+    public class ResourceController<T> : ResourceController, IResourceController
         where T : class, IResource
     {
         private readonly IStringLocalizer<ResourceController<T>> _localizer;
         private readonly IResourceDataService<T> _service;
         private readonly IPageQueryStore _store;
         private readonly IEventBroadcaster _events;
+        private readonly ChangeLogBuilder _changeLog;
         private readonly IOptionsSnapshot<ApiOptions> _options;
 
-        public ResourceController(IStringLocalizer<ResourceController<T>> localizer, IResourceDataService<T> service, IPageQueryStore store, IEventBroadcaster events, IOptionsSnapshot<ApiOptions> options,
+        public ResourceController(IStringLocalizer<ResourceController<T>> localizer, 
+            IResourceDataService<T> service, 
+            IPageQueryStore store, 
+            IEventBroadcaster events, 
+            ChangeLogBuilder changeLog,
+            IOptionsSnapshot<ApiOptions> options,
             ILogger<ResourceController> logger) : base(localizer, options, logger)
         {
             _localizer = localizer;
             _service = service;
             _store = store;
             _events = events;
+            _changeLog = changeLog;
             _options = options;
         }
 
         [HttpOptions]
         [DoNotHttpCache]
-        [Display(Description = "Returns all HTTP methods allowed by this resource")]
-        public void GetOptions()
+        [Display(Description = "Returns all HTTP methods allowed, and other introspection data, for this resource")]
+        public void OptionsHeaders()
         {
             // See: https://github.com/microsoft/api-guidelines/blob/vNext/Guidelines.md#744-options-and-link-headers
             // OPTIONS allows a client to retrieve information about a resource,
@@ -77,30 +87,46 @@ namespace BetterAPI
         [HttpGet]
         public IActionResult Get(ApiVersion apiVersion, CancellationToken cancellationToken)
         {
-            var query = new ResourceQuery();
-            
-            if (_service.SupportsSorting && HttpContext.Items.TryGetValue(Constants.SortContextKey, out var sortMap) && sortMap != null)
+            if (!BuildResourceQuery(_service, HttpContext, _options, out ResourceQuery query))
             {
-                query.Sorting = (List<(AccessorMember, SortDirection)>) sortMap;
-                HttpContext.Items.Remove(Constants.SortContextKey);
+                return PayloadTooLargeWithDetails(
+                    "Requested page size ({0}) was larger than the server's maximum page size ({1}).",
+                    query.PageSize!, _options.Value.Paging.MaxPageSize.MaxPageSize);
             }
 
-            if (_service.SupportsCount)
+            var results = Query(query, cancellationToken);
+            return Ok(results);
+        }
+
+        private static bool BuildResourceQuery(IResourceDataService service, HttpContext context, IOptionsSnapshot<ApiOptions> options, out ResourceQuery query)
+        {
+            query = new ResourceQuery();
+
+            if (service.SupportsSorting && context.Items.TryGetValue(Constants.SortContextKey, out var sortMap) &&
+                sortMap != null)
+            {
+                query.Sorting = (List<(AccessorMember, SortDirection)>) sortMap;
+                context.Items.Remove(Constants.SortContextKey);
+            }
+
+            if (service.SupportsCount)
             {
                 // We don't check whether the request asked for counting, because we need counting to determine next page results either way,
                 // so we'll attempt to always count the total records if it's supported.
 
                 query.CountTotalRows = true;
-                HttpContext.Items.Remove(Constants.CountContextKey);
+                context.Items.Remove(Constants.CountContextKey);
             }
 
-            if (_service.SupportsSkip && HttpContext.Items.TryGetValue(Constants.SkipContextKey, out var skipValue) && skipValue is int skip)
+            if (service.SupportsSkip && context.Items.TryGetValue(Constants.SkipContextKey, out var skipValue) &&
+                skipValue is int skip)
             {
                 query.PageOffset = skip;
-                HttpContext.Items.Remove(Constants.SkipContextKey);
+                context.Items.Remove(Constants.SkipContextKey);
             }
 
-            if (_service.SupportsTop & HttpContext.Items.TryGetValue(Constants.TopContextKey, out var topValue) && topValue is int top)
+            if (service.SupportsTop & context.Items.TryGetValue(Constants.TopContextKey, out var topValue) &&
+                topValue is int top)
             {
                 //
                 // "Note that client-driven paging does not preclude server-driven paging.
@@ -110,19 +136,22 @@ namespace BetterAPI
                 //
 
                 query.PageSize = top;
-                HttpContext.Items.Remove(Constants.TopContextKey);
+                context.Items.Remove(Constants.TopContextKey);
             }
 
-            if (_service.SupportsMaxPageSize && HttpContext.Items.TryGetValue(Constants.MaxPageSizeContextKey, out var maxPageSizeValue) && maxPageSizeValue is int maxPageSize)
+            if (service.SupportsMaxPageSize &&
+                context.Items.TryGetValue(Constants.MaxPageSizeContextKey, out var maxPageSizeValue) &&
+                maxPageSizeValue is int maxPageSize)
             {
                 query.MaxPageSize = maxPageSize;
-                HttpContext.Items.Remove(Constants.MaxPageSizeContextKey);
+                context.Items.Remove(Constants.MaxPageSizeContextKey);
             }
 
-            if (_service.SupportsShaping && HttpContext.Items.TryGetValue(Constants.ShapingContextKey, out var shapingValue) && shapingValue is List<string> include)
+            if (service.SupportsShaping && context.Items.TryGetValue(Constants.ShapingContextKey, out var shapingValue) &&
+                shapingValue is List<string> include)
             {
                 query.Fields = include;
-                HttpContext.Items.Remove(Constants.ShapingContextKey);
+                context.Items.Remove(Constants.ShapingContextKey);
             }
 
             // If no $skip is provided, assume the query is for the first page
@@ -134,34 +163,37 @@ namespace BetterAPI
             //
             // Interpretation:
             // - If the client specifies $top, use $top as the page size.
-            // - If the client omits $top but specified $maxpagesize, use the smaller of $maxpagesize and the server's default page size.
+            // - If the client omits $top but specifies $maxpagesize, use the smaller of $maxpagesize and the server's default page size.
             if (!query.PageSize.HasValue)
             {
-                if (query.MaxPageSize.HasValue && query.MaxPageSize.Value < _options.Value.Paging.MaxPageSize.DefaultPageSize)
+                if (query.MaxPageSize.HasValue && query.MaxPageSize.Value < options.Value.Paging.MaxPageSize.DefaultPageSize)
                     query.PageSize = query.MaxPageSize.Value;
                 else
-                    query.PageSize = _options.Value.Paging.MaxPageSize.DefaultPageSize;
+                    query.PageSize = options.Value.Paging.MaxPageSize.DefaultPageSize;
             }
+
+            // If we still don't have a page size, assume the query is for the default page size
+            if(!query.PageSize.HasValue || query.PageSize.Value == 0)
+                query.PageSize = options.Value.Paging.MaxPageSize.DefaultPageSize;
 
             //
             // "If the server can't honor $top and/or $skip,
             // the server MUST return an error to the client informing about it instead of just ignoring the query options.
             // This will avoid the risk of the client making assumptions about the data returned."
             //
-            if (query.PageSize.Value > _options.Value.Paging.MaxPageSize.MaxPageSize)
+            if (query.PageSize.Value > options.Value.Paging.MaxPageSize.MaxPageSize)
             {
-                return PayloadTooLargeWithDetails("Requested page size ({0}) was larger than the server's maximum page size ({1}).",
-                    query.PageSize, _options.Value.Paging.MaxPageSize.MaxPageSize);
+                return false;
             }
 
-            if (_service.SupportsSearch && HttpContext.Items.TryGetValue(Constants.SearchContextKey, out var searchValue) && searchValue is string searchQuery)
+            if (service.SupportsSearch && context.Items.TryGetValue(Constants.SearchContextKey, out var searchValue) &&
+                searchValue is string searchQuery)
             {
                 query.SearchQuery = searchQuery;
-                HttpContext.Items.Remove(Constants.SearchContextKey);
+                context.Items.Remove(Constants.SearchContextKey);
             }
 
-            var results = Query(query, cancellationToken);
-            return Ok(results);
+            return true;
         }
 
         [Display(Description = "Returns the next page from an opaque continuation token")]
@@ -275,6 +307,11 @@ namespace BetterAPI
                 return BadRequestWithDetails("This resource already exists. Did you mean to update it?");
             }
 
+            if (!BeforeSave(model, out var error))
+            {
+                return error ?? InternalServerErrorWithDetails("Internal error on BeforeSave");
+            }
+
             //
             // FIXME: The corner-case where we're creating but also have a pre-condition which should block this create operation.
             //        It is unlikely to occur in real life, but technically we should know what the ETag is before we attempt this,
@@ -288,6 +325,13 @@ namespace BetterAPI
 
             _events.Created(model);
             return Created($"{Request.Path}/{model.Id}", model);
+        }
+
+        [NonAction]
+        public virtual bool BeforeSave(T model, out IActionResult? error)
+        {
+            error = default;
+            return true;
         }
 
         [HttpPut("{id}")]
@@ -366,6 +410,49 @@ namespace BetterAPI
 
             return NotFoundWithDetails("There is no resource with ID {0} on this server.", id);
         }
+
+        #region Embedded Collections
+
+        [Display(Description = "Returns all saved resources, with optional sorting, filtering, paging, shaping, and search criteria")]
+        [HttpGet("{id}/{embeddedCollectionName}.{format?}")]
+        public IActionResult GetEmbedded(ApiVersion apiVersion, Guid id, string embeddedCollectionName, CancellationToken cancellationToken)
+        {
+            var members = AccessorMembers.Create(typeof(T), AccessorMemberTypes.Properties, AccessorMemberScope.Public);
+
+            foreach (var member in members)
+            {
+                if (!member.Type.ImplementsGeneric(typeof(IEnumerable<>)) || !member.Type.IsGenericType)
+                    continue; // not a collection
+
+                var arguments = member.Type.GetGenericArguments();
+                var embeddedCollectionType = arguments[0];
+
+                if (!typeof(IResource).IsAssignableFrom(embeddedCollectionType))
+                    continue; // not a resource collection
+
+                if (!_changeLog.TryGetResourceNameForType(embeddedCollectionType, out var name))
+                    name = embeddedCollectionType.Name;
+
+                if (!embeddedCollectionName.Equals(name.Pluralize(), StringComparison.OrdinalIgnoreCase))
+                    return NotFound();
+
+                var controllerType = typeof(ResourceController<>).MakeGenericType(embeddedCollectionType);
+                if (!(HttpContext.RequestServices.GetService(controllerType) is IResourceController controller))
+                    return NotFound();
+
+                if(controller is Controller mvcController)
+                    mvcController.ControllerContext = new ControllerContext(ControllerContext);
+
+                // FIXME: implement filters and add parent ID in the filter
+
+                return controller.Get(apiVersion, cancellationToken);
+            }
+
+            // this is a generic 404, to avoid leaking mappings
+            return NotFound();
+        }
+
+        #endregion
 
         [NonAction]
         private IActionResult MergePatch(Guid id, JsonMergePatch<T> model, CancellationToken cancellationToken)

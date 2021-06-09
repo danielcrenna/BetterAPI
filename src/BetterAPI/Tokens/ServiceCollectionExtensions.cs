@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Security.Cryptography;
 using System.Text;
+using BetterAPI.Http.Throttling;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
@@ -13,11 +13,14 @@ namespace BetterAPI.Tokens
     {
         public static IServiceCollection AddTokens(this IServiceCollection services, IConfiguration configuration)
         {
-            return services.AddTokens(configuration.Bind);
+            services.AddTokens(configuration.Bind);
+            return services;
         }
 
         public static IServiceCollection AddTokens(this IServiceCollection services, Action<TokenOptions>? configureAction = default)
         {
+            services.AddAnonymousThrottle();
+
             TokenOptions options = new TokenOptions();
 
             if (configureAction != default)
