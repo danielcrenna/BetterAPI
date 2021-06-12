@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Text.RegularExpressions;
+using BetterAPI.Filtering;
 using BetterAPI.Reflection;
 using BetterAPI.Sorting;
 
@@ -518,7 +519,8 @@ namespace BetterAPI.Data.Sqlite
             var isSearch = !string.IsNullOrWhiteSpace(query.SearchQuery);
             hasWhere = isSearch;
 
-            var sql = Pooling.StringBuilderPool.Scoped(sb =>
+            var sb = Pooling.StringBuilderPool.Get();
+            try
             {
                 sb.Append(isSearch
                     ? SearchSql(resource, query, members)
@@ -526,10 +528,66 @@ namespace BetterAPI.Data.Sqlite
 
                 sb.Append(' ');
 
-                // FIXME: add filters via WHERE
-            });
+                if (query.Filters != default)
+                {
+                    foreach (var (name, @operator, @value) in query.Filters)
+                    {
+                        if (members.TryGetValue(name, out var member))
+                        {
+                            sb.Append(hasWhere ? "AND" : "WHERE");
+                            hasWhere = true;
+                        }
 
-            return sql;
+                        sb.Append(' ');
+                        sb.Append('"');
+                        sb.Append(member.Name);
+                        sb.Append('"');
+                        sb.Append(' ');
+
+                        switch (@operator)
+                        {
+                            case FilterOperator.Equal:
+                                sb.Append('=');
+                                break;
+                            case FilterOperator.NotEqual:
+                                sb.Append("<>");
+                                break;
+                            case FilterOperator.GreaterThan:
+                                sb.Append('>');
+                                break;
+                            case FilterOperator.GreaterThanOrEqual:
+                                sb.Append(">=");
+                                break;
+                            case FilterOperator.LessThan:
+                                sb.Append('<');
+                                break;
+                            case FilterOperator.LessThanOrEqual:
+                                sb.Append("<=");
+                                break;
+                            default:
+                                throw new ArgumentOutOfRangeException();
+                        }
+
+                        sb.Append(' ');
+
+                        var quoted = member.Type == typeof(string) || member.Type == typeof(DateTimeOffset) || member.Type == typeof(Guid);
+                        if (quoted)
+                            sb.Append('"');
+
+                        sb.Append(value);
+
+                        if (quoted)
+                            sb.Append('"');
+                    }
+                }
+
+                var sql = sb.ToString();
+                return sql;
+            }
+            finally
+            {
+                Pooling.StringBuilderPool.Return(sb);
+            }
         }
 
         private static string SearchSql(string resource, ResourceQuery query, AccessorMembers members)

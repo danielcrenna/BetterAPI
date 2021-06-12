@@ -27,7 +27,7 @@ namespace BetterAPI.Paging
             if (clauses.Count == 1 && int.TryParse(clauses[0], out var top))
                 pageSize = top;
 
-            context.HttpContext.Items[Constants.TopContextKey] = pageSize;
+            context.HttpContext.Items[Constants.TopOperationContextKey] = pageSize;
 
             var executed = await next.Invoke();
 

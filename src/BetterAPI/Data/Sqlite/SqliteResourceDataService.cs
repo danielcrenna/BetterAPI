@@ -10,7 +10,6 @@ using System.Data;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using BetterAPI.Caching;
@@ -34,6 +33,7 @@ namespace BetterAPI.Data.Sqlite
         private readonly ITypeReadAccessor _reads;
 
         public bool SupportsSorting => true;
+        public bool SupportsFiltering => true;
         public bool SupportsMaxPageSize => true;
         public bool SupportsCount => true;
         public bool SupportsSkip => true;
@@ -57,13 +57,14 @@ namespace BetterAPI.Data.Sqlite
         {
             Debug.Assert(query.PageOffset.HasValue);
             Debug.Assert(query.PageSize.HasValue);
-
-            var db = OpenConnection();
+            
             var viewName = GetResourceName();
             var orderBy = SqliteBuilder.OrderBySql(query);
 
             var sql = SqliteBuilder.SelectSql(viewName, _members, query, out var hasWhere);
             var pageSql = sql + SqliteBuilder.PageSql(query, viewName, orderBy, hasWhere);
+
+            var db = OpenConnection();
             IEnumerable<T> result = db.Query<T>(pageSql);
 
             if (!query.CountTotalRows)
@@ -238,7 +239,7 @@ namespace BetterAPI.Data.Sqlite
                 if (!_changeLog.TryGetResourceNameForType(embeddedCollectionType, out var embeddedViewName) || embeddedViewName == default)
                     embeddedViewName = embeddedCollectionType.Name;
 
-                var embeddedViewRevision = _changeLog.GetRevisionForResourceAndVersion(embeddedViewName, version);
+                var embeddedViewRevision = _changeLog.GetRevisionForResourceAndApiVersion(embeddedViewName, version);
                 var sql = SqliteBuilder.CreateThroughTableSql(viewName, revision, embeddedViewName, embeddedViewRevision);
                 db.Execute(sql, transaction: t);
             }

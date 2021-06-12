@@ -62,13 +62,13 @@ namespace BetterAPI.Shaping
                 return;
             }
 
-            context.HttpContext.Items.TryAdd(Constants.ShapingContextKey, inclusions);
+            context.HttpContext.Items.TryAdd(Constants.ShapingOperationContextKey, inclusions);
 
             var executed = await next.Invoke();
 
-            if (executed.HttpContext.Items.ContainsKey(Constants.ShapingContextKey))
+            if (executed.HttpContext.Items.ContainsKey(Constants.ShapingOperationContextKey))
             {
-                executed.HttpContext.Items.Remove(Constants.ShapingContextKey);
+                executed.HttpContext.Items.Remove(Constants.ShapingOperationContextKey);
 
                 _logger.LogWarning(_localizer.GetString("Shaping operation has fallen back to object-level shaping. " +
                                                         "This means that shaping was not performed by the underlying data store, and is likely " +

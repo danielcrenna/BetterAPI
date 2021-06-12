@@ -74,7 +74,7 @@ namespace BetterAPI.Paging
                 if (settable && body is IEnumerable enumerable)
                 {
                     var type = typeof(CountMany<>).MakeGenericType(underlyingType!);
-                    var envelope = Activator.CreateInstance(type, body, totalCount ?? enumerable.Cast<object>().Count());
+                    var envelope = Activator.CreateInstance(type, enumerable, totalCount ?? enumerable.Cast<object>().Count());
                     result.Value = envelope;
                 }
             }

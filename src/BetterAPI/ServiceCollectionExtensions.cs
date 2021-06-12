@@ -61,7 +61,7 @@ namespace BetterAPI
             // Core services:
             //
             services.AddTimestamps();
-            services.TryAddSingleton<TypeRegistry>();
+            services.TryAddSingleton(assembly == default ? new ResourceTypeRegistry() : new ResourceTypeRegistry(assembly));
             services.TryAddSingleton<ApiRouter>();
             services.AddMetrics(o =>
             {

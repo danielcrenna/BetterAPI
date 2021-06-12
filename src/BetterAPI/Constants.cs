@@ -24,11 +24,11 @@ namespace BetterAPI
         public const string MaxPageSizeContextKey = "maxpagesize";
         public const string CountContextKey = "count";
         public const string CountResultContextKey = "countresult";
-        public const string SkipContextKey = "skip";
+        public const string SkipOperationContextKey = "skip";
         public const string SinceContextKey = "since";
-        public const string TopContextKey = "top";
-        public const string ShapingContextKey = "shaping";
-        public const string SearchContextKey = "search";
+        public const string TopOperationContextKey = "top";
+        public const string ShapingOperationContextKey = "shaping";
+        public const string SearchOperationContextKey = "search";
         public const string QueryContextKey = "query";
 
         public static class Prefer

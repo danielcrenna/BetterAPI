@@ -247,6 +247,23 @@ namespace BetterAPI.ChangeLog
             return false;
         }
 
+        internal bool TryGetApiVersionForType(Type type, out ApiVersion? apiVersion)
+        {
+            foreach (var (version, manifest) in _versions)
+            {
+                foreach (var (_, value) in manifest)
+                {
+                    if (value != type)
+                        continue;
+                    apiVersion = version;
+                    return true;
+                }
+            }
+
+            apiVersion = default;
+            return false;
+        }
+
         internal ApiVersion GetApiVersionForResourceAndRevision(string resourceName, in int revision)
         {
             var found = revision;
@@ -264,7 +281,7 @@ namespace BetterAPI.ChangeLog
             return ApiVersion.Default;
         }
 
-        public int GetRevisionForResourceAndVersion(string resourceName, ApiVersion version)
+        public int GetRevisionForResourceAndApiVersion(string resourceName, ApiVersion version)
         {
             if (!_versions.TryGetValue(version, out var manifest))
                 return 1;

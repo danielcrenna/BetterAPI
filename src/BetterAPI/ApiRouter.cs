@@ -17,9 +17,9 @@ namespace BetterAPI
     /// </summary>
     internal sealed class ApiRouter : DynamicRouteValueTransformer
     {
-        private readonly TypeRegistry _registry;
+        private readonly ResourceTypeRegistry _registry;
 
-        public ApiRouter(TypeRegistry registry)
+        public ApiRouter(ResourceTypeRegistry registry)
         {
             _registry = registry;
         }
@@ -40,7 +40,7 @@ namespace BetterAPI
             // See: https://github.com/microsoft/api-guidelines/blob/vNext/Guidelines.md#93-collection-url-patterns
 
             var resourceName = routeValue.Singularize();
-            if (_registry.TryGetValue(resourceName, out _))
+            if (_registry.GetOrRegisterByName(resourceName, out _))
             {
                 values["controller"] = resourceName;
             }

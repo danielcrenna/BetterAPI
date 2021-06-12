@@ -24,7 +24,7 @@ namespace BetterAPI.Search
         public override async Task OnValidRequestAsync(Type underlyingType, StringValues clauses, ActionExecutingContext context,
             ActionExecutionDelegate next)
         {
-            context.HttpContext.Items[Constants.SearchContextKey] = clauses[0];
+            context.HttpContext.Items[Constants.SearchOperationContextKey] = clauses[0];
             
             var executed = await next.Invoke();
 

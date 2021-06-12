@@ -33,13 +33,13 @@ namespace BetterAPI.OpenApi
     /// </summary>
     internal sealed class DocumentationOperationFilter : IOperationFilter
     {
-        private readonly TypeRegistry _registry;
+        private readonly ResourceTypeRegistry _registry;
         private readonly IStringLocalizer<DocumentationOperationFilter> _localizer;
         private readonly IResourceDataService _service; // FIXME: this currently only refers to the first service added; it could be different!
         private readonly IOptionsMonitor<ApiOptions> _options;
         private readonly ILogger<DocumentationOperationFilter> _logger;
 
-        public DocumentationOperationFilter(TypeRegistry registry, 
+        public DocumentationOperationFilter(ResourceTypeRegistry registry, 
             IStringLocalizer<DocumentationOperationFilter> localizer, 
             IResourceDataService service,
             IOptionsMonitor<ApiOptions> options, 
@@ -379,7 +379,7 @@ namespace BetterAPI.OpenApi
             // This will run multiple times, so we store previously discovered types
             foreach (var (typeName, schema) in context.SchemaRepository.Schemas)
             {
-                if (!_registry.TryGetValue(typeName, out var type) || type == default)
+                if (!_registry.GetOrRegisterByName(typeName, out var type) || type == default)
                     continue;
 
                 var members = AccessorMembers.Create(type, AccessorMemberTypes.Properties, AccessorMemberScope.Public);

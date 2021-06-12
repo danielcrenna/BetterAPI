@@ -26,7 +26,7 @@ namespace BetterAPI.Paging
                 return;
             }
 
-            context.HttpContext.Items[Constants.SkipContextKey] = skip;
+            context.HttpContext.Items[Constants.SkipOperationContextKey] = skip;
 
             var executed = await next.Invoke();
 

@@ -6,6 +6,7 @@ using BetterAPI.Caching;
 using BetterAPI.ChangeLog;
 using BetterAPI.Data;
 using BetterAPI.Extensions;
+using BetterAPI.Filtering;
 using BetterAPI.Paging;
 using BetterAPI.Patch;
 using BetterAPI.Reflection;
@@ -109,6 +110,12 @@ namespace BetterAPI
                 context.Items.Remove(Constants.SortContextKey);
             }
 
+            if (service.SupportsFiltering && context.Items.TryGetValue(Constants.FilterOperationContextKey, out var filterValue) &&
+                filterValue is List<(string, FilterOperator, string?)> filters)
+            {
+                query.Filters = filters;
+            }
+
             if (service.SupportsCount)
             {
                 // We don't check whether the request asked for counting, because we need counting to determine next page results either way,
@@ -118,14 +125,14 @@ namespace BetterAPI
                 context.Items.Remove(Constants.CountContextKey);
             }
 
-            if (service.SupportsSkip && context.Items.TryGetValue(Constants.SkipContextKey, out var skipValue) &&
+            if (service.SupportsSkip && context.Items.TryGetValue(Constants.SkipOperationContextKey, out var skipValue) &&
                 skipValue is int skip)
             {
                 query.PageOffset = skip;
-                context.Items.Remove(Constants.SkipContextKey);
+                context.Items.Remove(Constants.SkipOperationContextKey);
             }
 
-            if (service.SupportsTop & context.Items.TryGetValue(Constants.TopContextKey, out var topValue) &&
+            if (service.SupportsTop & context.Items.TryGetValue(Constants.TopOperationContextKey, out var topValue) &&
                 topValue is int top)
             {
                 //
@@ -136,7 +143,7 @@ namespace BetterAPI
                 //
 
                 query.PageSize = top;
-                context.Items.Remove(Constants.TopContextKey);
+                context.Items.Remove(Constants.TopOperationContextKey);
             }
 
             if (service.SupportsMaxPageSize &&
@@ -147,11 +154,11 @@ namespace BetterAPI
                 context.Items.Remove(Constants.MaxPageSizeContextKey);
             }
 
-            if (service.SupportsShaping && context.Items.TryGetValue(Constants.ShapingContextKey, out var shapingValue) &&
+            if (service.SupportsShaping && context.Items.TryGetValue(Constants.ShapingOperationContextKey, out var shapingValue) &&
                 shapingValue is List<string> include)
             {
                 query.Fields = include;
-                context.Items.Remove(Constants.ShapingContextKey);
+                context.Items.Remove(Constants.ShapingOperationContextKey);
             }
 
             // If no $skip is provided, assume the query is for the first page
@@ -186,11 +193,11 @@ namespace BetterAPI
                 return false;
             }
 
-            if (service.SupportsSearch && context.Items.TryGetValue(Constants.SearchContextKey, out var searchValue) &&
+            if (service.SupportsSearch && context.Items.TryGetValue(Constants.SearchOperationContextKey, out var searchValue) &&
                 searchValue is string searchQuery)
             {
                 query.SearchQuery = searchQuery;
-                context.Items.Remove(Constants.SearchContextKey);
+                context.Items.Remove(Constants.SearchOperationContextKey);
             }
 
             return true;
@@ -203,10 +210,10 @@ namespace BetterAPI
             // suppress any warnings since we rely on the URL itself, not a user-provided query
             HttpContext.Items.Remove(Constants.SortContextKey);
             HttpContext.Items.Remove(Constants.CountContextKey);
-            HttpContext.Items.Remove(Constants.SkipContextKey);
-            HttpContext.Items.Remove(Constants.TopContextKey);
+            HttpContext.Items.Remove(Constants.SkipOperationContextKey);
+            HttpContext.Items.Remove(Constants.TopOperationContextKey);
             HttpContext.Items.Remove(Constants.MaxPageSizeContextKey);
-            HttpContext.Items.Remove(Constants.ShapingContextKey);
+            HttpContext.Items.Remove(Constants.ShapingOperationContextKey);
 
             var query = _store.GetQueryFromHash(continuationToken);
             if (query == default)

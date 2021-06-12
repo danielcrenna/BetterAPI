@@ -7,23 +7,28 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using BetterAPI.Reflection;
 
 namespace BetterAPI
 {
-    internal sealed class TypeRegistry
+    internal sealed class ResourceTypeRegistry
     {
         private readonly Type[] _loadedTypes;
 
         private readonly IDictionary<string, Type> _types;
 
-        public TypeRegistry()
+        public ResourceTypeRegistry(params Assembly[] assemblies)
         {
             _types = new Dictionary<string, Type>();
-            _loadedTypes = AppDomain.CurrentDomain.GetAssemblies().Where(a => !a.IsDynamic)
-                .SelectMany(x => x.GetTypes()).ToArray();
+
+            // reverse order so user types are first
+            var sources = AppDomain.CurrentDomain.GetAssemblies();
+            _loadedTypes = sources.Concat(assemblies).Where(a => !a.IsDynamic)
+                .SelectMany(x => x.GetTypes()).Reverse().ToArray();
         }
 
-        public bool TryGetValue(string typeName, out Type? type)
+        public bool GetOrRegisterByName(string typeName, out Type? type)
         {
             if (_types.TryGetValue(typeName, out type))
                 return true;
@@ -40,6 +45,9 @@ namespace BetterAPI
         {
             foreach (var type in _loadedTypes)
             {
+                if (type.TryGetAttribute(true, out ResourceNameAttribute resourceName) && name.Equals(resourceName.Name, StringComparison.OrdinalIgnoreCase))
+                    return type;
+
                 if (type.Name == name)
                     return type;
             }

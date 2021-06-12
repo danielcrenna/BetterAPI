@@ -5,6 +5,7 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 using System.Collections.Generic;
+using BetterAPI.Filtering;
 using BetterAPI.Reflection;
 using BetterAPI.Sorting;
 
@@ -19,8 +20,11 @@ namespace BetterAPI
         public bool CountTotalRows { get; set; } = false;
         public int? TotalRows { get; set; } = default;
 
-        public List<string>? Fields { get; set; } = default;
+        public List<(string, FilterOperator, string?)>? Filters { get; set; } = default;
         public List<(AccessorMember, SortDirection)>? Sorting { get; set; } = default;
+        public List<string>? Fields { get; set; } = default;
+        
+
         public string? SearchQuery { get; set; } = default;
     }
 }

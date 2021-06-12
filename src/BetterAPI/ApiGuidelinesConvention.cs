@@ -8,6 +8,7 @@ using System;
 using BetterAPI.Caching;
 using BetterAPI.ChangeLog;
 using BetterAPI.Extensions;
+using BetterAPI.Reflection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
@@ -28,15 +29,13 @@ namespace BetterAPI
         IActionModelConvention, 
         IParameterModelConvention
     {
-        private readonly TypeRegistry _registry;
-        private readonly ChangeLogBuilder _builder;
+        private readonly ChangeLogBuilder _changeLog;
         private readonly IStringLocalizer<ApiGuidelinesConvention> _localizer;
         private readonly IOptions<ApiOptions> _options;
 
-        public ApiGuidelinesConvention(TypeRegistry registry, ChangeLogBuilder builder, IStringLocalizer<ApiGuidelinesConvention> localizer, IOptions<ApiOptions> options)
+        public ApiGuidelinesConvention(ChangeLogBuilder changeLog, IStringLocalizer<ApiGuidelinesConvention> localizer, IOptions<ApiOptions> options)
         {
-            _registry = registry;
-            _builder = builder;
+            _changeLog = changeLog;
             _localizer = localizer;
             _options = options;
         }
@@ -49,7 +48,7 @@ namespace BetterAPI
 
                 if (controller.ControllerType.IsGenericType)
                 {
-                    if (_builder.TryGetResourceNameForType(controller.ControllerType.GetGenericArguments()[0],
+                    if (_changeLog.TryGetResourceNameForType(controller.ControllerType.GetGenericArguments()[0],
                         out var resourceName))
                     {
                         controller.ControllerName = resourceName;
@@ -82,8 +81,10 @@ namespace BetterAPI
                     // resource not found:
                     action.ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound);
 
-                    if (_registry.TryGetValue(action.Controller.ControllerName, out var controllerType) && controllerType != default)
+                    if (action.Controller.ControllerType.IsGenericType && action.Controller.ControllerType.AsType().ImplementsGeneric(typeof(ResourceController<>)))
                     {
+                        var controllerType = action.Controller.ControllerType.GetGenericArguments()[0];
+
                         // get resource by ID with return=representation:
                         action.ProducesResponseType(controllerType, StatusCodes.Status200OK); 
                     }
@@ -91,8 +92,10 @@ namespace BetterAPI
 
                 if (action.ActionName.Equals(Constants.Get, StringComparison.OrdinalIgnoreCase) || action.ActionName.Equals(Constants.GetEmbedded, StringComparison.OrdinalIgnoreCase))
                 {
-                    if (_registry.TryGetValue(action.Controller.ControllerName, out var controllerType) && controllerType != default)
+                    if (action.Controller.ControllerType.IsGenericType && action.Controller.ControllerType.AsType().ImplementsGeneric(typeof(ResourceController<>)))
                     {
+                        var controllerType = action.Controller.ControllerType.GetGenericArguments()[0];
+
                         // FIXME: @nextLink, @deltaLink, should be present, too
                         var collectionType = typeof(Many<>).MakeGenericType(controllerType);
 
@@ -106,8 +109,10 @@ namespace BetterAPI
 
                 if (action.ActionName.Equals(Constants.GetNextPage, StringComparison.OrdinalIgnoreCase))
                 {
-                    if (_registry.TryGetValue(action.Controller.ControllerName, out var controllerType) && controllerType != default)
+                    if (action.Controller.ControllerType.IsGenericType && action.Controller.ControllerType.AsType().ImplementsGeneric(typeof(ResourceController<>)))
                     {
+                        var controllerType = action.Controller.ControllerType.GetGenericArguments()[0];
+
                         // FIXME: @nextLink, @deltaLink, should be present, too
                         var collectionType = typeof(Many<>).MakeGenericType(controllerType);
 
@@ -161,8 +166,10 @@ namespace BetterAPI
             if (action.Is(HttpMethod.Patch))
             { 
                 // successful patch operation:
-                if (_registry.TryGetValue(action.Controller.ControllerName, out var controllerType) && controllerType != default)
+                if (action.Controller.ControllerType.IsGenericType && action.Controller.ControllerType.AsType().ImplementsGeneric(typeof(ResourceController<>)))
                 {
+                    var controllerType = action.Controller.ControllerType.GetGenericArguments()[0];
+
                     // patched resource by ID with return=representation:
                     action.ProducesResponseType(controllerType, StatusCodes.Status200OK); 
                 }
@@ -216,8 +223,10 @@ namespace BetterAPI
                     // server failed to delete resource:
                     action.ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError);
 
-                    if (_registry.TryGetValue(action.Controller.ControllerName, out var controllerType) && controllerType != default)
+                    if (action.Controller.ControllerType.IsGenericType && action.Controller.ControllerType.AsType().ImplementsGeneric(typeof(ResourceController<>)))
                     {
+                        var controllerType = action.Controller.ControllerType.GetGenericArguments()[0];
+
                         // deleted resource by ID with return=representation:
                         action.ProducesResponseType(controllerType, StatusCodes.Status200OK); 
                     }
