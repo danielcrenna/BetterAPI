@@ -283,19 +283,19 @@ namespace BetterAPI.ChangeLog
 
         public int GetRevisionForResourceAndApiVersion(string resourceName, ApiVersion version)
         {
-            if (!_versions.TryGetValue(version, out var manifest))
-                return 1;
-
             var revision = 0;
-
-            foreach (var entry in manifest)
+            foreach (var (apiVersion, manifest) in _versions)
             {
-                if (!entry.Key.Equals(resourceName, StringComparison.OrdinalIgnoreCase))
-                    continue;
+                if (apiVersion > version)
+                    return revision;
 
-                revision++;
+                foreach (var entry in manifest)
+                {
+                    if (!entry.Key.Equals(resourceName, StringComparison.OrdinalIgnoreCase))
+                        continue;
+                    revision++;
+                }
             }
-
             return revision;
         }
     }

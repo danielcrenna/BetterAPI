@@ -7,6 +7,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using BetterAPI.Data;
 using BetterAPI.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -16,17 +17,42 @@ namespace BetterAPI.ChangeLog
     [Display(Name = "Changes", Description = "Provides operational changes declared in the application's change log.")]
     public class ChangeLogController : Controller
     {
-        private readonly ChangeLogBuilder _builder;
+        private readonly ChangeLogBuilder _changeLog;
 
-        public ChangeLogController(ChangeLogBuilder builder)
+        public ChangeLogController(ChangeLogBuilder changeLog)
         {
-            _builder = builder;
+            _changeLog = changeLog;
         }
 
         [HttpGet]
         public IActionResult Get()
         {
-            var changes = _builder.Versions.ToDictionary(kv => kv.Key.ToString(), kv => (IEnumerable<string>) kv.Value.Keys);
+            var versions = _changeLog.Versions;
+
+            var changes = new Dictionary<string, List<ResourceDataDistribution>>();
+
+            foreach (var (version, manifest) in versions)
+            {
+                var key = version.ToString();
+
+                foreach (var (name, type) in manifest)
+                {
+                    var service = HttpContext.RequestServices.GetService(typeof(IResourceDataService<>).MakeGenericType(type));
+                    if (service == default || !(service is IResourceDataService data))
+                        continue;
+
+                    var revision = _changeLog.GetRevisionForResourceAndApiVersion(name, version);
+                    var distribution = data.GetResourceDataDistribution(revision);
+                    if (distribution == default || string.IsNullOrWhiteSpace(distribution.Partition))
+                        continue;
+
+                    if (!changes.TryGetValue(key, out var values))
+                        changes.Add(key, values = new List<ResourceDataDistribution>());
+
+                    values.Add(distribution);
+                }
+            }
+
             return Ok(new {Value = changes});
         }
     }

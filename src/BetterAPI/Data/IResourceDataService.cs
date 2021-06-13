@@ -7,6 +7,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using BetterAPI.Data.Sqlite;
 
 namespace BetterAPI.Data
 {
@@ -24,6 +25,8 @@ namespace BetterAPI.Data
         bool SupportsSince => false;
         bool SupportsSearch => false;
         bool SupportsShaping => false;
+
+        ResourceDataDistribution? GetResourceDataDistribution(int revision);
     }
 
     /// <summary>

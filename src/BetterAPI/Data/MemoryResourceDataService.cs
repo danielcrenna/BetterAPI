@@ -76,5 +76,12 @@ namespace BetterAPI.Data
             error = false;
             return true;
         }
+
+        public ResourceDataDistribution GetResourceDataDistribution(int revision)
+        {
+            // FIXME: this is not particularly useful, as the memory store is typed and not multi-version
+            var model = new ResourceDataDistribution { Partition = "Memory", RowCount = _store.Count};
+            return model;
+        }
     }
 }

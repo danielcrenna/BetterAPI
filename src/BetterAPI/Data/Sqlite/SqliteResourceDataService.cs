@@ -304,5 +304,33 @@ namespace BetterAPI.Data.Sqlite
 
             return _reads.Type.Name;
         }
+
+        public ResourceDataDistribution? GetResourceDataDistribution(int revision)
+        {
+            var viewName = GetResourceName();
+
+            using var db = new SqliteConnection($"Data Source={FilePath}");
+            db.Open();
+            using var t = db.BeginTransaction();
+
+            var tableInfoList = db.Query<SqliteTableInfo>(SqliteBuilder.GetTableInfo(), new {name = $"{viewName}%"}, t)
+                .Where(x => !x.name.Contains("_Search"))
+                .AsList() ?? throw new NullReferenceException();
+
+            foreach (var tableInfo in tableInfoList)
+            {
+                var revisionString = Regex.Split(tableInfo.name, "([0-9])+$",
+                    RegexOptions.IgnoreCase | RegexOptions.Compiled)[1];
+
+                if (!int.TryParse(revisionString, out var tableRevision) || tableRevision != revision)
+                    continue;
+
+                var count = db.QuerySingle<long>($"SELECT COUNT(*) FROM \"{tableInfo.name}\"", transaction: t);
+                var result = new ResourceDataDistribution {Partition = tableInfo.name, RowCount = count};
+                return result;
+            }
+
+            return default;
+        }
     }
 }
