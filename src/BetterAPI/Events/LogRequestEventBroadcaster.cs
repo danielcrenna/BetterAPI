@@ -17,14 +17,17 @@ namespace BetterAPI.Events
 {
     /// <summary>
     /// Logs incoming requests trapped by an interceptor, if available.
+    /// This requires using `services.AddRequestInterception()` and `app.UseRequestInterception()` to function.
     /// </summary>
     public sealed class LogRequestEventBroadcaster : IRequestEventBroadcaster
     {
         private readonly IStringLocalizer<LogRequestEventBroadcaster> _localizer;
+        private readonly LogLevel _level;
 
-        public LogRequestEventBroadcaster(IStringLocalizer<LogRequestEventBroadcaster> localizer)
+        public LogRequestEventBroadcaster(IStringLocalizer<LogRequestEventBroadcaster> localizer, LogLevel level)
         {
             _localizer = localizer;
+            _level = level;
         }
 
         public async Task<bool> OnRequestAsync(HttpContext context, ILogger logger)
@@ -42,22 +45,26 @@ namespace BetterAPI.Events
             {
                 if (TryGetHeaderString(context.Request.Headers, out var headers))
                 {
-                    logger.LogInformation($"{prefix}: {context.Request.Method} {url} {context.Request.Protocol}" + Environment.NewLine + headers);
+                    if(logger.IsEnabled(_level))
+                        logger.Log(_level, $"{prefix}: {context.Request.Method} {url} {context.Request.Protocol}" + Environment.NewLine + headers);
                 }
                 else
                 {
-                    logger.LogInformation($"{prefix}: {context.Request.Method} {url} {context.Request.Protocol}");
+                    if(logger.IsEnabled(_level))
+                        logger.Log(_level, $"{prefix}: {context.Request.Method} {url} {context.Request.Protocol}");
                 }
             }
             else
             {
                 if (TryGetHeaderString(context.Request.Headers, out var headers))
                 {
-                    logger.LogInformation($"{prefix}: {context.Request.Method} {url} {context.Request.Protocol}" + Environment.NewLine + headers + Environment.NewLine + body);
+                    if(logger.IsEnabled(_level))
+                        logger.Log(_level, $"{prefix}: {context.Request.Method} {url} {context.Request.Protocol}" + Environment.NewLine + headers + Environment.NewLine + body);
                 }
                 else
                 {
-                    logger.LogInformation($"{prefix}: {context.Request.Method} {url} {context.Request.Protocol}" + Environment.NewLine + body);
+                    if(logger.IsEnabled(_level))
+                        logger.Log(_level, $"{prefix}: {context.Request.Method} {url} {context.Request.Protocol}" + Environment.NewLine + body);
                 }
             }
 
@@ -77,22 +84,26 @@ namespace BetterAPI.Events
             {
                 if (TryGetHeaderString(context.Response.Headers, out var headers))
                 {
-                    logger.LogInformation($"{prefix}: {context.Request.Method} {url} {context.Request.Protocol}" + Environment.NewLine + headers);
+                    if(logger.IsEnabled(_level))
+                        logger.Log(_level, $"{prefix}: {context.Request.Method} {url} {context.Request.Protocol}" + Environment.NewLine + headers);
                 }
                 else
                 {
-                    logger.LogInformation($"{prefix}: {context.Request.Method} {url} {context.Request.Protocol}");
+                    if(logger.IsEnabled(_level))
+                        logger.Log(_level, $"{prefix}: {context.Request.Method} {url} {context.Request.Protocol}");
                 }
             }
             else
             {
                 if (TryGetHeaderString(context.Response.Headers, out var headers))
                 {
-                    logger.LogInformation($"{prefix}: {context.Request.Method} {url} {context.Request.Protocol}" + Environment.NewLine + headers + Environment.NewLine + body);
+                    if(logger.IsEnabled(_level))
+                        logger.Log(_level, $"{prefix}: {context.Request.Method} {url} {context.Request.Protocol}" + Environment.NewLine + headers + Environment.NewLine + body);
                 }
                 else
                 {
-                    logger.LogInformation($"{prefix}: {context.Request.Method} {url} {context.Request.Protocol}" + Environment.NewLine + body);
+                    if(logger.IsEnabled(_level))
+                        logger.Log(_level, $"{prefix}: {context.Request.Method} {url} {context.Request.Protocol}" + Environment.NewLine + body);
                 }
             }
         }

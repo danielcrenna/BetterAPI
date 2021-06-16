@@ -35,6 +35,7 @@ using BetterAPI.Shaping;
 using BetterAPI.Sorting;
 using BetterAPI.Tokens;
 using BetterAPI.Versioning;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.AspNetCore.Mvc.Formatters;
@@ -49,10 +50,10 @@ namespace BetterAPI
         /// </summary>
         /// <param name="services"></param>
         /// <param name="configuration"></param>
+        /// <param name="environment"></param>
         /// <param name="assembly"></param>
         /// <returns></returns>
-        public static IServiceCollection AddApiServer(this IServiceCollection services,
-            IConfiguration configuration, Assembly? assembly = default)
+        public static IServiceCollection AddApiServer(this IServiceCollection services, IConfiguration configuration, IWebHostEnvironment environment, Assembly? assembly = default)
         {
             assembly ??= Assembly.GetEntryAssembly();
 
@@ -61,6 +62,7 @@ namespace BetterAPI
 
             // Core services:
             //
+            services.AddEventServices(environment);
             services.AddTimestamps();
             services.TryAddSingleton(assembly == default ? new ResourceTypeRegistry() : new ResourceTypeRegistry(assembly));
             services.TryAddSingleton<ApiRouter>();
@@ -74,11 +76,10 @@ namespace BetterAPI
             //
             services.AddApiLocalization();
             services.AddLongRunningOperations();
-            services.AddEventServices();
-            services.AddApiIdentity();
 
             // Each feature is available bespoke or bundled here by convention, and order matters:
             //
+            services.AddApiIdentity();
             services.AddGuidelinesCors(configuration.GetSection(nameof(ApiOptions.Cors)));
             services.AddRateLimiting(configuration.GetSection(nameof(ApiOptions.RateLimiting)));
             services.AddTokens(configuration.GetSection(nameof(ApiOptions.Tokens)));

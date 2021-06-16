@@ -29,7 +29,7 @@ namespace BetterAPI.Http.Interception
             _logger = loggerFactory.CreateLogger<RequestInterceptionMiddleware>();
         }
 
-        // ReSharper disable once UnusedMember.Global: Called via reflection
+        // ReSharper disable once UnusedMember.Global (middleware, called via reflection)
         public async Task Invoke(HttpContext context)
         {
             var options = context.RequestServices.GetRequiredService<IOptionsSnapshot<RequestInterceptionOptions>>();

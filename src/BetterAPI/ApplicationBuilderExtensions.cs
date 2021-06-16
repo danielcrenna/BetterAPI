@@ -10,7 +10,6 @@ using System.Net;
 using System.Threading.Tasks;
 using BetterAPI.Events;
 using BetterAPI.Guidelines.Cors;
-using BetterAPI.Http.Interception;
 using BetterAPI.Localization;
 using BetterAPI.Metrics;
 using BetterAPI.OpenApi;
