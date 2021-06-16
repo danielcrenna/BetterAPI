@@ -62,7 +62,7 @@ namespace BetterAPI
 
                 configure.Configure((context, app) =>
                 {
-                    app.UseApiServer();
+                    app.UseApiServer(context.HostingEnvironment);
 
                     //
                     // Calling `configure.UseStartup<TStartup>()` will replace our defaults, so call manually:

@@ -18,15 +18,15 @@ namespace BetterAPI.Events
     {
         public static IServiceCollection AddEventServices(this IServiceCollection services, IWebHostEnvironment environment)
         {
-            services.AddRequestInterception(o => o.Enabled = true);
-
             services.TryAddEnumerable(ServiceDescriptor.Singleton<IResourceEventBroadcaster, DeltaQueryResourceEventBroadcaster>());
 
             if (environment.IsDevelopment())
+            {
+                services.AddRequestInterception(o => o.Enabled = true);
+
                 services.TryAddEnumerable(ServiceDescriptor.Singleton<IRequestEventBroadcaster, LogRequestEventBroadcaster>(r => new LogRequestEventBroadcaster(
                     r.GetRequiredService<IStringLocalizer<LogRequestEventBroadcaster>>(), LogLevel.Information)));
-
-            services.TryAddEnumerable(ServiceDescriptor.Singleton<IRequestEventBroadcaster, SnapshotRequestEventBroadcaster>());
+            }
 
             return services;
         }

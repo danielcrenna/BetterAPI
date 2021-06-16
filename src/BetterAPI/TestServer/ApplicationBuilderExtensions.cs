@@ -6,18 +6,14 @@
 
 using BetterAPI.Http.Interception;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Hosting;
 
-namespace BetterAPI.Events
+namespace BetterAPI.TestServer
 {
     public static class ApplicationBuilderExtensions
     {
-        public static IApplicationBuilder UseEventServices(this IApplicationBuilder app, IWebHostEnvironment environment)
+        public static IApplicationBuilder UseTestCollector(this IApplicationBuilder app)
         {
-            if(environment.IsDevelopment())
-                app.UseRequestInterception();
-
+            app.UseRequestInterception();
             return app;
         }
     }

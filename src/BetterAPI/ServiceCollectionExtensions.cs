@@ -33,6 +33,7 @@ using BetterAPI.RateLimiting;
 using BetterAPI.Search;
 using BetterAPI.Shaping;
 using BetterAPI.Sorting;
+using BetterAPI.TestServer;
 using BetterAPI.Tokens;
 using BetterAPI.Versioning;
 using Microsoft.AspNetCore.Hosting;
@@ -63,13 +64,11 @@ namespace BetterAPI
             // Core services:
             //
             services.AddEventServices(environment);
+            services.AddTestCollector();
             services.AddTimestamps();
             services.TryAddSingleton(assembly == default ? new ResourceTypeRegistry() : new ResourceTypeRegistry(assembly));
             services.TryAddSingleton<ApiRouter>();
-            services.AddMetrics(o =>
-            {
-                o.AddServerTiming();
-            });
+            services.AddMetrics(o => { o.AddServerTiming(); });
             services.AddApiHealthChecks();
 
             // Background services:

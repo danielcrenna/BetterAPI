@@ -13,7 +13,9 @@ using BetterAPI.Guidelines.Cors;
 using BetterAPI.Localization;
 using BetterAPI.Metrics;
 using BetterAPI.OpenApi;
+using BetterAPI.TestServer;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -23,9 +25,10 @@ namespace BetterAPI
 {
     public static class ApplicationBuilderExtensions
     {
-        public static IApplicationBuilder UseApiServer(this IApplicationBuilder app)
+        public static IApplicationBuilder UseApiServer(this IApplicationBuilder app, IWebHostEnvironment environment)
         {
-            app.UseEventServices();
+            app.UseEventServices(environment);
+            app.UseTestCollector();
             app.UseServerTiming();
 
             app.Map("/ping", HandlePing);
