@@ -7,7 +7,6 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using BetterAPI.Reflection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.Extensions.Localization;
@@ -43,7 +42,7 @@ namespace BetterAPI.Events
 
             if (string.IsNullOrWhiteSpace(body))
             {
-                if (TryGetHeaderString(context.Request.Headers, out var headers))
+                if (context.Request.Headers.TryGetHeaderString(out var headers))
                 {
                     if(logger.IsEnabled(_level))
                         logger.Log(_level, $"{prefix}: {context.Request.Method} {url} {context.Request.Protocol}" + Environment.NewLine + headers);
@@ -56,7 +55,7 @@ namespace BetterAPI.Events
             }
             else
             {
-                if (TryGetHeaderString(context.Request.Headers, out var headers))
+                if (context.Request.Headers.TryGetHeaderString(out var headers))
                 {
                     if(logger.IsEnabled(_level))
                         logger.Log(_level, $"{prefix}: {context.Request.Method} {url} {context.Request.Protocol}" + Environment.NewLine + headers + Environment.NewLine + body);
@@ -82,7 +81,7 @@ namespace BetterAPI.Events
 
             if (string.IsNullOrWhiteSpace(body))
             {
-                if (TryGetHeaderString(context.Response.Headers, out var headers))
+                if (context.Response.Headers.TryGetHeaderString(out var headers))
                 {
                     if(logger.IsEnabled(_level))
                         logger.Log(_level, $"{prefix}: {context.Request.Method} {url} {context.Request.Protocol}" + Environment.NewLine + headers);
@@ -95,7 +94,7 @@ namespace BetterAPI.Events
             }
             else
             {
-                if (TryGetHeaderString(context.Response.Headers, out var headers))
+                if (context.Response.Headers.TryGetHeaderString(out var headers))
                 {
                     if(logger.IsEnabled(_level))
                         logger.Log(_level, $"{prefix}: {context.Request.Method} {url} {context.Request.Protocol}" + Environment.NewLine + headers + Environment.NewLine + body);
@@ -105,41 +104,6 @@ namespace BetterAPI.Events
                     if(logger.IsEnabled(_level))
                         logger.Log(_level, $"{prefix}: {context.Request.Method} {url} {context.Request.Protocol}" + Environment.NewLine + body);
                 }
-            }
-        }
-
-        private static bool TryGetHeaderString(IHeaderDictionary headers, out string? headersString)
-        {
-            var sb = Pooling.StringBuilderPool.Get();
-            try
-            {
-                var count = 0;
-                foreach (var (key, value) in headers)
-                {
-                    if (key.StartsWith(":"))
-                        continue; // ignore HTTP/2 stream pseudo-headers
-
-                    sb.Append(key);
-                    sb.Append(':');
-                    sb.Append(' ');
-                    sb.Append(value);
-                    count++;
-                    if(count < headers.Count)
-                        sb.AppendLine();
-                }
-
-                if (sb.Length == 0)
-                {
-                    headersString = default;
-                    return false;
-                }
-
-                headersString = sb.ToString();
-                return true;
-            }
-            finally
-            {
-                Pooling.StringBuilderPool.Return(sb);
             }
         }
     }

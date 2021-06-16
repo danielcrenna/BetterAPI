@@ -23,8 +23,10 @@ namespace BetterAPI.Events
             services.TryAddEnumerable(ServiceDescriptor.Singleton<IResourceEventBroadcaster, DeltaQueryResourceEventBroadcaster>());
 
             if (environment.IsDevelopment())
-                services.TryAddEnumerable(ServiceDescriptor.Singleton<IRequestEventBroadcaster>(r => new LogRequestEventBroadcaster(
+                services.TryAddEnumerable(ServiceDescriptor.Singleton<IRequestEventBroadcaster, LogRequestEventBroadcaster>(r => new LogRequestEventBroadcaster(
                     r.GetRequiredService<IStringLocalizer<LogRequestEventBroadcaster>>(), LogLevel.Information)));
+
+            services.TryAddEnumerable(ServiceDescriptor.Singleton<IRequestEventBroadcaster, SnapshotRequestEventBroadcaster>());
 
             return services;
         }

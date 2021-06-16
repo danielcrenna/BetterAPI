@@ -358,4 +358,9 @@ MigrationBackup/
 # lmdb caches
 **/logging/*.mdb
 **/locales/*.mdb
+
+# sqlite caches
 *.db
+
+# snapshot caches
+**/snapshots/*.snapshot
