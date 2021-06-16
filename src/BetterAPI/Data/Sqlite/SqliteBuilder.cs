@@ -410,11 +410,14 @@ namespace BetterAPI.Data.Sqlite
                     sb.Append("\"");
                 }
 
-                sb.Append(", \"Sequence\" FROM \"");
+                sb.Append(", \"Sequence\" FROM");
+                sb.Append(' ');
+                sb.Append('\"');
                 sb.Append(resource);
                 sb.Append("_V");
                 sb.Append(revision);
-                sb.Append("\" ");
+                sb.Append('\"');
+                sb.Append(' ');
 
                 foreach (var entry in tableInfoList)
                 {
@@ -425,7 +428,10 @@ namespace BetterAPI.Data.Sqlite
                     foreach (var column in fields)
                     {
                         if (j != 0)
-                            sb.Append(", ");
+                        {
+                            sb.Append(',');
+                            sb.Append(' ');
+                        }
 
                         if (!hash.ContainsKey(column.Name))
                         {
@@ -437,9 +443,9 @@ namespace BetterAPI.Data.Sqlite
                             continue;
                         }
 
-                        sb.Append("\"");
+                        sb.Append('\"');
                         sb.Append(column.Name);
-                        sb.Append("\"");
+                        sb.Append('\"');
                         j++;
                     }
 

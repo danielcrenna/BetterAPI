@@ -19,14 +19,12 @@ namespace Demo
         {
             services.AddChangeLog(builder =>
             {
-                // allows omitting child resources from the version graph
-                builder.AddMissingResources(); 
+                builder.AddMissingResources();                  // allows omitting child resources from the version graph
 
                 builder.AddResource<WeatherForecastV1>();
                 builder.ShipVersionOne();
                 
-                // has child resource ReporterV1
-                builder.AddResource<WeatherForecastV2>(); 
+                builder.AddResource<WeatherForecastV2>();       // has child resource ReporterV1
                 builder.ShipNextMinorVersion();
             });
 

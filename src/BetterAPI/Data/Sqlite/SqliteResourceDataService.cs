@@ -166,9 +166,7 @@ namespace BetterAPI.Data.Sqlite
                 if (_revision <= revision)
                     return;
 
-                CreateTableRevision(db, t, _revision);
-                CreateThroughTableRevisions(db, t, _revision);
-                RebuildView(db, t, tableInfoList, _revision);
+                Visit(db, t, _revision, tableInfoList);
             }
         }
 
@@ -265,17 +263,21 @@ namespace BetterAPI.Data.Sqlite
 
             var viewName = GetResourceName();
 
+            // check current partition first
             var sequence = db.QuerySingleOrDefault<long?>(SqliteBuilder.GetMaxSequence(viewName, revision),
                 transaction: t);
 
-            // account for the corner case of multiple revisions before the first insertion
-            while (previous != 1 && !sequence.HasValue)
+            while (!sequence.HasValue)
             {
                 sequence = db.QuerySingleOrDefault<long?>(
                     SqliteBuilder.GetMaxSequence(viewName, previous),
                     transaction: t);
 
                 previous--;
+
+                // account for multiple revisions before the first insertion
+                if (previous == 0)
+                    sequence = 0;
             }
 
             var nextSequence = sequence.GetValueOrDefault(0);

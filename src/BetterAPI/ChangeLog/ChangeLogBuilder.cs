@@ -36,7 +36,33 @@ namespace BetterAPI.ChangeLog
             Versions = _versions.ToImmutableDictionary();
             Services = services;
         }
-        
+
+        #region Options
+
+        /// <summary>
+        /// During validation, add any missing resources detected by the runtime when the change log is built.
+        ///     <remarks>
+        ///         Note that auto-added types will not get the benefit of an explicit resource name, so it is usually preferable to add them explicitly.
+        ///     </remarks> 
+        /// </summary>
+        public ChangeLogBuilder AddMissingResources()
+        {
+            _addMissingResources = true;
+            return this;
+        }
+
+        /// <summary>
+        /// During validation, throw an exception on any missing resources detected by the runtime when the change log is built.
+        /// This is the default, as it prevents accidental addition of resources without an explicit resource name.
+        /// </summary>
+        public ChangeLogBuilder IgnoreMissingResources()
+        {
+            _addMissingResources = false;
+            return this;
+        }
+
+        #endregion
+
         public ChangeLogBuilder AddResource<T>(string? name = default) where T : class, IResource
         {
             name ??= ResolveMissingResourceName<T>();
@@ -57,27 +83,8 @@ namespace BetterAPI.ChangeLog
             Services.AddResourceStore<T>(revision, "resources");
             return this;
         }
-
-        /// <summary>
-        /// During validation, add any missing resources detected by the runtime when the change log is built.
-        ///     <remarks>
-        ///         Note that auto-added types will not get the benefit of an explicit resource name, so it is usually preferable to add them explicitly.
-        ///     </remarks> 
-        /// </summary>
-        public ChangeLogBuilder AddMissingResources()
-        {
-            _addMissingResources = true;
-            return this;
-        }
-
-        /// <summary>
-        /// During validation, throw an exception on any missing resources detected by the runtime when the change log is built.
-        /// </summary>
-        public ChangeLogBuilder IgnoreMissingResources()
-        {
-            _addMissingResources = false;
-            return this;
-        }
+        
+        #region Shipping
 
         public ChangeLogBuilder ShipVersion(ApiVersion version)
         {
@@ -129,6 +136,8 @@ namespace BetterAPI.ChangeLog
 
             return ShipVersion(nextMajorVersion);
         }
+
+        #endregion
         
         public void Build()
         {
