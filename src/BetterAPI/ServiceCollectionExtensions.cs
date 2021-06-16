@@ -17,6 +17,7 @@ using BetterAPI.ChangeLog;
 using BetterAPI.DataProtection;
 using BetterAPI.DeltaQueries;
 using BetterAPI.Enveloping;
+using BetterAPI.Events;
 using BetterAPI.Filtering;
 using BetterAPI.Guidelines.Cors;
 using BetterAPI.HealthChecks;
@@ -170,10 +171,6 @@ namespace BetterAPI
             return services;
         }
 
-        public static IServiceCollection AddEventServices(this IServiceCollection services)
-        {
-            services.TryAddSingleton<IEventBroadcaster, DefaultEventBroadcaster>();
-            return services;
-        }
+        
     }
 }

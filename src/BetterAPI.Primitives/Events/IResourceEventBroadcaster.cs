@@ -4,11 +4,11 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
-namespace BetterAPI
+namespace BetterAPI.Events
 {
-    public interface IEventBroadcaster
+    public interface IResourceEventBroadcaster
     {
-        void Created<T>(T model);
-        void Updated<T>(T model);
+        void Created<T>(T model) where T : IResource;
+        void Updated<T>(T model) where T : IResource;
     }
 }

@@ -8,7 +8,9 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
+using BetterAPI.Events;
 using BetterAPI.Guidelines.Cors;
+using BetterAPI.Http.Interception;
 using BetterAPI.Localization;
 using BetterAPI.Metrics;
 using BetterAPI.OpenApi;
@@ -24,6 +26,7 @@ namespace BetterAPI
     {
         public static IApplicationBuilder UseApiServer(this IApplicationBuilder app)
         {
+            app.UseEventServices();
             app.UseServerTiming();
 
             app.Map("/ping", HandlePing);
@@ -35,7 +38,7 @@ namespace BetterAPI
                 app.AddServerHeader(context);
                 await next.Invoke();
             });
-            
+
             app.UseHttpsRedirection();
             app.UseApiGuidelines();
             app.UseStaticFiles();

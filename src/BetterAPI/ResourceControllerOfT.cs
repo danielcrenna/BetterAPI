@@ -5,6 +5,7 @@ using System.Threading;
 using BetterAPI.Caching;
 using BetterAPI.ChangeLog;
 using BetterAPI.Data;
+using BetterAPI.Events;
 using BetterAPI.Extensions;
 using BetterAPI.Filtering;
 using BetterAPI.Paging;
@@ -29,14 +30,14 @@ namespace BetterAPI
         private readonly IStringLocalizer<ResourceController<T>> _localizer;
         private readonly IResourceDataService<T> _service;
         private readonly IPageQueryStore _store;
-        private readonly IEventBroadcaster _events;
+        private readonly IResourceEventBroadcaster _resourceEvents;
         private readonly ChangeLogBuilder _changeLog;
         private readonly IOptionsSnapshot<ApiOptions> _options;
 
         public ResourceController(IStringLocalizer<ResourceController<T>> localizer, 
             IResourceDataService<T> service, 
             IPageQueryStore store, 
-            IEventBroadcaster events, 
+            IResourceEventBroadcaster resourceEvents, 
             ChangeLogBuilder changeLog,
             IOptionsSnapshot<ApiOptions> options,
             ILogger<ResourceController> logger) : base(localizer, options, logger)
@@ -44,7 +45,7 @@ namespace BetterAPI
             _localizer = localizer;
             _service = service;
             _store = store;
-            _events = events;
+            _resourceEvents = resourceEvents;
             _changeLog = changeLog;
             _options = options;
         }
@@ -330,7 +331,7 @@ namespace BetterAPI
                 return InternalServerErrorWithDetails("An unexpected error occurred saving this resource. An error was logged. Please try again later.");
             }
 
-            _events.Created(model);
+            _resourceEvents.Created(model);
             return Created($"{Request.Path}/{model.Id}", model);
         }
 
@@ -368,7 +369,7 @@ namespace BetterAPI
                 return InternalServerErrorWithDetails("An unexpected error occurred saving this resource. An error was logged. Please try again later.");
             }
 
-            _events.Updated(model);
+            _resourceEvents.Updated(model);
             return Ok(model);
         }
         
@@ -476,7 +477,7 @@ namespace BetterAPI
             // FIXME: Update
             // FIXME: NotModified
 
-            _events.Updated(resource);
+            _resourceEvents.Updated(resource);
             return Ok(resource);
         }
 
@@ -495,7 +496,7 @@ namespace BetterAPI
             // FIXME: Update
             // FIXME: NotModified
             
-            _events.Updated(resource);
+            _resourceEvents.Updated(resource);
             return Ok(resource);
         }
     }

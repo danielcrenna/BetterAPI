@@ -6,23 +6,26 @@
 
 using BetterAPI.DeltaQueries;
 
-namespace BetterAPI
+namespace BetterAPI.Events
 {
-    public sealed class DefaultEventBroadcaster : IEventBroadcaster
+    /// <summary>
+    /// Keeps delta queries up to date when resources change.
+    /// </summary>
+    public sealed class DeltaQueryResourceEventBroadcaster : IResourceEventBroadcaster
     {
         private readonly IDeltaQueryStore _deltas;
 
-        public DefaultEventBroadcaster(IDeltaQueryStore deltas)
+        public DeltaQueryResourceEventBroadcaster(IDeltaQueryStore deltas)
         {
             _deltas = deltas;
         }
 
-        public void Created<T>(T model)
+        public void Created<T>(T resource) where T : IResource
         {
-            _deltas.TryPushAdd<T>(model);
+            _deltas.TryPushAdd(resource);
         }
 
-        public void Updated<T>(T model)
+        public void Updated<T>(T resource) where T : IResource
         {
             throw new System.NotImplementedException();
         }

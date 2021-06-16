@@ -8,6 +8,7 @@ using System.ComponentModel.DataAnnotations;
 using BetterAPI.ChangeLog;
 using BetterAPI.Cryptography;
 using BetterAPI.Data;
+using BetterAPI.Events;
 using BetterAPI.Http;
 using BetterAPI.Paging;
 using Microsoft.AspNetCore.Mvc;
@@ -24,12 +25,12 @@ namespace BetterAPI.Identity
         public UserController(
             IResourceDataService<User> service, 
             IPageQueryStore store, 
-            IEventBroadcaster events,
+            IResourceEventBroadcaster resourceEvents,
             ChangeLogBuilder changeLog,
             IStringLocalizer<UserController> localizer,
             IOptionsSnapshot<ApiOptions> options, 
             ILogger<UserController> logger) 
-            : base(localizer, service, store, events, changeLog, options, logger)
+            : base(localizer, service, store, resourceEvents, changeLog, options, logger)
         {
             
         }
