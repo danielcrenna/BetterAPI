@@ -6,6 +6,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -59,7 +60,9 @@ namespace BetterAPI.Logging
                 Index(db, tx, KeyBuilder.BuildLogByDataKey("LOGLEVEL", GetLogLevelString(entry.LogLevel), key), key);
                 Index(db, tx, KeyBuilder.BuildLogByDataKey("EVENTID.ID", entry.EventId.Id.ToString(), key), key);
                 Index(db, tx, KeyBuilder.BuildLogByDataKey("EVENTID.NAME", entry.EventId.Name ?? "?"), key);
-                Index(db, tx, KeyBuilder.BuildLogByDataKey("MESSAGE", entry.Message, key), key);
+
+                // FIXME: need to properly append the value rather than use the value in the key, as it breaks the key size constraint
+                // Index(db, tx, KeyBuilder.BuildLogByDataKey("MESSAGE", entry.Message, key), key);
 
                 if (entry.Exception != null)
                 {
@@ -72,8 +75,20 @@ namespace BetterAPI.Logging
                 }
 
                 if (entry.Data != null)
+                {
                     foreach (var (k, v) in entry.Data)
-                        Index(db, tx, KeyBuilder.BuildLogByDataKey(k.ToUpperInvariant(), v?.ToUpperInvariant(), key), key);
+                    {
+                        var dataKey = KeyBuilder.BuildLogByDataKey(k.ToUpperInvariant(), v?.ToUpperInvariant(), key);
+                        if (dataKey.Length > MaxKeySizeBytes)
+                        {
+                            // FIXME: localize
+                            Trace.TraceWarning($"Did not index log data key '{k}' because it was {dataKey.Length} bytes long, and the key maximum is {MaxKeySizeBytes}");
+                            continue;
+                        }
+
+                        Index(db, tx, dataKey, dataKey);
+                    }
+                }
 
                 return tx.Commit() == MDBResultCode.Success;
             }, logger: null /* important: would cause a terminal write loop */);
