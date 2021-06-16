@@ -131,7 +131,6 @@ namespace BetterAPI.Data.Lmdb
             catch (Exception e)
             {
                 logger?.LogError(ErrorEvents.ErrorSavingResource, e, "Unable to write to lmdb transaction", e);
-                tx.Reset();
                 throw;
             }
         }
