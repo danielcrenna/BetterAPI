@@ -13,6 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\blowdart-ui\src\Blowdart.UI.Blazor\Blowdart.UI.Blazor.csproj" />
     <ProjectReference Include="..\src\BetterAPI.Primitives\BetterAPI.Primitives.csproj" />
   </ItemGroup>
 

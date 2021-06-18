@@ -23,22 +23,23 @@ namespace Demo
 
         [Required]
         [LastModified]
-        [Display(Description = "The date and time of the predicted forecast")]
+        [Display(Description = "The date and time of the predicted forecast", Order = 1)]
         public DateTime Date { get; set; }
 
         [Required]
-        [Display(Description = "The temperature in degrees Celsius")]
+        [Display(Description = "The temperature in degrees Celsius", Order = 2)]
         public int TemperatureC { get; set; }
 
-        [Display(Description = "The temperature in degrees Fahrenheit")]
+        [Display(Description = "The temperature in degrees Fahrenheit", Order = 3)]
         public int TemperatureF => 32 + (int) (TemperatureC / 0.5556f);
 
         [Required]
-        [Display(Description = "A human-readable summary of the temperature", Prompt = "Chilly")]
+        [Display(Description = "A human-readable summary of the temperature", Prompt = "Chilly", Order = 4)]
         [OneOf("Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching")]
         public string? Summary { get; set; }
 
         [ProtectedByPolicy("TopSecret")]
+        [Display(Description = "A secret message, only available to those with access.", Order = 5)]
         public string? SecretMessage { get; set; }
     }
 }

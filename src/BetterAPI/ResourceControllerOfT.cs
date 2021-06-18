@@ -6,7 +6,6 @@ using BetterAPI.Caching;
 using BetterAPI.ChangeLog;
 using BetterAPI.Data;
 using BetterAPI.Events;
-using BetterAPI.Extensions;
 using BetterAPI.Filtering;
 using BetterAPI.Paging;
 using BetterAPI.Patch;
@@ -83,6 +82,16 @@ namespace BetterAPI
             // In addition, services SHOULD include a Link header (see RFC 5988) to point to documentation for the resource in question:
             // Link: <{help}>; rel="help"
             Response.Headers.TryAdd(ApiHeaderNames.Link, $"<{Request.Scheme}://{Request.Host}/{Options.Value.OpenApiUiRoutePrefix?.TrimStart('/')}/index.html#{typeof(T).Name}>; rel=\"help\"");
+        }
+
+        [Display(Description = "Returns the data structure for this resource type, usually to inform user interfaces or migrations.")]
+        [HttpGet("format")]
+        [ProducesResponseType(typeof(ResourceFormat), StatusCodes.Status200OK)]
+        public IActionResult GetSchema(ApiVersion version, CancellationToken cancellationToken)
+        {
+            var format = _changeLog.BuildResourceFormat<T>(version);
+
+            return Ok(new One<ResourceFormat> { Value = format });
         }
 
         [Display(Description = "Returns all saved resources, with optional sorting, filtering, paging, shaping, and search criteria")]

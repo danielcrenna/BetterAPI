@@ -47,8 +47,7 @@ namespace BetterAPI.Reflection
             var properties = PropertyInfo ?? Enumerable.Empty<PropertyInfo>();
             var methods = MethodInfo ?? Enumerable.Empty<MethodInfo>();
 
-            MemberInfo = fields.Cast<MemberInfo>().Concat(properties).Concat(methods).OrderBy(TryOrderMemberInfo)
-                .ToArray();
+            MemberInfo = fields.Cast<MemberInfo>().Concat(properties).Concat(methods).OrderBy(TryOrderMemberInfo).ToArray();
             Members = NameToMember.Values.OrderBy(TryOrderMember).ToList();
         }
 
@@ -84,9 +83,10 @@ namespace BetterAPI.Reflection
         private static object TryOrderMemberInfo(MemberInfo m)
         {
             if (m.TryGetAttribute(true, out DisplayAttribute display) && display.GetOrder().HasValue)
-                return display.GetOrder().GetValueOrDefault();
+                return display.GetOrder().GetValueOrDefault(0);
 
-            return m.Name;
+            // FIXME: would be nice to be able to go back to lexicographical order as a fallback
+            return 0;
         }
 
         private static object TryOrderMember(AccessorMember m)
@@ -94,7 +94,8 @@ namespace BetterAPI.Reflection
             if (m.TryGetAttribute(out DisplayAttribute display) && display.GetOrder().HasValue)
                 return display.GetOrder().GetValueOrDefault();
 
-            return m.Name;
+            // FIXME: would be nice to be able to go back to lexicographical order as a fallback
+            return 0;
         }
 
         private void SetWith(Type type, AccessorMemberTypes types, AccessorMemberScope scope, BindingFlags flags)

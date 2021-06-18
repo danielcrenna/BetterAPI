@@ -7,36 +7,27 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using Microsoft.Extensions.Logging;
 
-namespace BetterAPI.Reflection
+namespace BetterAPI.Dashboard
 {
     public class ReflectionTypeResolver : ITypeResolver
     {
-        private readonly Lazy<IEnumerable<MethodInfo>> _loadedMethods;
         private readonly Lazy<IEnumerable<Type>> _loadedTypes;
         private readonly string[] _skipRuntimeAssemblies;
 
-        public ReflectionTypeResolver(IEnumerable<Assembly> assemblies, ILogger logger,
-            IEnumerable<string> skipRuntimeAssemblies = null)
+        public ReflectionTypeResolver()
         {
-            _loadedTypes = new Lazy<IEnumerable<Type>>(() => LoadTypes(assemblies, logger, typeof(object).GetTypeInfo().Assembly));
-            _loadedMethods = new Lazy<IEnumerable<MethodInfo>>(LoadMethods);
-
+            var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+            _loadedTypes = new Lazy<IEnumerable<Type>>(() => LoadTypes(assemblies, typeof(object).GetTypeInfo().Assembly));
             _skipRuntimeAssemblies = new[]
             {
                 "Microsoft.VisualStudio.ArchitectureTools.PEReader",
                 "Microsoft.IntelliTrace.Core, Version=16.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a"
             };
-            if (skipRuntimeAssemblies != null)
-                _skipRuntimeAssemblies = _skipRuntimeAssemblies.Concat(skipRuntimeAssemblies).ToArray();
         }
 
-        public ReflectionTypeResolver() : this(AppDomain.CurrentDomain.GetAssemblies(), null) { }
-
-        public Type FindByFullName(string typeName)
+        public Type? FindByFullName(string typeName)
         {
             foreach (var type in _loadedTypes.Value)
                 if (type.FullName != null && type.FullName.Equals(typeName, StringComparison.OrdinalIgnoreCase))
@@ -44,16 +35,8 @@ namespace BetterAPI.Reflection
 
             return null;
         }
-
-        private IEnumerable<MethodInfo> LoadMethods()
-        {
-            foreach (var type in _loadedTypes.Value)
-            foreach (var method in type.GetMethods())
-                yield return method;
-        }
-
-        private IEnumerable<Type> LoadTypes(IEnumerable<Assembly> assemblies, ILogger logger,
-            params Assembly[] skipAssemblies)
+        
+        private IEnumerable<Type> LoadTypes(IEnumerable<Assembly> assemblies, params Assembly[] skipAssemblies)
         {
             var types = new HashSet<Type>();
 
@@ -66,12 +49,14 @@ namespace BetterAPI.Reflection
                 try
                 {
                     foreach (var type in assembly.GetTypes())
+                    {
+                        // Console.WriteLine(type.FullName);
                         types.Add(type);
+                    }
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
-                    logger?.LogError(new EventId(500), e, "Failed to load types in assembly {AssemblyName}",
-                        assembly.GetName().Name);
+                    Console.WriteLine($"Failed to load types in assembly {assembly.GetName().Name}");
                 }
             }
 

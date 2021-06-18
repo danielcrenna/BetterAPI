@@ -7,10 +7,13 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Reflection;
 using BetterAPI.Data;
+using BetterAPI.DataProtection;
 using BetterAPI.Reflection;
+using BetterAPI.Validation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -306,6 +309,73 @@ namespace BetterAPI.ChangeLog
                 }
             }
             return revision;
+        }
+
+        public ResourceFormat BuildResourceFormat<T>(ApiVersion version)
+        {
+            var type = typeof(T);
+            var format = new ResourceFormat();
+
+            format.Type = type.FullName;
+
+            if (TryGetResourceNameForType(type, out var resourceName))
+                format.Name = resourceName;
+
+            format.Version = new ResourceVersion
+            {
+                DisplayName = version.ToString(),
+                GroupVersion = version.GroupVersion,
+                MajorVersion = version.MajorVersion,
+                MinorVersion = version.MinorVersion,
+                Status = version.Status
+            };
+
+            // already ordered by display attributes, if they exist
+            var members = AccessorMembers.Create(type, AccessorMemberTypes.Properties, AccessorMemberScope.Public);
+            
+            foreach (var member in members)
+            {
+                var field = new ResourceField
+                {
+                    Type = ResolveTypeName(member)
+                };
+
+                if (member.Name == "Id")
+                    field.IsHidden = true;
+
+                if (!member.CanWrite)
+                    field.IsReadOnly = true;
+
+                if (member.TryGetAttribute(out DisplayAttribute display))
+                {
+                    field.Name = display.GetName() ?? member.Name;
+                    field.Description = display.GetDescription();
+                    field.Prompt = display.GetPrompt();
+                    field.Order = display.GetOrder().GetValueOrDefault(0);
+                }
+                else
+                {
+                    field.Name = member.Name;
+                }
+
+                if (member.TryGetAttribute(out OneOfAttribute oneOf))
+                    field.Options.AddRange(oneOf.OneOfStrings);
+
+                if (member.TryGetAttribute(out ProtectedByPolicyAttribute policy))
+                    field.PolicyName = policy.PolicyName;
+
+                format.Fields.Add(field);
+            }
+
+            return format;
+        }
+        
+        private static string ResolveTypeName(AccessorMember member)
+        {
+            if (member.HasAttribute<OneOfAttribute>())
+                return "enum";
+
+            return member.Type.Name;
         }
     }
 }

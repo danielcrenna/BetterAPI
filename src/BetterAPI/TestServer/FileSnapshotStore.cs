@@ -5,7 +5,6 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -31,8 +30,10 @@ namespace BetterAPI.TestServer
             var sb = Pooling.StringBuilderPool.Get();
             try
             {
-                sb.AppendLine(context.Request.Method);
-                sb.AppendLine(url);
+                sb.Append(context.Request.Method);
+                sb.Append(' ');
+                sb.Append(url);
+                sb.Append(' ');
                 sb.AppendLine(context.Request.Protocol);
 
                 if (context.Request.Headers.TryGetHeaderString(out var headers))
@@ -57,8 +58,10 @@ namespace BetterAPI.TestServer
             var sb = Pooling.StringBuilderPool.Get();
             try
             {
-                sb.AppendLine(context.Request.Method);
-                sb.AppendLine(url);
+                sb.Append(context.Request.Method);
+                sb.Append(' ');
+                sb.Append(url);
+                sb.Append(' ');
                 sb.AppendLine(context.Request.Protocol);
 
                 if (context.Response.Headers.TryGetHeaderString(out var headers))
@@ -80,10 +83,15 @@ namespace BetterAPI.TestServer
         {
             var results = new List<SnapshotInfo>();
 
-            foreach (var file in Directory.EnumerateFiles("snapshots", "*.snapshot", SearchOption.AllDirectories)
-                .Select(x => x.Replace(".request", string.Empty).Replace(".response", string.Empty)).Distinct())
+            var source = Directory.EnumerateFiles("snapshots", "*.snapshot", SearchOption.AllDirectories);
+            var snapshots = source.Select(x => x.Replace(".request", string.Empty).Replace(".response", string.Empty)).Distinct();
+
+            foreach (var snapshot in snapshots)
             {
-                var id = Path.GetFileNameWithoutExtension(file);
+                if (cancellationToken.IsCancellationRequested)
+                    break;
+
+                var id = Path.GetFileNameWithoutExtension(snapshot);
 
                 var info = new SnapshotInfo
                 {

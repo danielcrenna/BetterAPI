@@ -31,13 +31,21 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BetterAPI.Dashboard", "Bett
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "lib", "lib", "{BE1AF075-90D2-4B8E-BE26-D1890CFA8EE8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BetterAPI.Media", "src\BetterAPI.Media\BetterAPI.Media\BetterAPI.Media.csproj", "{EA1F4D05-460D-41F1-AEF9-ACA6345D7544}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BetterAPI.Media", "src\BetterAPI.Media\BetterAPI.Media\BetterAPI.Media.csproj", "{EA1F4D05-460D-41F1-AEF9-ACA6345D7544}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BetterAPI.Http", "src\BetterAPI.Http\BetterAPI.Http\BetterAPI.Http.csproj", "{C45EC60E-37B0-407C-A1EB-89BEBC481D51}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BetterAPI.Http", "src\BetterAPI.Http\BetterAPI.Http\BetterAPI.Http.csproj", "{C45EC60E-37B0-407C-A1EB-89BEBC481D51}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BetterAPI.Guidelines", "src\BetterAPI.Guidelines\BetterAPI.Guidelines\BetterAPI.Guidelines.csproj", "{1C0EBDEE-0D1E-42F0-B2F4-3DDF22909D4E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BetterAPI.Guidelines", "src\BetterAPI.Guidelines\BetterAPI.Guidelines\BetterAPI.Guidelines.csproj", "{1C0EBDEE-0D1E-42F0-B2F4-3DDF22909D4E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BetterAPI.Benchmarks", "test\BetterAPI.Benchmarks\BetterAPI.Benchmarks\BetterAPI.Benchmarks.csproj", "{52AACFB3-59A2-4BB6-845E-CF4BFA50988A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BetterAPI.Benchmarks", "test\BetterAPI.Benchmarks\BetterAPI.Benchmarks\BetterAPI.Benchmarks.csproj", "{52AACFB3-59A2-4BB6-845E-CF4BFA50988A}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Blowdart.UI", "..\blowdart-ui\src\Blowdart.UI\Blowdart.UI.csproj", "{085E0FAB-2091-47F0-AAAB-35087D0198C3}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Blowdart.UI.Blazor", "..\blowdart-ui\src\Blowdart.UI.Blazor\Blowdart.UI.Blazor.csproj", "{6505AA05-E276-4BB6-ADAB-54022FF4B9EB}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Blowdart.UI.Web", "..\blowdart-ui\src\Blowdart.UI.Web\Blowdart.UI.Web.csproj", "{92A09386-7E92-4FD1-AB5B-580DADBB1003}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Blowdart.UI.Tests", "..\blowdart-ui\test\Blowdart.UI.Tests\Blowdart.UI.Tests.csproj", "{9E1647FF-DFF3-4AE7-B9AB-7B5ADEDB1865}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -101,6 +109,22 @@ Global
 		{52AACFB3-59A2-4BB6-845E-CF4BFA50988A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{52AACFB3-59A2-4BB6-845E-CF4BFA50988A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{52AACFB3-59A2-4BB6-845E-CF4BFA50988A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{085E0FAB-2091-47F0-AAAB-35087D0198C3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{085E0FAB-2091-47F0-AAAB-35087D0198C3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{085E0FAB-2091-47F0-AAAB-35087D0198C3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{085E0FAB-2091-47F0-AAAB-35087D0198C3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6505AA05-E276-4BB6-ADAB-54022FF4B9EB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6505AA05-E276-4BB6-ADAB-54022FF4B9EB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6505AA05-E276-4BB6-ADAB-54022FF4B9EB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6505AA05-E276-4BB6-ADAB-54022FF4B9EB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{92A09386-7E92-4FD1-AB5B-580DADBB1003}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{92A09386-7E92-4FD1-AB5B-580DADBB1003}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{92A09386-7E92-4FD1-AB5B-580DADBB1003}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{92A09386-7E92-4FD1-AB5B-580DADBB1003}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9E1647FF-DFF3-4AE7-B9AB-7B5ADEDB1865}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9E1647FF-DFF3-4AE7-B9AB-7B5ADEDB1865}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9E1647FF-DFF3-4AE7-B9AB-7B5ADEDB1865}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9E1647FF-DFF3-4AE7-B9AB-7B5ADEDB1865}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -114,6 +138,10 @@ Global
 		{EA1F4D05-460D-41F1-AEF9-ACA6345D7544} = {BE1AF075-90D2-4B8E-BE26-D1890CFA8EE8}
 		{C45EC60E-37B0-407C-A1EB-89BEBC481D51} = {BE1AF075-90D2-4B8E-BE26-D1890CFA8EE8}
 		{1C0EBDEE-0D1E-42F0-B2F4-3DDF22909D4E} = {BE1AF075-90D2-4B8E-BE26-D1890CFA8EE8}
+		{085E0FAB-2091-47F0-AAAB-35087D0198C3} = {BE1AF075-90D2-4B8E-BE26-D1890CFA8EE8}
+		{6505AA05-E276-4BB6-ADAB-54022FF4B9EB} = {BE1AF075-90D2-4B8E-BE26-D1890CFA8EE8}
+		{92A09386-7E92-4FD1-AB5B-580DADBB1003} = {BE1AF075-90D2-4B8E-BE26-D1890CFA8EE8}
+		{9E1647FF-DFF3-4AE7-B9AB-7B5ADEDB1865} = {BE1AF075-90D2-4B8E-BE26-D1890CFA8EE8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {44130FF5-3D64-4C21-A1A1-CFDCCB7E9C22}

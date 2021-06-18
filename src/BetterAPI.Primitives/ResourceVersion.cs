@@ -8,8 +8,12 @@ using System;
 
 namespace BetterAPI
 {
-    public interface ITypeResolver
+    public sealed class ResourceVersion
     {
-        Type? FindByFullName(string fullName);
+        public string? DisplayName { get; set; }
+        public DateTime? GroupVersion { get; set; }
+        public int? MajorVersion { get; set; }
+        public int? MinorVersion { get; set; }
+        public string? Status { get; set; }
     }
 }
