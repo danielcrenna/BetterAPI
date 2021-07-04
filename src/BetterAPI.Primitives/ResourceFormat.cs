@@ -13,8 +13,10 @@ namespace BetterAPI
         public string? Name { get; set; }
         public ResourceVersion? Version { get; set; }
         public List<ResourceField> Fields { get; set; }
+        
+        public string? AssemblyName { get; set; }
         public string? Type { get; set; }
-
+        
         public ResourceFormat()
         {
             Fields = new List<ResourceField>();

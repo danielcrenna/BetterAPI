@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.ComponentModel.DataAnnotations;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using BetterAPI.Data;
@@ -314,9 +315,11 @@ namespace BetterAPI.ChangeLog
         public ResourceFormat BuildResourceFormat<T>(ApiVersion version)
         {
             var type = typeof(T);
-            var format = new ResourceFormat();
-
-            format.Type = type.FullName;
+            var format = new ResourceFormat
+            {
+                AssemblyName = Path.GetFileName(type.Assembly.Location),
+                Type = type.FullName
+            };
 
             if (TryGetResourceNameForType(type, out var resourceName))
                 format.Name = resourceName;

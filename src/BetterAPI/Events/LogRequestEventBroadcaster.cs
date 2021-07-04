@@ -6,6 +6,7 @@
 
 using System;
 using System.IO;
+using System.Net.Mime;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
@@ -34,8 +35,14 @@ namespace BetterAPI.Events
             // required to be able to rewind the request for deferred execution
             context.Request.EnableBuffering(); 
 
-            using var sr = new StreamReader(context.Request.Body, leaveOpen: true);
-            var body = await sr.ReadToEndAsync();
+            string body;
+            if(!string.IsNullOrWhiteSpace(context.Request.ContentType) && context.Request.ContentType.Equals(MediaTypeNames.Application.Octet, StringComparison.OrdinalIgnoreCase))
+                body = "[BINARY]";
+            else
+            {
+                using var sr = new StreamReader(context.Request.Body, leaveOpen: true);
+                body = await sr.ReadToEndAsync();
+            }
 
             var url = context.Request.GetDisplayUrl();
             var prefix = _localizer.GetString("REQUEST");
@@ -73,8 +80,14 @@ namespace BetterAPI.Events
 
         public async Task OnResponseAsync(HttpContext context, ILogger logger)
         {
-            using var sr = new StreamReader(context.Response.Body, leaveOpen: true);
-            var body = await sr.ReadToEndAsync();
+            string body;
+            if(!string.IsNullOrWhiteSpace(context.Response.ContentType) && context.Response.ContentType.Equals(MediaTypeNames.Application.Octet, StringComparison.OrdinalIgnoreCase))
+                body = "[BINARY]";
+            else
+            {
+                using var sr = new StreamReader(context.Response.Body, leaveOpen: true);
+                body = await sr.ReadToEndAsync();
+            }
 
             var url = context.Request.GetDisplayUrl();
             var prefix = _localizer.GetString("RESPONSE");

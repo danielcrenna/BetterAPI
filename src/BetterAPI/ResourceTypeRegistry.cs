@@ -18,7 +18,9 @@ namespace BetterAPI
 
         private readonly IDictionary<string, Type> _types;
 
-        public ResourceTypeRegistry(params Assembly[] assemblies)
+        public ResourceTypeRegistry() : this(Enumerable.Empty<Assembly>()) { }
+
+        public ResourceTypeRegistry(IEnumerable<Assembly> assemblies)
         {
             _types = new Dictionary<string, Type>();
 

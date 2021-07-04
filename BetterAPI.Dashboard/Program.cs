@@ -4,7 +4,6 @@ using System;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 
 namespace BetterAPI.Dashboard
@@ -25,9 +24,6 @@ namespace BetterAPI.Dashboard
 
             var section = builder.Configuration.GetSection("Logging");
             builder.Logging.AddConfiguration(section);
-
-            builder.Services.TryAddSingleton<ITypeResolver, ReflectionTypeResolver>();
-            
             await builder.Build().RunAsync();
         }
     }

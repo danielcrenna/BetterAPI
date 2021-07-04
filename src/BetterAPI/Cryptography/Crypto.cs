@@ -34,6 +34,13 @@ namespace BetterAPI.Cryptography
 
         #region Utilities
 
+        public static byte[] Nonce(uint size)
+        {
+            var buffer = new byte[size];
+            FillNonZeroBytes(buffer, size);
+            return buffer;
+        }
+
         public static void FillNonZeroBytes(Span<byte> buffer)
         {
             unsafe
@@ -108,6 +115,35 @@ namespace BetterAPI.Cryptography
                     var ptr = NativeMethods.sodium_bin2hex(h, hex.Length, b, bin.Length);
                     return Marshal.PtrToStringAnsi(ptr);
                 }
+            }
+        }
+
+        public static string? Fingerprint(this ReadOnlySpan<byte> publicKey, string value)
+        {
+            return GenericHash(publicKey, value, 8);
+        }
+
+        public static string? GenericHash(ReadOnlySpan<byte> publicKey, string value, int length)
+        {
+            return GenericHash(publicKey, new byte[length], value);
+        }
+
+        public static string? GenericHash(ReadOnlySpan<byte> publicKey, Span<byte> buffer, string value)
+        {
+            var data = Encoding.UTF8.GetBytes(value);
+
+            unsafe
+            {
+                fixed (byte* pk = publicKey)
+                fixed (byte* id = buffer)
+                fixed (byte* key = data)
+                {
+                    if (NativeMethods.crypto_generichash(id, buffer.Length, pk, PublicKeyBytes, key, data.Length) != 0)
+                        throw new InvalidOperationException(nameof(NativeMethods.crypto_generichash));
+                }
+
+                var hash = ToHexString(buffer);
+                return hash;
             }
         }
 

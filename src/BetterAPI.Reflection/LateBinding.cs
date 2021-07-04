@@ -351,8 +351,7 @@ namespace BetterAPI.Reflection
                         throw new ArgumentNullException();
                     var targetParam = Expression.Parameter(typeof(object), "target");
                     var call = Expression.Call(Expression.Convert(targetParam, declaringType), getMethod);
-                    var lambda =
-                        Expression.Lambda<Func<object, object>>(Expression.Convert(call, typeof(object)), targetParam);
+                    var lambda = Expression.Lambda<Func<object, object>>(Expression.Convert(call, typeof(object)), targetParam);
                     return lambda.Compile();
                 }
 

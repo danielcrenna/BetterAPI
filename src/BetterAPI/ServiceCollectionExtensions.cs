@@ -4,6 +4,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text.Json;
@@ -14,6 +16,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using BetterAPI.Caching;
 using BetterAPI.ChangeLog;
+using BetterAPI.Cryptography;
 using BetterAPI.DataProtection;
 using BetterAPI.DeltaQueries;
 using BetterAPI.Enveloping;
@@ -21,6 +24,7 @@ using BetterAPI.Events;
 using BetterAPI.Filtering;
 using BetterAPI.Guidelines.Cors;
 using BetterAPI.HealthChecks;
+using BetterAPI.Http.RemoteAddress;
 using BetterAPI.Identity;
 using BetterAPI.Metrics;
 using BetterAPI.Paging;
@@ -52,11 +56,15 @@ namespace BetterAPI
         /// <param name="services"></param>
         /// <param name="configuration"></param>
         /// <param name="environment"></param>
-        /// <param name="assembly"></param>
+        /// <param name="resourceAssemblies"></param>
         /// <returns></returns>
-        public static IServiceCollection AddApiServer(this IServiceCollection services, IConfiguration configuration, IWebHostEnvironment environment, Assembly? assembly = default)
+        public static IServiceCollection AddApiServer(this IServiceCollection services, 
+            IConfiguration configuration, 
+            IWebHostEnvironment environment,
+            IEnumerable<Assembly>? resourceAssemblies = default)
         {
-            assembly ??= Assembly.GetEntryAssembly();
+            var startupAssembly = Assembly.GetEntryAssembly() ?? throw new NullReferenceException();
+            resourceAssemblies ??= new List<Assembly>();
 
             services.AddOptions();
             services.Configure<ApiOptions>(configuration);
@@ -66,7 +74,7 @@ namespace BetterAPI
             services.AddEventServices(environment);
             services.AddTestCollector();
             services.AddTimestamps();
-            services.TryAddSingleton(assembly == default ? new ResourceTypeRegistry() : new ResourceTypeRegistry(assembly));
+            services.TryAddSingleton(startupAssembly == default ? new ResourceTypeRegistry() : new ResourceTypeRegistry(resourceAssemblies));
             services.TryAddSingleton<ApiRouter>();
             services.AddMetrics(o => { o.AddServerTiming(); });
             services.AddApiHealthChecks();
@@ -134,7 +142,24 @@ namespace BetterAPI
                 x.FeatureProviders.Add(new ApiGuidelinesControllerFeatureProvider(services.GetChangeLog()));
             });
 
-            services.AddOpenApi(assembly);
+            services.AddOpenApi(startupAssembly);
+
+
+            // FIXME: add cryptography options for startup
+            services.AddInProcessCache();
+            services.AddRemoteAddressFilter();
+            services.Configure<ServerOptions>(x =>
+            {
+                Crypto.Initialize();
+                unsafe
+                {
+                    Crypto.GenerateKeyPair(out var pk, out var sk);
+                    x.PublicKey = pk;
+
+                    var appString = $"{environment.ApplicationName}:{environment.EnvironmentName}";
+                    x.ServerId = Crypto.Fingerprint(pk, appString);
+                }
+            });
 
             return services;
         }

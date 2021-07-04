@@ -85,8 +85,31 @@ namespace BetterAPI.Caching
 
         public void Clear()
         {
-            if (Cache is MemoryCache memory)
-                memory.Compact(1);
+            if (!(Cache is MemoryCache memory))
+                return;
+
+            memory.Compact(1);
+        }
+
+        public void Clear(string prefix)
+        {
+            if (!(Cache is MemoryCache memory))
+                return;
+
+            var collection = typeof(MemoryCache).GetProperty("EntriesCollection", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (!(collection?.GetValue(memory) is ICollection entries))
+                return;
+
+            foreach (var entry in entries)
+            {
+                var property = entry.GetType().GetProperty(nameof(ICacheEntry.Key));
+                var value = property?.GetValue(entry);
+                if (!(value is string key))
+                    continue;
+
+                if (key.StartsWith(prefix))
+                    memory.Remove(key);
+            }
         }
 
         #endregion

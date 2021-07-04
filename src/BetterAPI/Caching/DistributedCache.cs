@@ -57,6 +57,11 @@ namespace BetterAPI.Caching
             _cache.Remove(key);
         }
 
+        public void RemoveAll(string prefix)
+        {
+            throw new NotSupportedException();
+        }
+
         private static bool Try(Action closure)
         {
             try

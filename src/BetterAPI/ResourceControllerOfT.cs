@@ -1,7 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.IO;
+using System.Linq;
+using System.Reflection;
 using System.Threading;
+using System.Threading.Tasks;
 using BetterAPI.Caching;
 using BetterAPI.ChangeLog;
 using BetterAPI.Data;
@@ -87,11 +91,29 @@ namespace BetterAPI
         [Display(Description = "Returns the data structure for this resource type, usually to inform user interfaces or migrations.")]
         [HttpGet("format")]
         [ProducesResponseType(typeof(ResourceFormat), StatusCodes.Status200OK)]
-        public IActionResult GetSchema(ApiVersion version, CancellationToken cancellationToken)
+        public IActionResult GetResourceFormat(ApiVersion version, CancellationToken cancellationToken)
         {
             var format = _changeLog.BuildResourceFormat<T>(version);
 
             return Ok(new One<ResourceFormat> { Value = format });
+        }
+
+        [HttpGet("format/{resourceDll}")]
+        [ProducesResponseType(typeof(ResourceFormat), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetResourceBinary(ApiVersion version, string resourceDll, CancellationToken cancellationToken)
+        {
+            // FIXME: add all kinds of protections here
+
+            foreach(var assembly in AppDomain.CurrentDomain.GetAssemblies()
+                .Where(x => Path.GetFileName(x.Location).Equals(resourceDll, StringComparison.OrdinalIgnoreCase)))
+            {
+                if (string.IsNullOrWhiteSpace(assembly.Location))
+                    continue;
+                var buffer = await System.IO.File.ReadAllBytesAsync(assembly.Location, cancellationToken);
+                return File(buffer, "application/octet-stream");
+            }
+
+            return NotFound();
         }
 
         [Display(Description = "Returns all saved resources, with optional sorting, filtering, paging, shaping, and search criteria")]

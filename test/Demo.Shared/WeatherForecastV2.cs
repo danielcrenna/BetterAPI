@@ -8,7 +8,6 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using BetterAPI;
-using BetterAPI.Caching;
 using BetterAPI.DataProtection;
 
 namespace Demo

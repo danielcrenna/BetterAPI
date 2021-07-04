@@ -38,24 +38,38 @@ namespace BetterAPI.Guidelines.Cors
 
             var options = new CorsOptions();
             configureAction?.Invoke(options);
-
+            
             if (options.EchoOrigin)
             {
                 services.TryAdd(ServiceDescriptor.Transient<ICorsPolicyProvider, EchoOriginCorsPolicyProvider>(r =>
                     new EchoOriginCorsPolicyProvider(new DefaultCorsPolicyProvider(
                         r.GetRequiredService<IOptions<MsCorsOptions>>()))));
-            }
 
-            services.AddCors(o =>
-            {
-                o.AddDefaultPolicy(x =>
+                services.AddCors(o =>
                 {
-                    x.AllowAnyOrigin();
-                    x.AllowAnyHeader();
-                    x.AllowAnyMethod();
-                    x.DisallowCredentials();
+                    o.AddDefaultPolicy(x =>
+                    {
+                        x.WithOrigins("https://microsoft.com");
+                        x.AllowAnyHeader();
+                        x.AllowAnyMethod();
+                        x.DisallowCredentials();
+                    });
                 });
-            });
+            }
+            else
+            {
+                services.AddCors(o =>
+                {
+                    o.AddDefaultPolicy(x =>
+                    {
+                        x.AllowAnyOrigin();
+                        x.AllowAnyHeader();
+                        x.AllowAnyMethod();
+                        x.DisallowCredentials();
+                    });
+                });
+            }
+            
 
             return services;
         }

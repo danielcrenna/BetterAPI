@@ -1,11 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Reflection;
-using System.Reflection.Metadata.Ecma335;
-using System.Text;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -17,7 +12,7 @@ namespace BetterAPI.OpenApi
 {
     public static class ServiceCollectionExtensions
     {
-        public static IServiceCollection AddOpenApi(this IServiceCollection services, Assembly? assembly = default)
+        public static IServiceCollection AddOpenApi(this IServiceCollection services, Assembly? startupAssembly = default)
         {
             services.AddSingleton<IConfigureOptions<SwaggerGenOptions>, ConfigureSwaggerGenOptions>();
             services.AddSwaggerGen(o =>
@@ -30,7 +25,7 @@ namespace BetterAPI.OpenApi
                 // Set the comments path for the Swagger JSON and UI.
                 // See: https://docs.microsoft.com/en-us/aspnet/core/tutorials/getting-started-with-swashbuckle?view=aspnetcore-5.0&tabs=visual-studio#xml-comments
                 //
-                var assemblyName = assembly?.GetName().Name;
+                var assemblyName = startupAssembly?.GetName().Name;
                 var xmlFile = $"{assemblyName}.xml";
                 var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
                 if(File.Exists(xmlPath))

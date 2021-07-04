@@ -23,12 +23,12 @@ namespace BetterAPI.Identity
     public sealed class UserController : ResourceController<User>
     {
         public UserController(
-            IResourceDataService<User> service, 
-            IPageQueryStore store, 
+            IStringLocalizer<UserController> localizer,
+            IResourceDataService<User> service,
+            IPageQueryStore store,
             IResourceEventBroadcaster resourceEvents,
             ChangeLogBuilder changeLog,
-            IStringLocalizer<UserController> localizer,
-            IOptionsSnapshot<ApiOptions> options, 
+            IOptionsSnapshot<ApiOptions> options,
             ILogger<UserController> logger) 
             : base(localizer, service, store, resourceEvents, changeLog, options, logger)
         {

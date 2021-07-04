@@ -1,52 +1,69 @@
 ﻿@page "/create"
 
-@using Microsoft.AspNetCore.Components.Rendering
 @using Blowdart.UI
 @using Blowdart.UI.Blazor
-@using ITypeResolver = BetterAPI.ITypeResolver
+@using System.Reflection
+@using BetterAPI.Reflection
+@using Value128 = Blowdart.UI.Value128
+@using Blowdart.UI.Blazor.Components
+@using Microsoft.AspNetCore.Components.Rendering
 
 @inject HttpClient Http
-@inject ITypeResolver TypeResolver
 
 <h1>Editor</h1>
 <hr />
 
-@if (_format == null)
+@if (_format == null || _model == null)
 {
     <p><em>Loading...</em></p>
 }
 else
 {
     <div class="row">
-        <form>
+        <EditForm Model="@_model">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
             @RenderEditor(_format)
 
             <div class="form-group">
                 <button type="submit" class="btn btn-primary">Save</button>
             </div>
-        </form>
+        </EditForm>
     </div>
 }
 
 @code {
-    private ResourceFormat _format;
+    private ResourceFormat? _format;
+    private readonly Dictionary<string, Assembly> _assemblies = new Dictionary<string, Assembly>();
+    private object _model;
+    private ITypeReadAccessor _reader;
+    private ITypeWriteAccessor _writer;
+    private AccessorMembers _members;
 
     protected override async Task OnInitializedAsync()
     {
         var response = await Http.GetFromJsonAsync<One<ResourceFormat>>("v1/weatherforecasts/format");
         _format = response?.Value;
 
-        // See: https://docs.microsoft.com/en-us/aspnet/core/blazor/webassembly-lazy-load-assemblies?view=aspnetcore-5.0
-        // See: https://www.oqtane.org/Resources/Blog/PostId/523/assembly-loading-in-blazor-and-net-core
-        if (_format?.Type != null)
+        if (!string.IsNullOrWhiteSpace(_format?.Type) &&
+            !string.IsNullOrWhiteSpace(_format?.AssemblyName) &&
+            !_assemblies.ContainsKey(_format?.AssemblyName ?? throw new NullReferenceException()))
         {
-            var type = TypeResolver.FindByFullName(_format.Type);
+            var assemblyName = _format?.AssemblyName ?? throw new NullReferenceException();
+
+            var buffer = await Http.GetByteArrayAsync("v1/weatherforecasts/format/" + assemblyName);
+            var assembly = Assembly.Load(buffer);
+            _assemblies.Add(assemblyName, assembly);
+
+            var type = FindTypeByFullName(assembly, _format?.Type ?? throw new NullReferenceException());
             if (type != null)
             {
-                Console.WriteLine("Type is " + type.FullName);
+                Console.WriteLine("Type found was " + type.FullName);
+                _model = Activator.CreateInstance(type) ?? throw new NullReferenceException();
+                _reader = ReadAccessor.Create(type, AccessorMemberTypes.Properties, AccessorMemberScope.Public, out _members);
+                _writer = WriteAccessor.Create(type, AccessorMemberTypes.Properties, AccessorMemberScope.Public);
             }
         }
-
     }
 
     public RenderFragment RenderEditor(ResourceFormat format) => b =>
@@ -67,92 +84,33 @@ else
 
         b.hr();
 
-        foreach (var field in format.Fields)
+        var form = new FormModel
         {
-            RenderInput(b, ref nextIdHash, format, field);
+            Name = format.Name,
+            Fields = new List<FieldModel>(format.Fields.Select(x => new FieldModel
+            {
+                IsHidden = x.IsHidden,
+                IsProtected = !string.IsNullOrWhiteSpace(x.PolicyName),
+                IsReadOnly = x.IsReadOnly,
+                Name = x.Name,
+                Options = x.Options,
+                Prompt = x.Prompt,
+                Type = x.Type
+            }))
+        };
+
+        foreach (var field in form.Fields)
+        {
+            b.FormField(_model, form, field, ref nextIdHash);
         }
     };
-
-    private static void RenderInput(RenderTreeBuilder b, ref Value128 nextIdHash, ResourceFormat format, ResourceField field)
+    
+    public Type FindTypeByFullName(Assembly assembly, string typeFullName)
     {
-        var id = Ids.NextId(ref nextIdHash, $"{format.Name}.{field.Name}");
+        foreach (var type in assembly.GetTypes())
+            if (type.FullName != null && type.FullName.Equals(typeFullName, StringComparison.OrdinalIgnoreCase))
+                return type;
 
-        b.BeginDiv();
-        b.AddAttribute("class", "form-group");
-
-        if (!field.IsHidden)
-        {
-            b.BeginLabel();
-            b.AddAttribute("for", id);
-            b.AddContent(field.Name);
-            b.EndLabel();
-        }
-
-        if (field.Type == "enum")
-        {
-            b.BeginSelect();
-            b.AddAttribute("id", id);
-            b.AddAttribute("class", "form-control");
-
-            if (field.IsReadOnly)
-                b.AddAttribute("readonly", true);
-
-            foreach (var option in field.Options)
-            {
-                b.BeginOption();
-                b.AddContent(option);
-                b.EndOption();
-            }
-            b.EndSelect();
-        }
-        else
-        {
-            b.BeginInput();
-            b.AddAttribute("id", id);
-            b.AddAttribute("class", "form-control");
-
-            switch (field.Type?.ToLowerInvariant())
-            {
-                case "int16":
-                case "int32":
-                case "int64":
-                case "uint16":
-                case "uint32":
-                case "uint64":
-                    // See: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/number
-                    b.AddAttribute("type", "number");
-                    break;
-
-                case "single":
-                case "double":
-                case "decimal":
-                    b.AddAttribute("type", "number");
-                    b.AddAttribute("step", "0.1");
-                    break;
-
-                default:
-                    if (field.IsHidden)
-                        b.AddAttribute("type", "hidden");
-                    else
-                    {
-                        if (!string.IsNullOrWhiteSpace(field.PolicyName))
-                            b.AddAttribute("type", "password");
-                        else
-                            b.AddAttribute("type", "text");
-                    }
-                    break;
-            }
-
-            if (field.IsReadOnly)
-                b.AddAttribute("readonly", true);
-
-            if (!string.IsNullOrWhiteSpace(field.Prompt))
-                b.AddAttribute("placeholder", field.Prompt);
-
-            b.EndInput();
-        }
-
-        b.EndDiv();
+        return default;
     }
-
 }

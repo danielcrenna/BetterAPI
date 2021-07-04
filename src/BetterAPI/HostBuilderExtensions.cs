@@ -5,6 +5,10 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using BetterAPI.Identity;
 using BetterAPI.Logging;
 using BetterAPI.Reflection;
 using Microsoft.AspNetCore.Hosting;
@@ -16,8 +20,7 @@ namespace BetterAPI
 {
     public static class HostBuilderExtensions
     {
-        public static IHostBuilder ConfigureApiServer<TStartup>(this IHostBuilder builder,
-            Func<IConfiguration, IConfiguration>? configSelector = default) where TStartup : class
+        public static IHostBuilder ConfigureApiServer<TStartup>(this IHostBuilder builder, Func<IConfiguration, IConfiguration>? configSelector = default) where TStartup : class
         {
             TStartup? startup = default;
 
@@ -44,12 +47,45 @@ namespace BetterAPI
                         ? configSelector(context.Configuration)
                         : context.Configuration.GetSection(Constants.DefaultConfigSection);
 
-                    services.AddApiServer(config, context.HostingEnvironment, typeof(TStartup).Assembly);
+                    var startupAssembly = typeof(TStartup).Assembly;
+
+                    // Resource assemblies:
+                    //
+                    foreach (var dependent in startupAssembly.GetReferencedAssemblies())
+                    {
+                        Assembly.Load(dependent);
+                    }
+                    var resourceAssemblies = new HashSet<Assembly>
+                    {
+                        // BetterAPI
+                        typeof(ApiOptions).Assembly, 
+
+                        // BetterAPI.Primitives
+                        typeof(User).Assembly,
+
+                        // User application
+                        startupAssembly
+                    };
+                    foreach (var type in AppDomain.CurrentDomain.GetAssemblies()
+                        .Where(a => !a.IsDynamic)
+                        .SelectMany(x => x.GetTypes()))
+                    {
+                        if (type.IsInterface || !typeof(IResource).IsAssignableFrom(type))
+                            continue;
+                        if (resourceAssemblies.Contains(type.Assembly))
+                            continue;
+
+                        resourceAssemblies.Add(type.Assembly);
+                    }
+
+                    services.AddApiServer(config, context.HostingEnvironment, resourceAssemblies);
 
                     //
                     // The default ApplicationPartManager relies on the entryAssemblyName, which is this library.
                     // So we need to register the calling application's own controllers as well, here.
-                    services.AddControllers().AddApplicationPart(typeof(TStartup).Assembly);
+                    var mvcBuilder = services.AddControllers();
+                    foreach(var assembly in resourceAssemblies)
+                        mvcBuilder.AddApplicationPart(assembly);
 
                     //
                     // Calling `configure.UseStartup<TStartup>()` will replace our defaults, so call manually:

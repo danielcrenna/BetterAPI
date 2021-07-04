@@ -12,14 +12,16 @@ namespace BetterAPI.Caching
 {
     public class InProcessCache : InProcessCacheManager, ICache
     {
-        public InProcessCache(IOptions<CacheOptions> options, Func<DateTimeOffset> timestamps) : base(options,
-            timestamps)
-        {
-        }
+        public InProcessCache(IOptions<CacheOptions> options, Func<DateTimeOffset> timestamps) : base(options, timestamps) { }
 
         public void Remove(string key)
         {
             Cache.Remove(key);
+        }
+
+        public void RemoveAll(string prefix)
+        {
+            Clear(prefix);
         }
 
         private static bool Try(Action closure)
@@ -61,7 +63,7 @@ namespace BetterAPI.Caching
         }
 
         private static MemoryCacheEntryOptions CreateEntry(DateTimeOffset? absoluteExpiration = null,
-            TimeSpan? slidingExpiration = null, long? size = null, ICacheDependency dependency = null)
+            TimeSpan? slidingExpiration = null, long? size = null, ICacheDependency? dependency = null)
         {
             var policy = new MemoryCacheEntryOptions
             {
@@ -337,12 +339,12 @@ namespace BetterAPI.Caching
 
         #region Get
 
-        public object Get(string key, TimeSpan? timeout = null)
+        public object? Get(string key, TimeSpan? timeout = null)
         {
             return GetOrAdd(key, null, timeout);
         }
 
-        public object GetOrAdd(string key, Func<object> add = null, TimeSpan? timeout = null)
+        public object? GetOrAdd(string key, Func<object?>? add = null, TimeSpan? timeout = null)
         {
             var item = Cache.Get(key);
             if (item != null)
@@ -357,7 +359,7 @@ namespace BetterAPI.Caching
             return itemToAdd;
         }
 
-        public object GetOrAdd(string key, object add = null, TimeSpan? timeout = null)
+        public object? GetOrAdd(string key, object? add = null, TimeSpan? timeout = null)
         {
             return GetOrAdd(key, () => add, timeout);
         }
@@ -367,23 +369,24 @@ namespace BetterAPI.Caching
             return GetOrAdd<T>(key, null, timeout);
         }
 
-        public T GetOrAdd<T>(string key, Func<T> add = null, TimeSpan? timeout = null)
+        public T GetOrAdd<T>(string key, Func<T>? add = null, TimeSpan? timeout = null)
         {
             var item = Cache.Get(key) is T typed ? typed : default;
             if (item != null)
                 return item;
 
             if (add == null)
-                return default;
+                return default!;
 
             var itemToAdd = add();
+
             if (itemToAdd != null)
                 Add(key, itemToAdd);
 
             return itemToAdd;
         }
 
-        public T GetOrAdd<T>(string key, T add = default, TimeSpan? timeout = null)
+        public T GetOrAdd<T>(string key, T add = default!, TimeSpan? timeout = null)
         {
             return GetOrAdd(key, () => add, timeout);
         }
