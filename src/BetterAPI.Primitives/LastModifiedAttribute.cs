@@ -9,7 +9,5 @@ using System;
 namespace BetterAPI
 {
     [AttributeUsage(AttributeTargets.Property)]
-    public sealed class LastModifiedAttribute : Attribute
-    {
-    }
+    public sealed class LastModifiedAttribute : IndexAttribute { }
 }

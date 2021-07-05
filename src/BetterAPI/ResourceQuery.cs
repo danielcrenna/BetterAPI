@@ -25,5 +25,7 @@ namespace BetterAPI
         public List<string>? Fields { get; set; } = default;
         
         public string? SearchQuery { get; set; } = default;
+
+        public bool IncludeDeleted { get; set; } = false;
     }
 }

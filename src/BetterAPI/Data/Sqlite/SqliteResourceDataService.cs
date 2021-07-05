@@ -12,7 +12,6 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
-using BetterAPI.Caching;
 using BetterAPI.ChangeLog;
 using BetterAPI.Reflection;
 using Dapper;
@@ -41,7 +40,8 @@ namespace BetterAPI.Data.Sqlite
         public bool SupportsShaping => true;
         public bool SupportsSearch => true;
 
-        public SqliteResourceDataService(string filePath, int revision, ChangeLogBuilder changeLog, IStringLocalizer<SqliteResourceDataService<T>> localizer, ILogger<SqliteResourceDataService<T>> logger)
+        public SqliteResourceDataService(IStringLocalizer<SqliteResourceDataService<T>> localizer, string filePath,
+            int revision, ChangeLogBuilder changeLog, ILogger<SqliteResourceDataService<T>> logger)
         {
             _revision = revision;
             _changeLog = changeLog;
@@ -77,42 +77,93 @@ namespace BetterAPI.Data.Sqlite
             return result;
         }
         
-        public bool TryGetById(Guid id, out T? resource, CancellationToken cancellationToken)
+        public bool TryGetById(Guid id, out T? resource, out bool error, List<string>? fields, bool includeDeleted, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var db = OpenConnection();
+                var viewName = GetResourceName();
+                var result = db.QuerySingleOrDefault<T?>(SqliteBuilder.GetByIdSql(viewName, _members, fields, includeDeleted), new { Id = id });
+                resource = result;
+                error = false;
+                return resource != default;
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(ErrorEvents.ErrorRetrievingResource, e, _localizer.GetString("Error retrieving resource from SQLite"));
+                resource = default;
+                error = true;
+                return false;
+            }
+        }
+
+        public bool Exists(Guid id, bool includeDeleted, CancellationToken cancellationToken)
         {
             var db = OpenConnection();
             var viewName = GetResourceName();
-            var result = db.QuerySingleOrDefault<T?>(SqliteBuilder.GetById(viewName), new { Id = id });
-            resource = result;
-            return resource != default;
+            var result = db.QuerySingleOrDefault<int?>(SqliteBuilder.ExistsSql(viewName, includeDeleted), new { Id = id });
+            return result != default;
         }
 
-        public bool TryAdd(T model)
+        public bool TryAdd(T model, out bool error, CancellationToken cancellationToken)
         {
             var db = OpenConnection();
             var t = db.BeginTransaction();
 
             try
             {
-                InsertRecord(model, _revision, db, t);
+                InsertRecord(model, _revision, false, db, t);
                 t.Commit();
+                error = false;
                 return true;
             }
             catch (Exception e)
             {
                 t.Rollback();
                 _logger.LogError(ErrorEvents.ErrorSavingResource, e, _localizer.GetString("Error saving resource to SQLite"));
+                error = true;
                 return false;
             }
         }
-
-        public bool TryUpdate(T model)
+        
+        public bool TryUpdate(T previous, T next, out bool error, CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            var accessor = WriteAccessor.Create(next, AccessorMemberTypes.Properties, AccessorMemberScope.Public, out var members);
+
+            if(members == null || !members.TryGetValue(nameof(IResource.Id), out var idMember) || idMember.Type != typeof(Guid))
+                throw new NotSupportedException(_localizer.GetString("Currently, the data store only accepts entries that have a Guid 'Id' property"));
+
+            if(!accessor.TrySetValue(next, nameof(IResource.Id), previous.Id))
+                throw new NotSupportedException(_localizer.GetString("Could not set the resource's Guid 'Id' property"));
+
+            return TryAdd(next, out error, cancellationToken);
         }
 
-        public bool TryDeleteById(Guid id, out T? deleted, out bool error)
+        public bool TryDeleteById(Guid id, out T? deleted, out bool error, CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            if (!TryGetById(id, out deleted, out error, null, true, cancellationToken) || deleted == default)
+            {
+                deleted = default;
+                return false;
+            }
+
+            var db = OpenConnection();
+            var t = db.BeginTransaction();
+
+            try
+            {
+                InsertRecord(deleted, _revision, true, db, t);
+                t.Commit();
+                error = false;
+                return true;
+            }
+            catch (Exception e)
+            {
+                t.Rollback();
+                _logger.LogError(ErrorEvents.ErrorSavingResource, e, _localizer.GetString("Error saving resource to SQLite"));
+                error = true;
+                return false;
+            }
         }
         
         public string FilePath { get; }
@@ -199,10 +250,16 @@ namespace BetterAPI.Data.Sqlite
                     IndexMember(db, t, revision, member, true);
                 }
 
-                if (member.HasAttribute<IndexAttribute>() || member.HasAttribute<LastModifiedAttribute>())
+                if (member.HasAttribute<IndexAttribute>())
                 {
                     IndexMember(db, t, revision, member, false);
                 }
+            }
+
+            // FIXME: deal with user field name collisions
+            {
+                var sql = SqliteBuilder.CreateIndexSql(GetResourceName(), "IsDeleted", revision, false);
+                db.Execute(sql, transaction: t);
             }
 
             if (SupportsSearch)
@@ -245,15 +302,15 @@ namespace BetterAPI.Data.Sqlite
 
         private void IndexMember(IDbConnection db, IDbTransaction t, int revision, AccessorMember member, bool unique)
         {
-            var sql = SqliteBuilder.CreateIndexSql(GetResourceName(), member, revision, unique);
+            var sql = SqliteBuilder.CreateIndexSql(GetResourceName(), member.Name, revision, unique);
             db.Execute(sql, transaction: t);
         }
         
-        private void InsertRecord(T resource, int revision, IDbConnection db, IDbTransaction t)
+        private void InsertRecord(T resource, int revision, bool deleted, IDbConnection db, IDbTransaction t)
         {
             var sequence = GetNextSequence(revision, db, t);
             var viewName = GetResourceName();
-            var hash = SqliteBuilder.InsertSql(resource, viewName, _reads, _members, revision, sequence, out string sql);
+            var hash = SqliteBuilder.InsertSql(resource, viewName, _reads, _members, revision, sequence, deleted, out string sql);
             db.Execute(sql, hash, t);
         }
 

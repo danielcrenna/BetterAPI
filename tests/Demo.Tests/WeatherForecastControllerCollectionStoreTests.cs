@@ -5,7 +5,9 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 using System;
+using System.Threading;
 using BetterAPI.Data;
+using BetterAPI.Data.Sqlite;
 using BetterAPI.Sorting;
 using BetterAPI.Testing;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -15,7 +17,7 @@ using Xunit.Abstractions;
 namespace Demo.Tests
 {
     // ReSharper disable once UnusedMember.Global
-    public class WeatherForecastControllerCollectionStoreTests : GivenACollectionStore<MemoryResourceDataService<WeatherForecastV1>, WeatherForecastV1, Startup>
+    public class WeatherForecastControllerCollectionStoreTests : GivenACollectionStore<SqliteResourceDataService<WeatherForecastV1>, WeatherForecastV1, Startup>
     {
         public WeatherForecastControllerCollectionStoreTests(ITestOutputHelper output, WebApplicationFactory<Startup> factory) :
             base("/WeatherForecasts", output, factory)
@@ -30,7 +32,7 @@ namespace Demo.Tests
             return new SortClause {Field = nameof(WeatherForecastV1.Summary), Direction = SortDirection.Descending};
         }
 
-        public override void Populate(MemoryResourceDataService<WeatherForecastV1> service)
+        public override void Populate(SqliteResourceDataService<WeatherForecastV1> service)
         {
             Assert.True(service.TryAdd(new WeatherForecastV1
             {
@@ -38,7 +40,7 @@ namespace Demo.Tests
                 Date = DateTime.Now,
                 Summary = "Chilly",
                 TemperatureC = 0
-            }));
+            }, out _, CancellationToken.None));
 
             Assert.True(service.TryAdd(new WeatherForecastV1
             {
@@ -46,7 +48,7 @@ namespace Demo.Tests
                 Date = DateTime.Now,
                 Summary = "Scorching",
                 TemperatureC = 100
-            }));
+            }, out _, CancellationToken.None));
         }
     }
 }

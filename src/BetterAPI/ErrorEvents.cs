@@ -9,5 +9,6 @@ namespace BetterAPI
     public class ErrorEvents
     {
         public const int ErrorSavingResource = 5001;
+        public const int ErrorRetrievingResource = 5002;
     }
 }

@@ -9,5 +9,5 @@ using System;
 namespace BetterAPI
 {
     [AttributeUsage(AttributeTargets.Property)]
-    public sealed class IndexAttribute : Attribute { }
+    public class IndexAttribute : Attribute { }
 }

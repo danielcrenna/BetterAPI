@@ -6,7 +6,6 @@
 
 using System;
 using System.ComponentModel.DataAnnotations;
-using BetterAPI.Caching;
 
 namespace BetterAPI.Operations
 {
@@ -19,8 +18,5 @@ namespace BetterAPI.Operations
         public int Attempts { get; set; }
         public DateTimeOffset? LockedAt { get; set; }
         public string? LockedBy { get; set; }
-
-        [LastModified]
-        public DateTimeOffset CreatedAt { get; set; }
     }
 }

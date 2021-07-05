@@ -143,8 +143,7 @@ namespace BetterAPI
             });
 
             services.AddOpenApi(startupAssembly);
-
-
+            
             // FIXME: add cryptography options for startup
             services.AddInProcessCache();
             services.AddRemoteAddressFilter();

@@ -65,7 +65,12 @@ namespace BetterAPI.Data
         public static IServiceCollection AddSqliteResource<T>(this IServiceCollection services, int revision = 1, string? collectionName = default) where T : class, IResource
         {
             collectionName ??= typeof(T).Name.Pluralize().ToLowerInvariant();
-            services.TryAddSingleton(r => new SqliteResourceDataService<T>($"{collectionName}.db", revision, r.GetRequiredService<ChangeLogBuilder>(), r.GetRequiredService<IStringLocalizer<SqliteResourceDataService<T>>>(), r.GetRequiredService<ILogger<SqliteResourceDataService<T>>>()));
+
+            services.TryAddSingleton(r => new SqliteResourceDataService<T>(
+                r.GetRequiredService<IStringLocalizer<SqliteResourceDataService<T>>>(), $"{collectionName}.db",
+                revision, r.GetRequiredService<ChangeLogBuilder>(),
+                r.GetRequiredService<ILogger<SqliteResourceDataService<T>>>()));
+
             services.TryAddSingleton<IResourceDataService<T>>(r => r.GetRequiredService<SqliteResourceDataService<T>>());
             services.TryAddTransient<IResourceDataService>(r => r.GetRequiredService<SqliteResourceDataService<T>>());
             return services;

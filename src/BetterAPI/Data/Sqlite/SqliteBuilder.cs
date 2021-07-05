@@ -7,6 +7,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Text;
 using System.Text.RegularExpressions;
 using BetterAPI.Filtering;
 using BetterAPI.Reflection;
@@ -19,7 +20,7 @@ namespace BetterAPI.Data.Sqlite
         #region DML
 
         public static Dictionary<string, object> InsertSql<T>(T resource, string resourceName, ITypeReadAccessor reads,
-            AccessorMembers members, int revision, long? sequence, out string sql)
+            AccessorMembers members, int revision, long? sequence, bool deleted, out string sql)
         {
             if (resource == null)
                 throw new NullReferenceException();
@@ -45,6 +46,9 @@ namespace BetterAPI.Data.Sqlite
                     sb.Append("\"");
                 }
 
+                if (deleted)
+                    sb.Append(", \"IsDeleted\"");
+                
                 sb.Append(", \"Sequence\") VALUES (");
                 for (var i = 0; i < fields.Length; i++)
                 {
@@ -54,6 +58,9 @@ namespace BetterAPI.Data.Sqlite
                     sb.Append(":");
                     sb.Append(column.Name);
                 }
+
+                if(deleted)
+                    sb.Append(", 1");
 
                 sb.Append(", :Sequence)");
 
@@ -181,6 +188,32 @@ namespace BetterAPI.Data.Sqlite
                         sb.Append(' ');
                         sb.Append(ResolveColumnDefaultValue(column));
                     }
+                }
+
+                if (fields.Length > 0)
+                {
+                    sb.Append(',');
+                    sb.Append(' ');
+                }
+                
+                sb.Append('"');
+                sb.Append("CreatedAt");
+                sb.Append('"');
+                if (!fts)
+                {
+                    sb.Append(' ');
+                    sb.Append("INTEGER DEFAULT CURRENT_TIMESTAMP");
+                }
+
+                sb.Append(',');
+                sb.Append(' ');
+                sb.Append('"');
+                sb.Append("IsDeleted");
+                sb.Append('"');
+                if (!fts)
+                {
+                    sb.Append(' ');
+                    sb.Append("INTEGER DEFAULT 0");
                 }
 
                 // See: https://www.sqlite.org/lang_createtable.html#rowid
@@ -399,7 +432,10 @@ namespace BetterAPI.Data.Sqlite
                     sb.Append("\"");
                 }
 
+                sb.Append(", \"CreatedAt\"");
+                sb.Append(", \"IsDeleted\"");
                 sb.Append(", \"Sequence\") AS SELECT ");
+
                 for (var i = 0; i < fields.Length; i++)
                 {
                     if (i != 0)
@@ -410,7 +446,10 @@ namespace BetterAPI.Data.Sqlite
                     sb.Append("\"");
                 }
 
+                sb.Append(", \"CreatedAt\"");
+                sb.Append(", \"IsDeleted\"");
                 sb.Append(", \"Sequence\" FROM");
+
                 sb.Append(' ');
                 sb.Append('\"');
                 sb.Append(resource);
@@ -449,7 +488,10 @@ namespace BetterAPI.Data.Sqlite
                         j++;
                     }
 
+                    sb.Append(", \"CreatedAt\"");
+                    sb.Append(", \"IsDeleted\"");
                     sb.Append(", \"Sequence\" FROM \"");
+
                     sb.Append(entry.name);
                     sb.Append("\" ");
                 }
@@ -458,7 +500,7 @@ namespace BetterAPI.Data.Sqlite
             });
         }
 
-        public static string CreateIndexSql(string resource, AccessorMember member, int revision, bool unique)
+        public static string CreateIndexSql(string resource, string columnName, int revision, bool unique)
         {
             return Pooling.StringBuilderPool.Scoped(sb =>
             {
@@ -478,7 +520,7 @@ namespace BetterAPI.Data.Sqlite
                 sb.Append('V');
                 sb.Append(revision);
                 sb.Append("_");
-                sb.Append(member.Name);
+                sb.Append(columnName);
                 sb.Append('"');
                 sb.Append(' ');
                 sb.Append("ON");
@@ -488,7 +530,7 @@ namespace BetterAPI.Data.Sqlite
                 sb.Append(revision);
                 sb.Append('(');
                 sb.Append('"');
-                sb.Append(member.Name);
+                sb.Append(columnName);
                 sb.Append('"');
                 sb.Append(')');
                 sb.Append(';');
@@ -499,9 +541,87 @@ namespace BetterAPI.Data.Sqlite
 
         #region Queries
 
-        public static string GetById(string resource)
+        public static string GetByIdSql(string resource, AccessorMembers members, List<string>? fields, bool includeDeleted)
         {
-            return $"SELECT * FROM \"{resource}\" WHERE \"{nameof(IResource.Id)}\" = :Id";
+            // FIXME: missing field selections
+            return Pooling.StringBuilderPool.Scoped(sb =>
+            {
+                sb.Append(!includeDeleted
+                    ? SelectFromSql(resource, fields, members, true)
+                    : SelectTopFromSql(resource, 1, fields, members, true));
+                
+                sb.Append(' ');
+                sb.Append("WHERE");
+                sb.Append(' ');
+                sb.Append('"');
+                sb.Append(nameof(IResource.Id));
+                sb.Append('"');
+                sb.Append(' ');
+                sb.Append('=');
+                sb.Append(' ');
+                sb.Append(':');
+                sb.Append(nameof(IResource.Id));
+                sb.Append(' ');
+
+                if (!includeDeleted)
+                {
+                    sb.Append("AND");
+                    sb.Append(' ');
+                    sb.Append('"');
+                    sb.Append("IsDeleted");
+                    sb.Append('"');
+                    sb.Append(' ');
+                    sb.Append('=');
+                    sb.Append('0');
+                    sb.Append(' ');
+                }
+
+                sb.Append("ORDER");
+                sb.Append(' ');
+                sb.Append("BY");
+                sb.Append(' ');
+                sb.Append('"');
+                sb.Append("Sequence");
+                sb.Append('"');
+                sb.Append(' ');
+                sb.Append("DESC");
+            });
+        }
+
+        public static string ExistsSql(string resource, bool includeDeleted)
+        {
+            // FIXME: missing field selections
+            return Pooling.StringBuilderPool.Scoped(sb =>
+            {
+                // SELECT EXISTS(SELECT 1 FROM myTbl WHERE u_tag="tag");
+                sb.Append("SELECT");
+                sb.Append(' ');
+                sb.Append("EXISTS");
+                sb.Append(' ');
+                sb.Append('(');
+
+                sb.Append("SELECT");
+                sb.Append(' ');
+                sb.Append('1');
+                sb.Append(' ');
+                sb.Append("FROM");
+                sb.Append(' ');
+                sb.Append('"');
+                sb.Append(resource);
+                sb.Append('"');
+                sb.Append(' ');
+                sb.Append("WHERE");
+                sb.Append(' ');
+                sb.Append('"');
+                sb.Append(nameof(IResource.Id));
+                sb.Append('"');
+                sb.Append(' ');
+                sb.Append('=');
+                sb.Append(' ');
+                sb.Append(':');
+                sb.Append(nameof(IResource.Id));
+                sb.Append(')');
+            });
         }
 
         public static string GetTableInfo()
@@ -530,9 +650,27 @@ namespace BetterAPI.Data.Sqlite
             {
                 sb.Append(isSearch
                     ? SearchSql(resource, query, members)
-                    : SelectFromSql(resource, query, members, false));
+                    : SelectFromSql(resource, query.Fields, members, false));
 
                 sb.Append(' ');
+
+                // FIXME: group by ID and select most recent row
+                // FIXME: prevent zombie rows, as deletes are filtered out
+
+                if (!query.IncludeDeleted)
+                {
+                    sb.Append("WHERE");
+                    sb.Append(' ');
+                    sb.Append('"');
+                    sb.Append("IsDeleted");
+                    sb.Append('"');
+                    sb.Append(' ');
+                    sb.Append('=');
+                    sb.Append(' ');
+                    sb.Append('0');
+                    sb.Append(' ');
+                    hasWhere = true;
+                }
 
                 if (query.Filters != default)
                 {
@@ -606,7 +744,7 @@ namespace BetterAPI.Data.Sqlite
 
             return Pooling.StringBuilderPool.Scoped(sb =>
             {
-                sb.Append(SelectFromSql(resource, query, members, true));
+                sb.Append(SelectFromSql(resource, query.Fields, members, true));
                 sb.Append(' ');
                 sb.Append("WHERE");
                 sb.Append(' ');
@@ -659,46 +797,67 @@ namespace BetterAPI.Data.Sqlite
             });
         }
 
-        public static string SelectFromSql(string resource, ResourceQuery query, AccessorMembers members, bool fts)
+        public static string SelectFromSql(string resource, List<string>? fields, AccessorMembers members, bool fts)
         {
             return Pooling.StringBuilderPool.Scoped(sb =>
             {
-                sb.Append("SELECT ");
-
-                if (query.Fields == null)
-                {
-                    sb.Append('*');
-                }
-                else
-                {
-                    var count = 0;
-                    foreach (var field in query.Fields)
-                    {
-                        if (!members.TryGetValue(field, out var member))
-                            continue;
-
-                        if (count != 0)
-                            sb.Append(", ");
-                        sb.Append('"');
-                        sb.Append(member.Name);
-                        sb.Append('"');
-                        count++;
-                    }
-                }
-
+                sb.Append("SELECT");
                 sb.Append(' ');
-                sb.Append("FROM");
-                sb.Append(' ');
-                sb.Append('"');
-                sb.Append(resource);
-                if (fts)
-                {
-                    sb.Append('_');
-                    sb.Append("Search");
-                }
 
-                sb.Append('"');
+                SelectFieldsFromSql(resource, fields, members, fts, sb);
             });
+        }
+
+        public static string SelectTopFromSql(string resource, int n, List<string>? fields, AccessorMembers members, bool fts)
+        {
+            return Pooling.StringBuilderPool.Scoped(sb =>
+            {
+                sb.Append("SELECT");
+                sb.Append(' ');
+                sb.Append("TOP");
+                sb.Append(' ');
+                sb.Append(n);
+                sb.Append(' ');
+
+                SelectFieldsFromSql(resource, fields, members, fts, sb);
+            });
+        }
+
+        private static void SelectFieldsFromSql(string resource, IReadOnlyCollection<string>? fields, AccessorMembers members, bool fts, StringBuilder sb)
+        {
+            if (fields == null)
+            {
+                sb.Append('*');
+            }
+            else
+            {
+                var count = 0;
+                foreach (var field in fields)
+                {
+                    if (!members.TryGetValue(field, out var member))
+                        continue;
+
+                    if (count != 0)
+                        sb.Append(", ");
+                    sb.Append('"');
+                    sb.Append(member.Name);
+                    sb.Append('"');
+                    count++;
+                }
+            }
+
+            sb.Append(' ');
+            sb.Append("FROM");
+            sb.Append(' ');
+            sb.Append('"');
+            sb.Append(resource);
+            if (fts)
+            {
+                sb.Append('_');
+                sb.Append("Search");
+            }
+
+            sb.Append('"');
         }
 
         public static string OrderBySql(ResourceQuery query)
@@ -707,7 +866,10 @@ namespace BetterAPI.Data.Sqlite
             {
                 if (query.Sorting != default && query.Sorting.Count > 0)
                 {
-                    sb.Append("ORDER BY ");
+                    sb.Append("ORDER");
+                    sb.Append(' ');
+                    sb.Append("BY");
+                    sb.Append(' ');
 
                     var count = 0;
                     foreach (var (member, direction) in query.Sorting)

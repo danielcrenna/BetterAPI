@@ -7,7 +7,6 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
-using BetterAPI.Data.Sqlite;
 
 namespace BetterAPI.Data
 {
@@ -37,9 +36,10 @@ namespace BetterAPI.Data
         where T : class, IResource
     {
         IEnumerable<T> Get(ResourceQuery query, CancellationToken cancellationToken);
-        bool TryGetById(Guid id, out T? resource, CancellationToken cancellationToken);
-        bool TryAdd(T model);
-        bool TryUpdate(T model);
-        bool TryDeleteById(Guid id, out T? deleted, out bool error);
+
+        bool TryGetById(Guid id, out T? resource, out bool error, List<string>? fields, bool includeDeleted, CancellationToken cancellationToken);
+        bool TryAdd(T model, out bool error, CancellationToken cancellationToken);
+        bool TryUpdate(T previous, T next, out bool error, CancellationToken cancellationToken);
+        bool TryDeleteById(Guid id, out T? deleted, out bool error, CancellationToken cancellationToken);
     }
 }

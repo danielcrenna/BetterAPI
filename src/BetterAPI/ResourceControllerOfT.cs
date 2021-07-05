@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using BetterAPI.Caching;
@@ -131,7 +130,7 @@ namespace BetterAPI
             return Ok(results);
         }
 
-        private static bool BuildResourceQuery(IResourceDataService service, HttpContext context, IOptionsSnapshot<ApiOptions> options, out ResourceQuery query)
+        private static bool BuildResourceQuery(IResourceDataService service, HttpContext context, IOptions<ApiOptions> options, out ResourceQuery query)
         {
             query = new ResourceQuery();
 
@@ -279,7 +278,16 @@ namespace BetterAPI
         [Display(Description = "Returns a resource by its unique ID")]
         public IActionResult GetById(Guid id, CancellationToken cancellationToken)
         {
-            if (!_service.TryGetById(id, out var model, cancellationToken))
+            List<string>? fields = default;
+
+            if (_service.SupportsShaping && HttpContext.Items.TryGetValue(Constants.ShapingOperationContextKey, out var shapingValue) &&
+                shapingValue is List<string> include)
+            {
+                fields = include;
+                HttpContext.Items.Remove(Constants.ShapingOperationContextKey);
+            }
+
+            if (!_service.TryGetById(id, out var model, out _, fields, true, cancellationToken))
                 return NotFound();
 
             return Ok(model);
@@ -304,7 +312,7 @@ namespace BetterAPI
                 }
 
             // Save a database call if the server set the ID
-            if (!uninitialized && _service.TryGetById(model.Id, out var other, cancellationToken))
+            if (!uninitialized && _service.TryGetById(model.Id, out var other, out _, null, false, cancellationToken))
             {
                 if (other != null)
                 {
@@ -356,7 +364,7 @@ namespace BetterAPI
             //        It is unlikely to occur in real life, but technically we should know what the ETag is before we attempt this,
             //        but the LastModifiedDate would always be 'now' since we're not expecting anything to exist.
 
-            if (!_service.TryAdd(model))
+            if (!_service.TryAdd(model, out _, cancellationToken))
             {
                 Logger.LogError(ErrorEvents.ErrorSavingResource, _localizer.GetString("Adding resource {Model} failed to save to the underlying data store."), model);
                 return InternalServerErrorWithDetails("An unexpected error occurred saving this resource. An error was logged. Please try again later.");
@@ -387,14 +395,13 @@ namespace BetterAPI
                 return BadRequest("This resource's ID is uninitialized. Did you mean to create it?");
             }
 
-            // Save a database call if the server set the ID
-            if (!_service.TryGetById(id, out _, cancellationToken))
+            if (!_service.TryGetById(id, out var previous, out _, null, false, cancellationToken) || previous == default)
             {
                 Response.Headers.TryAdd(HeaderNames.Location, $"{Request.Path}");
                 return NotFoundWithDetails("This resource doesn't exist. Did you mean to create it?");
             }
 
-            if (!_service.TryUpdate(model))
+            if (!_service.TryUpdate(previous, model, out _, cancellationToken))
             {
                 Logger.LogError(ErrorEvents.ErrorSavingResource, _localizer.GetString("Updating resource {Model} failed to save to the underlying data store."), model);
                 return InternalServerErrorWithDetails("An unexpected error occurred saving this resource. An error was logged. Please try again later.");
@@ -429,9 +436,9 @@ namespace BetterAPI
 
         [HttpDelete("{id}")]
         [Display(Description = "Deletes a resource by its unique ID")]
-        public IActionResult DeleteById(Guid id)
+        public IActionResult DeleteById(Guid id, CancellationToken cancellationToken)
         {
-            if(_service.TryDeleteById(id, out var deleted, out var error))
+            if(_service.TryDeleteById(id, out var deleted, out var error, cancellationToken))
             {
                 return Ok(deleted);
             }
@@ -496,7 +503,7 @@ namespace BetterAPI
         [NonAction]
         private IActionResult MergePatch(Guid id, JsonMergePatch<T> model, CancellationToken cancellationToken)
         {
-            if (!_service.TryGetById(id, out var resource, cancellationToken) || resource == default)
+            if (!_service.TryGetById(id, out var resource, out _, null, false, cancellationToken) || resource == default)
                 return NotFound();
 
             ModelState.Clear();
@@ -515,7 +522,7 @@ namespace BetterAPI
         [NonAction]
         public IActionResult JsonPatch([FromRoute] Guid id, [FromBody] JsonPatch model, CancellationToken cancellationToken)
         {
-            if (!_service.TryGetById(id, out var resource, cancellationToken) || resource == default)
+            if (!_service.TryGetById(id, out var resource, out _, null, false, cancellationToken) || resource == default)
                 return NotFound();
 
             ModelState.Clear();

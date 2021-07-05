@@ -39,7 +39,7 @@ namespace BetterAPI.Operations
 
         public Task<Operation?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
         {
-            if (_service.TryGetById(id, out var operation, cancellationToken))
+            if (_service.TryGetById(id, out var operation, out _, null, false, cancellationToken))
                 return Task.FromResult(operation);
 
             return Task.FromResult((Operation?) null);
